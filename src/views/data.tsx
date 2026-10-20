@@ -2,7 +2,7 @@
 
 import { useSignal } from "@preact/signals";
 import { downloadYear, importYear, readJsonFile } from "../backup";
-import { persistState, refreshYears, years } from "../state";
+import { current, openYear, persistState, years } from "../state";
 import { daysSince } from "../storage";
 import { validateYearFile } from "../validate";
 
@@ -45,7 +45,7 @@ export function DataView() {
       }
       await importYear(data);
       message.value = `Imported ${year} from "${file.name}".`;
-      await refreshYears();
+      await openYear(year);
     } catch (err) {
       message.value = err instanceof Error ? err.message : String(err);
     }
@@ -53,7 +53,8 @@ export function DataView() {
 
   async function onExport(year: number) {
     await downloadYear(year);
-    await refreshYears();
+    // Reload so the open year has the new backup time too.
+    await openYear(current.value?.setup.year);
   }
 
   return (

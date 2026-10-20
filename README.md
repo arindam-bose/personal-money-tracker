@@ -22,10 +22,22 @@ npm run build      # static site in dist/
 - `src/validate.ts`: checks an imported JSON file before anything is stored.
 - `src/db.ts`: IndexedDB storage.
 - `src/backup.ts`: JSON import and export.
+- `src/derive.ts`: every computed figure (totals, balances, rates). Nothing computed is stored.
+- `src/entries.ts`: entry-form logic: drafts, validation, transfer-category suggestion.
+- `src/state.ts`: the open year as Preact signals, and the actions that change it.
 - `src/views/`: Preact views.
 - `tools/`: Python scripts that convert a Notion export (`notion_import.py`) and check
   the result against Notion's own totals (`verify.py`).
 - `tests/fixtures/`: synthetic data only.
+
+## Ledger shortcuts
+
+- <kbd>E</kbd> / <kbd>I</kbd> / <kbd>T</kbd>: add an expense, earning or transfer
+- <kbd>/</kbd>: search
+- In the form: <kbd>Enter</kbd> saves (from any field), <kbd>Esc</kbd> closes. After adding,
+  the form stays open with the same date and accounts for the next entry.
+- In the tags box: <kbd>Enter</kbd> or <kbd>,</kbd> adds a tag (a new name creates it),
+  <kbd>Backspace</kbd> removes the last one.
 
 ## Privacy
 

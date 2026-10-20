@@ -26,7 +26,7 @@ function isCents(v: unknown): v is number {
 }
 
 /** A real calendar date in the given year, as "YYYY-MM-DD". */
-function isDateInYear(v: unknown, year: number): boolean {
+export function isDateInYear(v: unknown, year: number): boolean {
   if (typeof v !== "string" || !/^\d{4}-\d{2}-\d{2}$/.test(v)) return false;
   const d = new Date(v + "T00:00:00Z");
   return d.toISOString().slice(0, 10) === v && d.getUTCFullYear() === year;

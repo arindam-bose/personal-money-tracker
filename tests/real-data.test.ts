@@ -6,6 +6,7 @@ import { fileURLToPath } from "node:url";
 import { beforeEach, describe, expect, it } from "vitest";
 import { exportYear, importYear } from "../src/backup";
 import { accountsOverview, balances, summarize, tagTotal, type Ledger, type Summary } from "../src/derive";
+import { checkDraft, draftFrom, type AnyEntry } from "../src/entries";
 import { validateYearFile } from "../src/validate";
 import { freshDb, loadJson } from "./helpers";
 import { notionCents, readNotionTable } from "./notion";
@@ -30,6 +31,22 @@ describe.skipIf(!present)("real 2026 data", () => {
     expect(out.earnings).toHaveLength(97);
     expect(out.transfers).toHaveLength(264);
     expect({ ...out, exportedAt: "" }).toEqual({ ...file, exportedAt: "" });
+  });
+
+  it("every entry opens in the form and saves back unchanged", () => {
+    const file = loadJson(PATH);
+    const setup = { ...file, people: file.people ?? [] };
+    const all: AnyEntry[] = [
+      ...file.expenses.map((entry) => ({ kind: "expense" as const, entry })),
+      ...file.earnings.map((entry) => ({ kind: "earning" as const, entry })),
+      ...file.transfers.map((entry) => ({ kind: "transfer" as const, entry })),
+    ];
+    const changed = all
+      .filter((e) => e.entry.amount > 0) // a $0 entry must be fixed before it can be saved
+      // JSON text, not deep equality, so the key order has to match the importer's too.
+      .filter((e) => JSON.stringify(checkDraft(draftFrom(e), setup, "unused")) !== JSON.stringify({ ok: true, entry: e }))
+      .map((e) => e.entry.id);
+    expect(changed).toEqual([]);
   });
 });
 

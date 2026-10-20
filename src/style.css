@@ -7,6 +7,11 @@
   --accent: #2f6f4f;
   --accent-text: #ffffff;
   --danger: #b3261e;
+  --expense: #b3261e;
+  --earning: #2f7d4f;
+  --transfer: #5b6b7f;
+  --row-hover: #f1f1ed;
+  --focus: #2f6f4f55;
   font-family: system-ui, -apple-system, "Segoe UI", Roboto, sans-serif;
   font-size: 15px;
   color: var(--text);
@@ -24,6 +29,11 @@
     --accent: #5fae86;
     --accent-text: #0d1f16;
     --danger: #f2827a;
+    --expense: #f2827a;
+    --earning: #6fcf97;
+    --transfer: #93a3b8;
+    --row-hover: #26262a;
+    --focus: #5fae8666;
   }
 }
 
@@ -43,11 +53,45 @@ body {
 
 .topbar h1 {
   font-size: 17px;
-  margin: 0;
+  margin: 0 24px 0 0;
+}
+
+.topbar nav {
+  display: flex;
+  gap: 4px;
+}
+
+.topbar nav a {
+  padding: 6px 12px;
+  border-radius: 6px;
+  color: var(--muted);
+  text-decoration: none;
+}
+
+.topbar nav a:hover {
+  color: var(--text);
+}
+
+.topbar nav a.active {
+  color: var(--text);
+  background: var(--bg);
+  font-weight: 600;
+}
+
+.topbar-right {
+  margin-left: auto;
+  display: flex;
+  align-items: center;
+  gap: 12px;
+}
+
+.backup-nag {
+  color: var(--danger);
+  font-size: 13px;
 }
 
 main {
-  max-width: 1100px;
+  max-width: 1280px;
   margin: 24px auto;
   padding: 0 24px;
 }
@@ -127,4 +171,294 @@ button:hover,
 .errors {
   color: var(--danger);
   font-size: 14px;
+}
+
+input,
+select {
+  font: inherit;
+  color: var(--text);
+  background: var(--surface);
+  border: 1px solid var(--border);
+  border-radius: 6px;
+  padding: 5px 8px;
+  min-width: 0;
+}
+
+input:focus-visible,
+select:focus-visible,
+button:focus-visible,
+tr:focus-visible {
+  outline: 2px solid var(--focus);
+  outline-offset: 1px;
+}
+
+button.primary {
+  background: var(--accent);
+  border-color: var(--accent);
+  color: var(--accent-text);
+}
+
+button.danger {
+  color: var(--danger);
+}
+
+button.link {
+  border: none;
+  background: none;
+  color: var(--accent);
+  padding: 4px;
+}
+
+kbd {
+  font: 11px ui-monospace, monospace;
+  padding: 0 4px;
+  margin-left: 4px;
+  border: 1px solid var(--border);
+  border-radius: 3px;
+  color: var(--muted);
+}
+
+/* --- Ledger --- */
+
+.toolbar {
+  display: flex;
+  gap: 8px;
+  margin-bottom: 16px;
+}
+
+.add-expense { border-left: 3px solid var(--expense); }
+.add-earning { border-left: 3px solid var(--earning); }
+.add-transfer { border-left: 3px solid var(--transfer); }
+
+.filters {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+  align-items: center;
+  margin-bottom: 10px;
+}
+
+.filters input[type="search"] {
+  width: 200px;
+}
+
+.totals {
+  display: flex;
+  gap: 20px;
+  font-size: 13px;
+  color: var(--muted);
+  padding: 6px 2px;
+}
+
+.totals b {
+  color: var(--text);
+  font-variant-numeric: tabular-nums;
+}
+
+.totals b.neg { color: var(--expense); }
+.totals b.pos { color: var(--earning); }
+
+table.entries {
+  width: 100%;
+  border-collapse: collapse;
+  table-layout: fixed;
+  background: var(--surface);
+  border: 1px solid var(--border);
+  border-radius: 8px;
+}
+
+table.entries th {
+  text-align: left;
+  font-size: 12px;
+  font-weight: 600;
+  color: var(--muted);
+  padding: 8px 10px;
+  border-bottom: 1px solid var(--border);
+  position: sticky;
+  top: 0;
+  background: var(--surface);
+}
+
+table.entries td {
+  padding: 6px 10px;
+  border-bottom: 1px solid var(--border);
+  vertical-align: top;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+table.entries tbody tr {
+  cursor: pointer;
+}
+
+table.entries tbody tr:hover {
+  background: var(--row-hover);
+}
+
+.c-date { width: 64px; color: var(--muted); }
+.c-cat { width: 180px; }
+.c-account { width: 320px; }
+.c-tags { width: 200px; }
+.c-amount { width: 120px; }
+
+.c-item .item,
+.c-item .notes {
+  display: block;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.c-item .notes {
+  font-size: 12px;
+  color: var(--muted);
+}
+
+.kind-dot {
+  display: inline-block;
+  width: 8px;
+  height: 8px;
+  border-radius: 50%;
+  margin-right: 8px;
+  vertical-align: 1px;
+}
+
+.dot-expense { background: var(--expense); }
+.dot-earning { background: var(--earning); }
+.dot-transfer { background: var(--transfer); }
+
+.amt-expense { color: var(--text); }
+.amt-earning { color: var(--earning); }
+
+/* Transfers move money without spending it: muted throughout. */
+tr.row-transfer td {
+  color: var(--transfer);
+}
+
+.chip {
+  display: inline-flex;
+  align-items: center;
+  gap: 2px;
+  font-size: 12px;
+  padding: 0 6px;
+  margin: 1px 4px 1px 0;
+  border-radius: 10px;
+  background: var(--bg);
+  border: 1px solid var(--border);
+  white-space: nowrap;
+}
+
+.chip.owed {
+  border-color: var(--accent);
+}
+
+.chip button {
+  border: none;
+  background: none;
+  padding: 0 2px;
+  color: var(--muted);
+  line-height: 1;
+}
+
+.empty {
+  text-align: center;
+  padding: 24px;
+}
+
+/* --- Entry form --- */
+
+.entry-form {
+  background: var(--surface);
+  border: 1px solid var(--border);
+  border-left: 4px solid var(--expense);
+  border-radius: 8px;
+  padding: 12px 16px 16px;
+  margin-bottom: 16px;
+}
+
+.entry-form.kind-earning { border-left-color: var(--earning); }
+.entry-form.kind-transfer { border-left-color: var(--transfer); }
+
+.kind-tabs {
+  display: flex;
+  gap: 4px;
+  align-items: center;
+  margin-bottom: 12px;
+}
+
+.kind-tabs button.active {
+  background: var(--bg);
+  font-weight: 600;
+}
+
+.kind-tabs .hint {
+  margin-left: auto;
+  font-size: 12px;
+}
+
+.fields {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 12px;
+  margin-bottom: 10px;
+}
+
+.field {
+  display: flex;
+  flex-direction: column;
+  gap: 3px;
+}
+
+.field-label {
+  font-size: 12px;
+  color: var(--muted);
+}
+
+.field-error {
+  font-size: 12px;
+  color: var(--danger);
+}
+
+.field.has-error input,
+.field.has-error select,
+.field.has-error .tag-picker {
+  border-color: var(--danger);
+}
+
+.w-date { width: 150px; }
+.w-item { flex: 1 1 240px; }
+.w-amount { width: 110px; }
+.w-account { width: 200px; }
+.w-cat { width: 210px; }
+.w-tags { flex: 1 1 300px; }
+.w-person { width: 200px; }
+.w-notes { flex: 1 1 100%; }
+
+.tag-picker {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  border: 1px solid var(--border);
+  border-radius: 6px;
+  padding: 2px 4px;
+  min-height: 32px;
+  box-sizing: border-box;
+}
+
+.tag-picker input {
+  border: none;
+  flex: 1;
+  min-width: 80px;
+  padding: 3px 4px;
+}
+
+.form-actions {
+  display: flex;
+  gap: 8px;
+  align-items: center;
+}
+
+.saved {
+  color: var(--earning);
+  font-size: 13px;
 }
