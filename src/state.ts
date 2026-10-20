@@ -4,6 +4,7 @@
 
 import { computed, signal } from "@preact/signals";
 import { deleteEntry, getSetting, listYears, loadYear, putEntry, putSetup, setSetting, type YearData } from "./db";
+import type { Ledger } from "./derive";
 import { ID_PREFIX, STORE, newId, slug, type AnyEntry, type Kind } from "./entries";
 import type { PersistState } from "./storage";
 import type { YearSetup } from "./types";
@@ -25,6 +26,33 @@ export const current = signal<YearData | null>(null);
 
 /** A closed year can be looked at but not changed. */
 export const readOnly = computed(() => current.value?.setup.closed === true);
+
+/** The open year in the shape the calculations in derive.ts take. */
+export const ledger = computed<Ledger | null>(() => {
+  const d = current.value;
+  return d && { ...d, accounts: d.setup.accounts, categories: d.setup.categories };
+});
+
+/** Default annual IRA contribution limit: $7,500. Change it on the Data page. */
+export const DEFAULT_IRA_LIMIT = 750000;
+
+export const iraLimit = signal<number>(DEFAULT_IRA_LIMIT);
+export const pinnedTags = signal<string[]>([]);
+
+export async function loadSettings(): Promise<void> {
+  iraLimit.value = (await getSetting("iraLimit")) ?? DEFAULT_IRA_LIMIT;
+  pinnedTags.value = (await getSetting("pinnedTags")) ?? [];
+}
+
+export async function saveIraLimit(cents: number): Promise<void> {
+  await setSetting("iraLimit", cents);
+  iraLimit.value = cents;
+}
+
+export async function savePinnedTags(ids: string[]): Promise<void> {
+  await setSetting("pinnedTags", ids);
+  pinnedTags.value = ids;
+}
 
 export async function refreshYears(): Promise<void> {
   const setups = await listYears();

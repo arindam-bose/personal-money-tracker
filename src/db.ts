@@ -38,6 +38,8 @@ export interface Settings {
   iraLimit: number;
   /** The year the app opens to. */
   activeYear: number;
+  /** Tag ids whose totals show on the dashboard (e.g. "t_india"). */
+  pinnedTags: string[];
 }
 
 // --- Small promise wrappers around the callback-style IndexedDB API ---

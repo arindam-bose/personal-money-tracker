@@ -2,7 +2,8 @@
 
 import { useSignal } from "@preact/signals";
 import { downloadYear, importYear, readJsonFile } from "../backup";
-import { current, openYear, persistState, years } from "../state";
+import { formatCents, parseCents } from "../money";
+import { current, iraLimit, openYear, persistState, saveIraLimit, years } from "../state";
 import { daysSince } from "../storage";
 import { validateYearFile } from "../validate";
 
@@ -58,6 +59,7 @@ export function DataView() {
   }
 
   return (
+    <>
     <section class="panel">
       <h2>Your data</h2>
       {persistState.value && <p class="muted">{PERSIST_TEXT[persistState.value]}</p>}
@@ -112,6 +114,40 @@ export function DataView() {
           {errors.value.length > 50 && <li>…and {errors.value.length - 50} more.</li>}
         </ul>
       )}
+    </section>
+    <Settings />
+    </>
+  );
+}
+
+function Settings() {
+  const text = useSignal(formatCents(iraLimit.value).replace(/[$,]/g, ""));
+  const note = useSignal<string | null>(null);
+
+  async function onSave(e: Event) {
+    e.preventDefault();
+    const cents = parseCents(text.value);
+    if (cents === null) {
+      note.value = "Enter an amount like 7500.";
+      return;
+    }
+    await saveIraLimit(cents);
+    note.value = `Saved: ${formatCents(cents)} a year.`;
+  }
+
+  return (
+    <section class="panel settings">
+      <h2>Settings</h2>
+      <form onSubmit={onSave} class="setting-row">
+        <label class="field">
+          <span class="field-label">Annual IRA contribution limit</span>
+          <input type="text" inputMode="decimal" class="num" value={text.value}
+            onInput={(e) => { text.value = e.currentTarget.value; note.value = null; }} />
+        </label>
+        <button type="submit">Save</button>
+        {note.value && <span class="muted" role="status">{note.value}</span>}
+      </form>
+      <p class="muted small">The dashboard shows how much of this is left after this year's retirement transfers.</p>
     </section>
   );
 }

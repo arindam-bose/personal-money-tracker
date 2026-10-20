@@ -300,3 +300,135 @@ export function receivables(ledger: Ledger): Map<string, Cents> {
   }
   return out;
 }
+
+// --- Report series ---
+
+/** Gross spending per expense category id, for each month (index 0 = January). */
+export function spendingByMonth(ledger: Ledger): Map<string, Cents[]> {
+  const out = new Map<string, Cents[]>(ledger.categories.expense.map((c) => [c.id, new Array<Cents>(12).fill(0)]));
+  for (const e of ledger.expenses) {
+    let row = out.get(e.cat);
+    if (!row) out.set(e.cat, (row = new Array<Cents>(12).fill(0)));
+    row[Number(e.date.slice(5, 7)) - 1]! += e.amount;
+  }
+  return out;
+}
+
+/** "YYYY-MM-DD" for a UTC date. */
+function iso(d: Date): IsoDate {
+  return d.toISOString().slice(0, 10);
+}
+
+/**
+ * The Monday-to-Sunday weeks that cover a year. The first week starts on the Monday
+ * on or before January 1, the last ends on the Sunday on or after December 31.
+ */
+export function weeksOf(year: number): { start: IsoDate; end: IsoDate }[] {
+  const jan1 = new Date(Date.UTC(year, 0, 1));
+  const monday = new Date(jan1);
+  monday.setUTCDate(jan1.getUTCDate() - ((jan1.getUTCDay() + 6) % 7));
+  const weeks: { start: IsoDate; end: IsoDate }[] = [];
+  for (const d = monday; d.getUTCFullYear() <= year; d.setUTCDate(d.getUTCDate() + 7)) {
+    const end = new Date(d);
+    end.setUTCDate(d.getUTCDate() + 6);
+    weeks.push({ start: iso(d), end: iso(end) });
+  }
+  return weeks;
+}
+
+export interface WeekSpend {
+  start: IsoDate;
+  end: IsoDate;
+  bySource: Record<SpendSource, Cents>;
+}
+
+/** Spending per week of the year, split by where the money came from. */
+export function weeklySpending(ledger: Ledger, year: number): WeekSpend[] {
+  const weeks: WeekSpend[] = weeksOf(year).map((w) => ({ ...w, bySource: { bank: 0, card: 0, cash: 0 } }));
+  const accountType = new Map(ledger.accounts.map((a) => [a.id, a.type]));
+  for (const e of ledger.expenses) {
+    const week = weeks.find((w) => e.date >= w.start && e.date <= w.end);
+    if (week) week.bySource[spendSource(accountType.get(e.account) ?? "checking")] += e.amount;
+  }
+  return weeks;
+}
+
+export interface BalancePoint {
+  date: IsoDate;
+  availableCash: Cents;
+  cardDebt: Cents;
+  /** Contributions to investment accounts so far this year. */
+  invested: Cents;
+}
+
+/** Account totals at the end of each given day. */
+export function balanceSeries(ledger: Ledger, dates: IsoDate[]): BalancePoint[] {
+  return dates.map((date) => {
+    const o = accountsOverview(ledger, date);
+    let invested = 0;
+    for (const v of o.invested.values()) invested += v;
+    return { date, availableCash: o.availableCash, cardDebt: o.cardDebt, invested };
+  });
+}
+
+// --- Money flow (Sankey) ---
+
+export type FlowGroup = "income" | "hub" | "spending" | "savings" | "investment" | "balance";
+
+export interface FlowNode {
+  id: string;
+  name: string;
+  group: FlowGroup;
+}
+
+export interface FlowLink {
+  source: string;
+  target: string;
+  value: Cents;
+}
+
+export interface MoneyFlow {
+  nodes: FlowNode[];
+  links: FlowLink[];
+}
+
+/**
+ * Where the money came from and where it went, through one "Income" hub:
+ *   earning categories ─┐                ┌─ expense categories
+ *   taken from savings ─┼─▶  Income  ─▶ ├─ savings, investments
+ *   drawn from balances ┘                └─ left over in accounts
+ * Transfers between your own accounts (card payments, cash withdrawals) don't appear:
+ * they move money without earning or spending it. Inflows always equal outflows.
+ */
+export function moneyFlow(ledger: Ledger, month?: number): MoneyFlow {
+  const s = summarize(ledger, month);
+  const nodes: FlowNode[] = [{ id: "hub", name: "Income", group: "hub" }];
+  const links: FlowLink[] = [];
+  const into = (id: string, name: string, group: FlowGroup, value: Cents) => {
+    if (value <= 0) return;
+    nodes.push({ id, name, group });
+    links.push({ source: id, target: "hub", value });
+  };
+  const outOf = (id: string, name: string, group: FlowGroup, value: Cents) => {
+    if (value <= 0) return;
+    nodes.push({ id, name, group });
+    links.push({ source: "hub", target: id, value });
+  };
+
+  const earnedBy = new Map<string, Cents>();
+  for (const i of ledger.earnings) if (inMonth(i.date, month)) earnedBy.set(i.cat, (earnedBy.get(i.cat) ?? 0) + i.amount);
+  for (const c of ledger.categories.earning) into(c.id, c.name, "income", earnedBy.get(c.id) ?? 0);
+  into("from-savings", "Taken from savings", "savings", -s.netSavings);
+
+  const spentBy = spendByCategory(ledger, month);
+  for (const c of ledger.categories.expense) outOf(c.id, c.name, "spending", spentBy.get(c.id)?.gross ?? 0);
+  outOf("to-savings", "Savings", "savings", s.netSavings);
+  outOf("to-retirement", "Retirement investing", "investment", s.investRetirement);
+  outOf("to-taxable", "Taxable investing", "investment", s.investTaxable);
+
+  // Whatever is left balances the two sides.
+  const left = s.earned + Math.max(0, -s.netSavings) - s.spent - Math.max(0, s.netSavings) - s.investment;
+  outOf("left-over", "Left over", "balance", left);
+  into("drawn", "Drawn from balances", "balance", -left);
+  return { nodes, links };
+}

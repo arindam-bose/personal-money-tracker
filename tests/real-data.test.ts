@@ -5,7 +5,9 @@ import { existsSync } from "node:fs";
 import { fileURLToPath } from "node:url";
 import { beforeEach, describe, expect, it } from "vitest";
 import { exportYear, importYear } from "../src/backup";
-import { accountsOverview, balances, summarize, tagTotal, type Ledger, type Summary } from "../src/derive";
+import {
+  accountsOverview, balances, moneyFlow, summarize, tagTotal, weeklySpending, type Ledger, type Summary,
+} from "../src/derive";
 import { checkDraft, draftFrom, type AnyEntry } from "../src/entries";
 import { validateYearFile } from "../src/validate";
 import { freshDb, loadJson } from "./helpers";
@@ -130,5 +132,23 @@ describe.skipIf(!present || !existsSync(NOTION_DIR))("matches Notion to the cent
     check("Credit card limit", o.cardLimit, notionCents(row!["Credit Card Limit RollUp"]));
     expect(mismatches).toEqual([]);
     expect(count()).toBeGreaterThanOrEqual(15);
+  });
+});
+
+describe.skipIf(!present)("report functions on real data", () => {
+  const ledger: Ledger = loadJson(PATH);
+
+  it("money flow balances for the year and every month", () => {
+    for (const month of [undefined, ...Array.from({ length: 12 }, (_, i) => i + 1)]) {
+      const f = moneyFlow(ledger, month);
+      const into = f.links.filter((l) => l.target === "hub").reduce((s, l) => s + l.value, 0);
+      const out = f.links.filter((l) => l.source === "hub").reduce((s, l) => s + l.value, 0);
+      expect(into, `month ${month}`).toBe(out);
+    }
+  });
+
+  it("weekly spending adds up to the year", () => {
+    const total = weeklySpending(ledger, 2026).reduce((s, w) => s + w.bySource.bank + w.bySource.card + w.bySource.cash, 0);
+    expect(total).toBe(summarize(ledger).spent);
   });
 });

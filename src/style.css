@@ -12,6 +12,17 @@
   --transfer: #5b6b7f;
   --row-hover: #f1f1ed;
   --focus: #2f6f4f55;
+  /* Chart series, in fixed order (validated for colour-blind separation on this surface). */
+  --series-1: #2a78d6;
+  --series-2: #eb6834;
+  --series-3: #1baf7a;
+  --series-4: #eda100;
+  --series-5: #e87ba4;
+  --series-6: #008300;
+  --series-other: #a3a29c;
+  --chart-grid: #ecebe6;
+  --chart-axis: #c3c2b7;
+  --heat: 42, 120, 214; /* sequential hue (blue) as r, g, b for the heatmap */
   font-family: system-ui, -apple-system, "Segoe UI", Roboto, sans-serif;
   font-size: 15px;
   color: var(--text);
@@ -34,12 +45,26 @@
     --transfer: #93a3b8;
     --row-hover: #26262a;
     --focus: #5fae8666;
+    --series-1: #3987e5;
+    --series-2: #d95926;
+    --series-3: #199e70;
+    --series-4: #c98500;
+    --series-5: #d55181;
+    --series-6: #008300;
+    --series-other: #6b6a66;
+    --chart-grid: #2c2c2e;
+    --chart-axis: #3a3a3d;
+    --heat: 57, 135, 229;
   }
 }
 
 body {
   margin: 0;
   background: var(--bg);
+}
+
+a {
+  color: var(--accent);
 }
 
 .topbar {
@@ -461,4 +486,303 @@ tr.row-transfer td {
 .saved {
   color: var(--earning);
   font-size: 13px;
+}
+
+/* --- Dashboard --- */
+
+.card {
+  background: var(--surface);
+  border: 1px solid var(--border);
+  border-radius: 8px;
+  padding: 16px 20px;
+}
+
+.card h3 {
+  margin: 0;
+  font-size: 15px;
+}
+
+.small {
+  font-size: 13px;
+}
+
+.card > p.small {
+  margin: 2px 0 12px;
+}
+
+.hero {
+  margin-bottom: 16px;
+}
+
+.tile-label {
+  font-size: 13px;
+  color: var(--muted);
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+}
+
+/* Big standalone numbers keep proportional figures. */
+.hero-value {
+  font-size: 48px;
+  font-weight: 600;
+  line-height: 1.15;
+  margin: 4px 0;
+}
+
+.hero-value.neg,
+.tile-value.neg {
+  color: var(--expense);
+}
+
+.tiles {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(220px, 1fr));
+  gap: 12px;
+  margin-bottom: 16px;
+}
+
+.tile-value {
+  font-size: 22px;
+  font-weight: 600;
+  margin: 4px 0 2px;
+}
+
+.tile-detail {
+  font-size: 12px;
+  color: var(--muted);
+}
+
+.tile .unpin {
+  border: none;
+  background: none;
+  color: var(--muted);
+  padding: 0 4px;
+  font-size: 16px;
+  line-height: 1;
+}
+
+.pin-tile {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  border-style: dashed;
+}
+
+.columns {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 16px;
+  align-items: start;
+}
+
+@media (max-width: 900px) {
+  .columns {
+    grid-template-columns: 1fr;
+  }
+}
+
+.hbars {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+}
+
+.hbars button {
+  display: grid;
+  grid-template-columns: 170px 1fr 92px 40px;
+  align-items: center;
+  gap: 10px;
+  width: 100%;
+  border: none;
+  background: none;
+  padding: 5px 4px;
+  border-radius: 4px;
+  text-align: left;
+}
+
+.hbars button:hover {
+  background: var(--row-hover);
+}
+
+.hbar-name {
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.hbar-track {
+  height: 12px;
+}
+
+.hbar-fill {
+  display: block;
+  height: 100%;
+  min-width: 2px;
+  background: var(--series-1);
+  border-radius: 0 4px 4px 0;
+}
+
+.hbar-value,
+.hbar-share {
+  text-align: right;
+  font-variant-numeric: tabular-nums;
+}
+
+.hbar-share {
+  color: var(--muted);
+  font-size: 12px;
+}
+
+.acct-table {
+  width: 100%;
+  border-collapse: collapse;
+}
+
+.acct-table td {
+  padding: 5px 0;
+  border-bottom: 1px solid var(--border);
+  vertical-align: top;
+}
+
+.acct-table .num {
+  font-variant-numeric: tabular-nums;
+  text-align: right;
+}
+
+.acct-table tr.subtotal td {
+  font-weight: 600;
+}
+
+.acct-table tr.total td {
+  font-weight: 600;
+  border-bottom: 2px solid var(--text);
+}
+
+.meter {
+  display: block;
+  width: 140px;
+  height: 4px;
+  margin-top: 4px;
+  border-radius: 2px;
+  background: rgba(var(--heat), 0.18);
+}
+
+.meter span {
+  display: block;
+  height: 100%;
+  min-width: 2px;
+  border-radius: 2px;
+  background: var(--series-1);
+}
+
+.meter.high span {
+  background: var(--expense);
+}
+
+.note {
+  margin: 14px 0 0;
+  font-size: 14px;
+}
+
+.owed h4 {
+  margin: 16px 0 4px;
+  font-size: 14px;
+}
+
+.owed ul {
+  margin: 0;
+  padding-left: 18px;
+}
+
+/* --- Reports --- */
+
+.reports {
+  display: grid;
+  gap: 16px;
+}
+
+.legend {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 16px;
+  list-style: none;
+  padding: 0;
+  margin: 0 0 8px;
+  font-size: 13px;
+  color: var(--muted);
+}
+
+.swatch {
+  display: inline-block;
+  width: 10px;
+  height: 10px;
+  border-radius: 3px;
+  margin-right: 6px;
+  vertical-align: -1px;
+}
+
+.table-view {
+  margin-top: 8px;
+}
+
+.table-view summary {
+  cursor: pointer;
+  color: var(--accent);
+  font-size: 13px;
+}
+
+.data-table {
+  border-collapse: collapse;
+  margin-top: 8px;
+  font-size: 13px;
+}
+
+.data-table th,
+.data-table td {
+  padding: 4px 10px;
+  border-bottom: 1px solid var(--border);
+  text-align: left;
+  white-space: nowrap;
+}
+
+.data-table th {
+  color: var(--muted);
+  font-weight: 600;
+}
+
+.data-table .num {
+  text-align: right;
+  font-variant-numeric: tabular-nums;
+}
+
+.data-table tfoot td {
+  font-weight: 600;
+}
+
+.heatmap-wrap {
+  overflow-x: auto;
+  margin-top: 12px;
+}
+
+.heatmap {
+  width: 100%;
+}
+
+.heatmap td.cell {
+  border: 1px solid var(--surface);
+  cursor: pointer;
+  min-width: 48px;
+}
+
+/* --- Settings --- */
+
+.settings {
+  margin-top: 16px;
+}
+
+.setting-row {
+  display: flex;
+  align-items: flex-end;
+  gap: 10px;
 }

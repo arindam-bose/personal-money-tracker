@@ -25,7 +25,8 @@ npm run build      # static site in dist/
 - `src/derive.ts`: every computed figure (totals, balances, rates). Nothing computed is stored.
 - `src/entries.ts`: entry-form logic: drafts, validation, transfer-category suggestion.
 - `src/state.ts`: the open year as Preact signals, and the actions that change it.
-- `src/views/`: Preact views.
+- `src/views/`: Preact views. `chart.tsx` wraps ECharts; the Reports page (and ECharts)
+  only loads when opened.
 - `tools/`: Python scripts that convert a Notion export (`notion_import.py`) and check
   the result against Notion's own totals (`verify.py`).
 - `tests/fixtures/`: synthetic data only.

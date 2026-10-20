@@ -3,8 +3,8 @@
 
 import { describe, expect, it } from "vitest";
 import {
-  accountsOverview, balances, monthlySummaries, receivables, remainingRetirement,
-  spendByCategory, summarize, tagTotal, type Summary,
+  accountsOverview, balanceSeries, balances, moneyFlow, monthlySummaries, receivables, remainingRetirement,
+  spendByCategory, spendingByMonth, summarize, tagTotal, weeklySpending, weeksOf, type MoneyFlow, type Summary,
 } from "../src/derive";
 import { sample } from "./helpers";
 
@@ -144,5 +144,76 @@ describe("accounts", () => {
 describe("receivables", () => {
   it("is what each person owes minus what they paid back", () => {
     expect(Object.fromEntries(receivables(ledger))).toEqual({ p_sam: 1000 }); // 3000 owed − 2000 back
+  });
+});
+
+describe("report series", () => {
+  it("spending per category per month", () => {
+    const m = spendingByMonth(ledger);
+    expect(m.get("ce_food")!.slice(0, 3)).toEqual([34550, 450, 0]); // 8550 + 6000 + 20000; 450 + 0
+    expect(m.get("ce_rent")![0]).toBe(150000);
+    expect(m.get("ce_loan")![1]).toBe(30000);
+  });
+
+  it("weeks run Monday to Sunday and cover the whole year", () => {
+    const w = weeksOf(2026); // Jan 1 2026 is a Thursday
+    expect(w).toHaveLength(53);
+    expect(w[0]).toEqual({ start: "2025-12-29", end: "2026-01-04" });
+    expect(w.at(-1)).toEqual({ start: "2026-12-28", end: "2027-01-03" });
+  });
+
+  it("weekly spending by source adds up to the year", () => {
+    const weeks = weeklySpending(ledger, 2026);
+    expect(weeks[0]!.bySource).toEqual({ bank: 150000, card: 8550, cash: 0 }); // rent Jan 1, groceries Jan 3
+    const total = weeks.reduce((s, w) => s + w.bySource.bank + w.bySource.card + w.bySource.cash, 0);
+    expect(total).toBe(summarize(ledger).spent);
+  });
+
+  it("account totals over time", () => {
+    expect(balanceSeries(ledger, ["2026-01-31", "2026-12-31"])).toEqual([
+      // Jan 31: checking 560000 + savings 1101234 + wallet 0; card −20000 − 14550 + 20000
+      { date: "2026-01-31", availableCash: 1661234, cardDebt: 14550, invested: 50000 },
+      { date: "2026-12-31", availableCash: 2032784, cardDebt: 15000, invested: 50000 },
+    ]);
+  });
+});
+
+describe("moneyFlow", () => {
+  /** Total flowing into and out of the hub. */
+  const sides = (f: MoneyFlow) => ({
+    in: f.links.filter((l) => l.target === "hub").reduce((s, l) => s + l.value, 0),
+    out: f.links.filter((l) => l.source === "hub").reduce((s, l) => s + l.value, 0),
+  });
+  const value = (f: MoneyFlow, id: string) => f.links.find((l) => l.source === id || l.target === id)?.value;
+
+  it("balances the year: income in, spending, saving, investing and left-over out", () => {
+    const f = moneyFlow(ledger);
+    expect(sides(f)).toEqual({ in: 805284, out: 805284 });
+    expect(value(f, "ci_paycheck")).toBe(800000);
+    expect(value(f, "ce_rent")).toBe(150000);
+    expect(value(f, "to-savings")).toBe(75000);
+    expect(value(f, "to-retirement")).toBe(50000);
+    expect(value(f, "left-over")).toBe(805284 - 217500 - 75000 - 50000);
+    expect(value(f, "from-savings")).toBeUndefined();
+    expect(f.links.every((l) => l.value > 0)).toBe(true);
+  });
+
+  it("shows money taken out of savings as an inflow", () => {
+    const f = moneyFlow(ledger, 2); // February: 25000 taken out of savings
+    expect(value(f, "from-savings")).toBe(25000);
+    expect(value(f, "to-savings")).toBeUndefined();
+    expect(sides(f)).toEqual({ in: 404050 + 25000, out: 404050 + 25000 });
+  });
+
+  it("draws on balances when outflows beat income", () => {
+    const tight = sample();
+    tight.earnings = [];
+    const f = moneyFlow(tight);
+    expect(value(f, "drawn")).toBe(217500 + 75000 + 50000);
+    expect(sides(f).in).toBe(sides(f).out);
+  });
+
+  it("is just the hub for an empty month", () => {
+    expect(moneyFlow(ledger, 3)).toEqual({ nodes: [{ id: "hub", name: "Income", group: "hub" }], links: [] });
   });
 });

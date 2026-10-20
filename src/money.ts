@@ -20,3 +20,15 @@ export function parseCents(text: string): Cents | null {
   const cents = Number((m[2] ?? "").padEnd(2, "0"));
   return dollars * 100 + cents;
 }
+
+const compact = new Intl.NumberFormat("en-US", { style: "currency", currency: "USD", notation: "compact", maximumFractionDigits: 1 });
+
+/** Short form for axes and tight spaces: 123456 -> "$1.2K", 250000000 -> "$2.5M". */
+export function formatCompact(amount: Cents): string {
+  return compact.format(amount / 100);
+}
+
+/** A fraction as a percentage: 0.1234 -> "12.3%". Null (no meaningful ratio) shows as "–". */
+export function formatPercent(fraction: number | null, digits = 1): string {
+  return fraction === null ? "–" : `${(fraction * 100).toFixed(digits)}%`;
+}

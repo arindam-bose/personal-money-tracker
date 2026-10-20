@@ -1,20 +1,34 @@
 import { useSignal } from "@preact/signals";
 import { useEffect } from "preact/hooks";
 import { requestPersistence, daysSince } from "./storage";
-import { current, openYear, persistState, years } from "./state";
+import { current, loadSettings, openYear, persistState, years } from "./state";
+import type { ComponentType } from "preact";
+import { DashboardView } from "./views/dashboard";
 import { DataView } from "./views/data";
 import { LedgerView } from "./views/ledger";
 
+/** Reports pull in the charting library, so their code is only downloaded when first opened. */
+function ReportsPage() {
+  const view = useSignal<ComponentType | null>(null);
+  useEffect(() => {
+    import("./views/reports").then((m) => (view.value = m.ReportsView));
+  }, []);
+  const View = view.value;
+  return View ? <View /> : <p class="muted">Loading charts…</p>;
+}
+
 /** Pages, by URL hash (#/ledger). Hash links work on any static host with no server setup. */
 const PAGES = {
+  dashboard: { label: "Dashboard", view: DashboardView },
   ledger: { label: "Ledger", view: LedgerView },
+  reports: { label: "Reports", view: ReportsPage },
   data: { label: "Data", view: DataView },
 } as const;
 type Page = keyof typeof PAGES;
 
 function pageFromHash(): Page {
   const name = location.hash.replace(/^#\/?/, "");
-  return name in PAGES ? (name as Page) : "ledger";
+  return name in PAGES ? (name as Page) : "dashboard";
 }
 
 /** Remind about backups after this many days. */
@@ -26,6 +40,7 @@ export function App() {
   useEffect(() => {
     requestPersistence().then((s) => (persistState.value = s));
     openYear();
+    loadSettings();
     const onHash = () => (page.value = pageFromHash());
     window.addEventListener("hashchange", onHash);
     return () => window.removeEventListener("hashchange", onHash);

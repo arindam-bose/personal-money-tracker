@@ -9,7 +9,7 @@ import { formatCents } from "../money";
 import { current, readOnly } from "../state";
 import { EntryForm } from "./entry-form";
 
-interface Filters {
+export interface Filters {
   /** "" for the whole year, or "1".."12". */
   month: string;
   kind: "" | Kind;
@@ -31,6 +31,12 @@ function loadFilters(): Filters {
   } catch {
     return NO_FILTERS;
   }
+}
+
+/** Open the ledger showing only matching entries, e.g. from a dashboard category. */
+export function showInLedger(f: Partial<Filters>) {
+  saveFilters({ ...NO_FILTERS, ...f });
+  location.hash = "#/ledger";
 }
 
 function saveFilters(f: Filters) {
