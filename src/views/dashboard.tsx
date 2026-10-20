@@ -3,11 +3,12 @@
 
 import { useSignal, useSignalEffect } from "@preact/signals";
 import {
-  accountsOverview, receivables, remainingRetirement, spendByCategory, summarize, tagTotal,
+  accountsOverview, budgetView, monthProgress, receivables, remainingRetirement, spendByCategory, summarize, tagTotal,
 } from "../derive";
 import { formatCents, formatPercent } from "../money";
 import { current, iraLimit, ledger, pinnedTags, savePinnedTags } from "../state";
 import type { Account } from "../types";
+import { BudgetBar } from "./budget";
 import { showInLedger } from "./ledger";
 
 const MONTHS = ["January", "February", "March", "April", "May", "June", "July",
@@ -98,12 +99,16 @@ export function DashboardView() {
       </div>
 
       <div class="columns">
+        <div class="stack">
         <section class="card">
           <h3>Spending by category</h3>
           <p class="muted small">{periodName}. Click a category to see its entries.</p>
           <CategoryBars cats={cats} names={new Map(setup.categories.expense.map((c) => [c.id, c.name]))}
             onPick={(cat) => showInLedger({ cat, kind: "expense", month: period.value })} />
         </section>
+
+        <BudgetCard month={month} lastMonth={Math.max(1, lastMonth)} />
+        </div>
 
         <section class="card">
           <h3>Accounts</h3>
@@ -267,5 +272,48 @@ function Owed() {
         ))}
       </ul>
     </div>
+  );
+}
+
+/** Budget progress for the period: one bar per budgeted category, plus the total. */
+function BudgetCard({ month, lastMonth }: { month: number | undefined; lastMonth: number }) {
+  const l = ledger.value!;
+  const { setup } = current.value!;
+  const months = month ? [month] : Array.from({ length: lastMonth }, (_, i) => i + 1);
+  const view = budgetView(l, setup.budgets, setup.year, months);
+  const lines = view.lines.filter((x) => x.target !== undefined);
+  const now = new Date();
+  const today = `${now.getFullYear()}-${String(now.getMonth() + 1).padStart(2, "0")}-${String(now.getDate()).padStart(2, "0")}`;
+  const pace = month ? monthProgress(setup.year, month, today) : null;
+  const names = new Map(setup.categories.expense.map((c) => [c.id, c.name]));
+  const left = view.budgeted - view.spentBudgeted;
+
+  return (
+    <section class="card">
+      <h3>Budget</h3>
+      {lines.length === 0 ? (
+        <p class="muted small">No budgets yet. <a href="#/budget">Set monthly targets</a> to track spending against them.</p>
+      ) : (
+        <>
+          <p class="muted small">
+            {formatCents(view.spentBudgeted)} of {formatCents(view.budgeted)} ·{" "}
+            {left < 0 ? <span class="over">over by {formatCents(-left)}</span> : `${formatCents(left)} left`}
+            {pace !== null && " · the tick marks today"}
+          </p>
+          <ul class="budget-list">
+            {lines.map((line) => (
+              <li>
+                <span class="hbar-name">{names.get(line.cat) ?? line.cat}</span>
+                <BudgetBar line={line} pace={pace} />
+                <span class="num small">
+                  {line.remaining! < 0 ? <span class="over">{formatCents(-line.remaining!)} over</span> : `${formatCents(line.remaining!)} left`}
+                </span>
+              </li>
+            ))}
+          </ul>
+          <a href="#/budget" class="small">Open budget</a>
+        </>
+      )}
+    </section>
   );
 }

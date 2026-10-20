@@ -786,3 +786,152 @@ tr.row-transfer td {
   align-items: flex-end;
   gap: 10px;
 }
+
+/* --- Budget --- */
+
+.stack {
+  display: grid;
+  gap: 16px;
+}
+
+.budget-tiles {
+  grid-template-columns: repeat(3, 1fr);
+}
+
+.budget .filters button {
+  padding: 5px 12px;
+}
+
+.hint-box {
+  background: var(--bg);
+  border-radius: 6px;
+  padding: 10px 14px;
+  margin: 0 0 12px;
+  font-size: 14px;
+}
+
+.budget-table {
+  width: 100%;
+  border-collapse: collapse;
+}
+
+.budget-table th {
+  text-align: left;
+  font-size: 12px;
+  font-weight: 600;
+  color: var(--muted);
+  padding: 6px 10px;
+  border-bottom: 1px solid var(--border);
+}
+
+.budget-table td {
+  padding: 4px 10px;
+  border-bottom: 1px solid var(--border);
+  font-variant-numeric: tabular-nums;
+}
+
+.budget-table .num {
+  text-align: right;
+}
+
+.budget-table td a {
+  color: var(--text);
+  text-decoration: none;
+}
+
+.budget-table td a:hover {
+  text-decoration: underline;
+}
+
+.budget-table tfoot td {
+  border-bottom: none;
+  padding-top: 8px;
+}
+
+.budget-table tr.total td {
+  font-weight: 600;
+}
+
+.c-progress {
+  width: 28%;
+}
+
+.money-input {
+  width: 110px;
+  text-align: right;
+  border-color: transparent;
+  background: transparent;
+}
+
+.money-input:hover:not(:disabled),
+.money-input:focus {
+  border-color: var(--border);
+  background: var(--surface);
+}
+
+.money-input.invalid {
+  border-color: var(--danger);
+}
+
+.over {
+  color: var(--expense);
+  font-weight: 600;
+}
+
+.budget-bar {
+  position: relative;
+  display: block;
+  height: 8px;
+  border-radius: 4px;
+  background: rgba(var(--heat), 0.15);
+}
+
+.budget-bar .fill {
+  display: block;
+  height: 100%;
+  min-width: 2px;
+  border-radius: 4px;
+  background: var(--series-1);
+}
+
+.budget-bar.over .fill {
+  background: var(--expense);
+}
+
+/* "Today" mark: where spending would be if it were spread evenly over the month. */
+.budget-bar .pace {
+  position: absolute;
+  top: -3px;
+  bottom: -3px;
+  width: 2px;
+  margin-left: -1px;
+  background: var(--text);
+  border-radius: 1px;
+}
+
+.budget-list {
+  list-style: none;
+  padding: 0;
+  margin: 0 0 10px;
+}
+
+.budget-list li {
+  display: grid;
+  grid-template-columns: 150px 1fr 120px;
+  gap: 10px;
+  align-items: center;
+  padding: 5px 0;
+}
+
+.budget-list .num {
+  text-align: right;
+  font-variant-numeric: tabular-nums;
+}
+
+.sr-only {
+  position: absolute;
+  width: 1px;
+  height: 1px;
+  overflow: hidden;
+  clip: rect(0 0 0 0);
+}

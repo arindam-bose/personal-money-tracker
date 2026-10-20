@@ -3,6 +3,7 @@ import { useEffect } from "preact/hooks";
 import { requestPersistence, daysSince } from "./storage";
 import { current, loadSettings, openYear, persistState, years } from "./state";
 import type { ComponentType } from "preact";
+import { BudgetView } from "./views/budget";
 import { DashboardView } from "./views/dashboard";
 import { DataView } from "./views/data";
 import { LedgerView } from "./views/ledger";
@@ -21,6 +22,7 @@ function ReportsPage() {
 const PAGES = {
   dashboard: { label: "Dashboard", view: DashboardView },
   ledger: { label: "Ledger", view: LedgerView },
+  budget: { label: "Budget", view: BudgetView },
   reports: { label: "Reports", view: ReportsPage },
   data: { label: "Data", view: DataView },
 } as const;

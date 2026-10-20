@@ -3,7 +3,7 @@
 
 import { describe, expect, it } from "vitest";
 import {
-  accountsOverview, balanceSeries, balances, moneyFlow, monthlySummaries, receivables, remainingRetirement,
+  accountsOverview, balanceSeries, budgetTarget, budgetView, monthProgress, balances, moneyFlow, monthlySummaries, receivables, remainingRetirement,
   spendByCategory, spendingByMonth, summarize, tagTotal, weeklySpending, weeksOf, type MoneyFlow, type Summary,
 } from "../src/derive";
 import { sample } from "./helpers";
@@ -215,5 +215,52 @@ describe("moneyFlow", () => {
 
   it("is just the hub for an empty month", () => {
     expect(moneyFlow(ledger, 3)).toEqual({ nodes: [{ id: "hub", name: "Income", group: "hub" }], links: [] });
+  });
+});
+
+describe("budgets", () => {
+  // Fixture budgets: Food 400/month, Rent 1500/month; February overrides Food to 500.
+  const budgets = ledger.budgets;
+
+  it("uses a month's override, else the usual target", () => {
+    expect(budgetTarget(budgets, 2026, 1, "ce_food")).toBe(40000);
+    expect(budgetTarget(budgets, 2026, 2, "ce_food")).toBe(50000);
+    expect(budgetTarget(budgets, 2026, 2, "ce_rent")).toBe(150000);
+    expect(budgetTarget(budgets, 2026, 2, "ce_loan")).toBeUndefined();
+  });
+
+  it("compares one month, net of owed shares and refunds", () => {
+    const jan = budgetView(ledger, budgets, 2026, [1]);
+    const food = jan.lines.find((l) => l.cat === "ce_food")!;
+    // Food in January: 8550 + 6000 + 20000, minus Sam's 3000.
+    expect(food).toEqual({ cat: "ce_food", target: 40000, overridden: false, spent: 31550, remaining: 8450 });
+    expect(jan.lines.find((l) => l.cat === "ce_loan")).toMatchObject({ target: undefined, remaining: undefined });
+    expect(jan.budgeted).toBe(190000);
+
+    const feb = budgetView(ledger, budgets, 2026, [2]);
+    // February: 450 spent, 1550 refund aimed at Food; the 500 store credit isn't aimed anywhere.
+    expect(feb.lines.find((l) => l.cat === "ce_food")).toMatchObject({ target: 50000, overridden: true, spent: -1100 });
+    expect(feb.untargetedOffsets).toBe(500);
+    expect(feb.spentUnbudgeted).toBe(2500 + 30000); // charity and loan have no budget
+  });
+
+  it("adds targets up over several months", () => {
+    const ytd = budgetView(ledger, budgets, 2026, [1, 2]);
+    expect(ytd.lines.find((l) => l.cat === "ce_food")!.target).toBe(90000);
+    expect(ytd.lines.find((l) => l.cat === "ce_food")!.overridden).toBe(false);
+    expect(ytd.budgeted).toBe(90000 + 300000);
+  });
+
+  it("totals match net spending", () => {
+    for (const months of [[1], [2], [3], [1, 2, 3]]) {
+      const v = budgetView(ledger, budgets, 2026, months);
+      const want = months.reduce((a, m) => a + summarize(ledger, m).netSpent, 0);
+      expect(v.netSpent, String(months)).toBe(want);
+    }
+  });
+
+  it("knows how far through the month today is", () => {
+    expect(monthProgress(2026, 4, "2026-04-15")).toBe(0.5);
+    expect(monthProgress(2026, 4, "2026-05-01")).toBeNull();
   });
 });

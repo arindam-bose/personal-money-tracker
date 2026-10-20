@@ -6,7 +6,7 @@ import { fileURLToPath } from "node:url";
 import { beforeEach, describe, expect, it } from "vitest";
 import { exportYear, importYear } from "../src/backup";
 import {
-  accountsOverview, balances, moneyFlow, summarize, tagTotal, weeklySpending, type Ledger, type Summary,
+  accountsOverview, balances, budgetView, moneyFlow, summarize, tagTotal, weeklySpending, type Ledger, type Summary,
 } from "../src/derive";
 import { checkDraft, draftFrom, type AnyEntry } from "../src/entries";
 import { validateYearFile } from "../src/validate";
@@ -144,6 +144,13 @@ describe.skipIf(!present)("report functions on real data", () => {
       const into = f.links.filter((l) => l.target === "hub").reduce((s, l) => s + l.value, 0);
       const out = f.links.filter((l) => l.source === "hub").reduce((s, l) => s + l.value, 0);
       expect(into, `month ${month}`).toBe(out);
+    }
+  });
+
+  it("budget totals match net spending in every month", () => {
+    const file = loadJson(PATH);
+    for (let m = 1; m <= 12; m++) {
+      expect(budgetView(ledger, file.budgets, 2026, [m]).netSpent, `month ${m}`).toBe(summarize(ledger, m).netSpent);
     }
   });
 

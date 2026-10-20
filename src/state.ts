@@ -83,6 +83,16 @@ export async function openYear(year?: number): Promise<void> {
   if (pick !== undefined && pick !== saved) await setSetting("activeYear", pick);
 }
 
+// Changes run one at a time. Each one reads the current state only when its turn comes,
+// so two quick changes (say, typing budgets down a column) can't overwrite each other.
+let queue: Promise<unknown> = Promise.resolve();
+
+function inTurn<T>(change: () => Promise<T>): Promise<T> {
+  const run = queue.then(change);
+  queue = run.catch(() => undefined); // a failed change must not block the ones after it
+  return run;
+}
+
 function editable(): YearData {
   const data = current.value;
   if (!data) throw new Error("No year is open.");
@@ -124,21 +134,25 @@ function withEntry(data: YearData, e: AnyEntry): YearData {
  * Add or update an entry. If an edit changes the kind (say expense to transfer),
  * `previousKind` removes the old record so the entry isn't stored twice.
  */
-export async function saveEntry(e: AnyEntry, previousKind?: Kind): Promise<void> {
-  let data = editable();
-  const year = data.setup.year;
-  if (previousKind && previousKind !== e.kind) {
-    await deleteEntry(STORE[previousKind], year, e.entry.id);
-    data = withoutEntry(data, previousKind, e.entry.id);
-  }
-  await putEntry(STORE[e.kind], year, e.entry);
-  current.value = withEntry(data, e);
+export function saveEntry(e: AnyEntry, previousKind?: Kind): Promise<void> {
+  return inTurn(async () => {
+    let data = editable();
+    const year = data.setup.year;
+    if (previousKind && previousKind !== e.kind) {
+      await deleteEntry(STORE[previousKind], year, e.entry.id);
+      data = withoutEntry(data, previousKind, e.entry.id);
+    }
+    await putEntry(STORE[e.kind], year, e.entry);
+    current.value = withEntry(data, e);
+  });
 }
 
-export async function removeEntry(kind: Kind, id: string): Promise<void> {
-  const data = editable();
-  await deleteEntry(STORE[kind], data.setup.year, id);
-  current.value = withoutEntry(data, kind, id);
+export function removeEntry(kind: Kind, id: string): Promise<void> {
+  return inTurn(async () => {
+    const data = editable();
+    await deleteEntry(STORE[kind], data.setup.year, id);
+    current.value = withoutEntry(data, kind, id);
+  });
 }
 
 async function saveSetup(setup: YearSetup): Promise<void> {
@@ -147,30 +161,51 @@ async function saveSetup(setup: YearSetup): Promise<void> {
   current.value = { ...data, setup };
 }
 
+/**
+ * Set or clear one budget target. `key` is "default" (every month) or "YYYY-MM" (that month only).
+ * Null removes it: no budget for a usual target, back to the usual target for a month.
+ */
+export function setBudget(key: string, cat: string, cents: number | null): Promise<void> {
+  return inTurn(async () => {
+    const { setup } = editable();
+    const targets = { ...(setup.budgets[key] ?? {}) };
+    if (cents === null) delete targets[cat];
+    else targets[cat] = cents;
+    const budgets = { ...setup.budgets, [key]: targets };
+    // Don't keep empty month entries around in the saved file.
+    if (key !== "default" && Object.keys(targets).length === 0) delete budgets[key];
+    await saveSetup({ ...setup, budgets });
+  });
+}
+
 /** Find a tag by name (ignoring case), or create it. Returns its id. */
-export async function ensureTag(name: string): Promise<string> {
-  const { setup } = editable();
-  const clean = name.trim();
-  const found = setup.tags.find((t) => t.name.toLowerCase() === clean.toLowerCase());
-  if (found) return found.id;
-  const ids = new Set(setup.tags.map((t) => t.id));
-  const base = `t_${slug(clean) || "tag"}`;
-  const id = ids.has(base) ? newId(base, (x) => ids.has(x)) : base;
-  const tags = [...setup.tags, { id, name: clean }].sort((a, b) => a.name.localeCompare(b.name));
-  await saveSetup({ ...setup, tags });
-  return id;
+export function ensureTag(name: string): Promise<string> {
+  return inTurn(async () => {
+    const { setup } = editable();
+    const clean = name.trim();
+    const found = setup.tags.find((t) => t.name.toLowerCase() === clean.toLowerCase());
+    if (found) return found.id;
+    const ids = new Set(setup.tags.map((t) => t.id));
+    const base = `t_${slug(clean) || "tag"}`;
+    const id = ids.has(base) ? newId(base, (x) => ids.has(x)) : base;
+    const tags = [...setup.tags, { id, name: clean }].sort((a, b) => a.name.localeCompare(b.name));
+    await saveSetup({ ...setup, tags });
+    return id;
+  });
 }
 
 /** Find a person by name (ignoring case), or add them. Returns their id. */
-export async function ensurePerson(name: string): Promise<string> {
-  const { setup } = editable();
-  const clean = name.trim();
-  const people = setup.people ?? [];
-  const found = people.find((p) => p.name.toLowerCase() === clean.toLowerCase());
-  if (found) return found.id;
-  const ids = new Set(people.map((p) => p.id));
-  const base = `p_${slug(clean) || "person"}`;
-  const id = ids.has(base) ? newId(base, (x) => ids.has(x)) : base;
-  await saveSetup({ ...setup, people: [...people, { id, name: clean }] });
-  return id;
+export function ensurePerson(name: string): Promise<string> {
+  return inTurn(async () => {
+    const { setup } = editable();
+    const clean = name.trim();
+    const people = setup.people ?? [];
+    const found = people.find((p) => p.name.toLowerCase() === clean.toLowerCase());
+    if (found) return found.id;
+    const ids = new Set(people.map((p) => p.id));
+    const base = `p_${slug(clean) || "person"}`;
+    const id = ids.has(base) ? newId(base, (x) => ids.has(x)) : base;
+    await saveSetup({ ...setup, people: [...people, { id, name: clean }] });
+    return id;
+  });
 }

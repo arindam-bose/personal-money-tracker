@@ -5,7 +5,7 @@
 // against the totals Notion computed (tests/derive.test.ts, tests/real-data.test.ts).
 
 import type {
-  Account, Cents, EarningRole, ExpenseRole, IsoDate, TransferRole, YearFile,
+  Account, Budgets, Cents, EarningRole, ExpenseRole, IsoDate, TransferRole, YearFile,
 } from "./types";
 
 /** The parts of a year the calculations read. A YearFile, or YearData flattened, fits. */
@@ -431,4 +431,90 @@ export function moneyFlow(ledger: Ledger, month?: number): MoneyFlow {
   outOf("left-over", "Left over", "balance", left);
   into("drawn", "Drawn from balances", "balance", -left);
   return { nodes, links };
+}
+
+// --- Budgets (§6) ---
+
+/** The budgets key for a month: 2026, 3 -> "2026-03". */
+export function monthKey(year: number, month: number): string {
+  return `${year}-${String(month).padStart(2, "0")}`;
+}
+
+/** A category's target for one month: that month's override if set, else the usual target. */
+export function budgetTarget(budgets: Budgets, year: number, month: number, cat: string): Cents | undefined {
+  return budgets[monthKey(year, month)]?.[cat] ?? budgets.default[cat];
+}
+
+export interface BudgetLine {
+  cat: string;
+  /** Sum of the targets over the months shown; undefined if the category has no budget. */
+  target: Cents | undefined;
+  /** True when a single month is shown and it overrides the usual target. */
+  overridden: boolean;
+  /** Net spending: expenses minus owed shares and refunds aimed at this category. */
+  spent: Cents;
+  /** target − spent; negative means over budget. Undefined without a target. */
+  remaining: Cents | undefined;
+}
+
+export interface BudgetView {
+  /** Every expense category, in setup order. */
+  lines: BudgetLine[];
+  /** Total of all targets. */
+  budgeted: Cents;
+  /** Net spending in categories that have a budget. */
+  spentBudgeted: Cents;
+  /** Net spending in categories without one. */
+  spentUnbudgeted: Cents;
+  /** Refunds and points not aimed at a category: they lower the total, not any line. */
+  untargetedOffsets: Cents;
+  /** All lines − untargeted offsets. Equals Summary.netSpent for the same months. */
+  netSpent: Cents;
+}
+
+/** Budgeted against spent for the given months (one month, or January up to some month). */
+export function budgetView(ledger: Ledger, budgets: Budgets, year: number, months: number[]): BudgetView {
+  const roles = rolesOf(ledger);
+  const spent = new Map<string, Cents>();
+  let untargetedOffsets = 0;
+  for (const m of months) {
+    for (const [cat, c] of spendByCategory(ledger, m)) spent.set(cat, (spent.get(cat) ?? 0) + c.net);
+    for (const i of ledger.earnings) {
+      if (inMonth(i.date, m) && roles.earning.get(i.cat) === "offset" && !i.offsets) untargetedOffsets += i.amount;
+    }
+  }
+
+  const single = months.length === 1 ? months[0] : undefined;
+  let budgeted = 0, spentBudgeted = 0, spentUnbudgeted = 0;
+  const lines = ledger.categories.expense.map((c): BudgetLine => {
+    const targets = months.map((m) => budgetTarget(budgets, year, m, c.id));
+    const target = targets.every((t) => t === undefined) ? undefined : targets.reduce<number>((a, t) => a + (t ?? 0), 0);
+    const s = spent.get(c.id) ?? 0;
+    if (target === undefined) spentUnbudgeted += s;
+    else {
+      budgeted += target;
+      spentBudgeted += s;
+    }
+    return {
+      cat: c.id,
+      target,
+      overridden: single !== undefined && budgets[monthKey(year, single)]?.[c.id] !== undefined,
+      spent: s,
+      remaining: target === undefined ? undefined : target - s,
+    };
+  });
+  return {
+    lines, budgeted, spentBudgeted, spentUnbudgeted, untargetedOffsets,
+    netSpent: spentBudgeted + spentUnbudgeted - untargetedOffsets,
+  };
+}
+
+/**
+ * How far through a month a day is, for the "where you should be by now" mark:
+ * 0.5 on the 15th of a 30-day month. Null if the day isn't in that month.
+ */
+export function monthProgress(year: number, month: number, today: IsoDate): number | null {
+  if (today.slice(0, 7) !== monthKey(year, month)) return null;
+  const days = new Date(Date.UTC(year, month, 0)).getUTCDate();
+  return Number(today.slice(8, 10)) / days;
 }
