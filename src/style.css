@@ -112,7 +112,9 @@ a {
 
 .backup-nag {
   color: var(--danger);
+  border-color: var(--danger);
   font-size: 13px;
+  padding: 4px 10px;
 }
 
 main {
@@ -934,4 +936,35 @@ tr.row-transfer td {
   height: 1px;
   overflow: hidden;
   clip: rect(0 0 0 0);
+}
+
+/* --- Close year --- */
+
+.row-actions {
+  display: flex;
+  gap: 6px;
+  justify-content: flex-end;
+}
+
+.close-panel {
+  border: 1px solid var(--border);
+  border-left: 4px solid var(--accent);
+  border-radius: 8px;
+  padding: 12px 20px 16px;
+  margin: 8px 0 16px;
+}
+
+.close-panel h3 {
+  margin: 4px 0 8px;
+}
+
+.close-panel ol {
+  margin: 0 0 8px;
+  padding-left: 20px;
+  line-height: 1.6;
+}
+
+.warn {
+  color: var(--danger);
+  font-size: 14px;
 }

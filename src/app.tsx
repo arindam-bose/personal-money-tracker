@@ -1,5 +1,6 @@
 import { useSignal } from "@preact/signals";
 import { useEffect } from "preact/hooks";
+import { downloadYear } from "./backup";
 import { requestPersistence, daysSince } from "./storage";
 import { current, loadSettings, openYear, persistState, years } from "./state";
 import type { ComponentType } from "preact";
@@ -51,7 +52,14 @@ export function App() {
   const View = PAGES[page.value].view;
   const setup = current.value?.setup;
   const backupDays = setup && !setup.closed ? daysSince(setup.lastBackupAt) : null;
-  const needsBackup = setup && !setup.closed && (backupDays === null || backupDays >= BACKUP_AFTER_DAYS);
+  const hasEntries = !!current.value && current.value.expenses.length + current.value.earnings.length + current.value.transfers.length > 0;
+  const needsBackup = setup && !setup.closed && hasEntries && (backupDays === null || backupDays >= BACKUP_AFTER_DAYS);
+
+  async function backUpNow() {
+    if (!setup) return;
+    await downloadYear(setup.year);
+    await openYear(setup.year);
+  }
 
   return (
     <>
@@ -66,9 +74,10 @@ export function App() {
         </nav>
         <div class="topbar-right">
           {needsBackup && (
-            <a href="#/data" class="backup-nag">
-              {backupDays === null ? "Not backed up yet" : `Last backup ${backupDays} days ago`}
-            </a>
+            <button type="button" class="backup-nag" onClick={backUpNow}
+              title="Downloads this year as a JSON file. Your data lives only in this browser.">
+              {backupDays === null ? "Not backed up yet" : `Last backup ${backupDays} days ago`} · Back up now
+            </button>
           )}
           {years.value.length > 0 && (
             <select aria-label="Year" value={setup?.year} onChange={(e) => openYear(Number(e.currentTarget.value))}>

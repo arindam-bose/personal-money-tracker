@@ -9,6 +9,7 @@ import {
   accountsOverview, balances, budgetView, moneyFlow, summarize, tagTotal, weeklySpending, type Ledger, type Summary,
 } from "../src/derive";
 import { checkDraft, draftFrom, type AnyEntry } from "../src/entries";
+import { nextYearSetup } from "../src/rollover";
 import { validateYearFile } from "../src/validate";
 import { freshDb, loadJson } from "./helpers";
 import { notionCents, readNotionTable } from "./notion";
@@ -152,6 +153,14 @@ describe.skipIf(!present)("report functions on real data", () => {
     for (let m = 1; m <= 12; m++) {
       expect(budgetView(ledger, file.budgets, 2026, [m]).netSpent, `month ${m}`).toBe(summarize(ledger, m).netSpent);
     }
+  });
+
+  it("next year opens at this year's net tangible assets, investments at 0", () => {
+    const file = loadJson(PATH);
+    const next = nextYearSetup(file, ledger);
+    const openingNet = next.accounts.filter((a) => a.type !== "investment").reduce((s, a) => s + a.opening, 0);
+    expect(openingNet).toBe(accountsOverview(ledger).netTangibleAssets);
+    expect(next.accounts.filter((a) => a.type === "investment").every((a) => a.opening === 0)).toBe(true);
   });
 
   it("weekly spending adds up to the year", () => {

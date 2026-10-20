@@ -3,9 +3,10 @@
 // update the signal, so what you see is always what is stored.
 
 import { computed, signal } from "@preact/signals";
-import { deleteEntry, getSetting, listYears, loadYear, putEntry, putSetup, setSetting, type YearData } from "./db";
+import { deleteEntry, getSetting, listYears, loadYear, putEntry, putSetup, replaceYear, setSetting, type YearData } from "./db";
 import type { Ledger } from "./derive";
 import { ID_PREFIX, STORE, newId, slug, type AnyEntry, type Kind } from "./entries";
+import { emptyYearFile, nextYearSetup } from "./rollover";
 import type { PersistState } from "./storage";
 import type { YearSetup } from "./types";
 
@@ -176,6 +177,40 @@ export function setBudget(key: string, cat: string, cents: number | null): Promi
     if (key !== "default" && Object.keys(targets).length === 0) delete budgets[key];
     await saveSetup({ ...setup, budgets });
   });
+}
+
+export interface CloseResult {
+  next: number;
+  /** False when the next year already existed: its opening balances were left alone. */
+  created: boolean;
+}
+
+/**
+ * Close the open year: make it read-only and start the next year from its closing
+ * balances (see rollover.ts). Download the year's backup before calling this.
+ * Opens the new year afterwards.
+ */
+export async function closeYear(): Promise<CloseResult> {
+  const result = await inTurn(async () => {
+    const data = editable();
+    const { setup } = data;
+    const next = nextYearSetup(setup, { ...data, accounts: setup.accounts, categories: setup.categories });
+    const exists = (await listYears()).some((y) => y.year === next.year);
+    await putSetup({ ...setup, closed: true });
+    if (!exists) await replaceYear(emptyYearFile(next));
+    return { next: next.year, created: !exists };
+  });
+  await openYear(result.next);
+  return result;
+}
+
+/** Make a closed year editable again. The next year's opening balances don't change with it. */
+export async function reopenYear(year: number): Promise<void> {
+  await inTurn(async () => {
+    const data = await loadYear(year);
+    if (data) await putSetup({ ...data.setup, closed: false });
+  });
+  await openYear(year);
 }
 
 /** Find a tag by name (ignoring case), or create it. Returns its id. */
