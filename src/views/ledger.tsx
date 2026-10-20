@@ -6,7 +6,7 @@ import { useEffect, useRef } from "preact/hooks";
 import { inMonth } from "../derive";
 import { draftFrom, emptyDraft, type AnyEntry, type Draft, type Kind } from "../entries";
 import { formatCents } from "../money";
-import { current, readOnly } from "../state";
+import { current, duplicate, readOnly } from "../state";
 import { EntryForm } from "./entry-form";
 
 export interface Filters {
@@ -83,6 +83,9 @@ function matches(e: AnyEntry, f: Filters): boolean {
   return true;
 }
 
+/** A row's unique key: ids are only unique within their kind. */
+const rowKey = (e: AnyEntry) => `${e.kind}:${e.entry.id}`;
+
 /** "2026-03-09" -> "Mar 9". */
 function shortDate(iso: string): string {
   return `${MONTHS[Number(iso.slice(5, 7)) - 1]} ${Number(iso.slice(8, 10))}`;
@@ -98,6 +101,8 @@ function defaultDate(year: number): string {
 export function LedgerView() {
   const filters = useSignal<Filters>(loadFilters());
   const form = useSignal<Draft | null>(null);
+  /** Row key of a just-made copy, highlighted for a moment so you can see where it landed. */
+  const flash = useSignal<string | null>(null);
   const searchRef = useRef<HTMLInputElement>(null);
 
   useSignalEffect(() => saveFilters(filters.value));
@@ -117,6 +122,20 @@ export function LedgerView() {
     if (year === undefined || readOnly.value || current.value!.setup.accounts.length === 0) return;
     form.value = emptyDraft(kind, defaultDate(year));
     window.scrollTo({ top: 0 });
+  }
+
+  async function onDuplicate(e: AnyEntry) {
+    if (readOnly.value) return;
+    const copy = await duplicate(e);
+    const key = rowKey(copy);
+    flash.value = key;
+    setTimeout(() => flash.value === key && (flash.value = null), 2000);
+    // After the table re-renders, bring the copy into view and select it, so D again copies it.
+    requestAnimationFrame(() => {
+      const row = document.querySelector<HTMLElement>(`tr[data-key="${key}"]`);
+      row?.scrollIntoView({ block: "nearest" });
+      row?.focus({ preventScroll: true });
+    });
   }
 
   function openEdit(e: AnyEntry) {
@@ -227,12 +246,21 @@ export function LedgerView() {
             <th class="c-account">Account</th>
             <th class="c-tags">Tags</th>
             <th class="num c-amount">Amount</th>
+            <th class="c-act"><span class="sr-only">Actions</span></th>
           </tr>
         </thead>
         <tbody>
           {rows.value.map((e) => (
-            <tr key={`${e.kind}:${e.entry.id}`} class={`row-${e.kind}`} tabIndex={readOnly.value ? -1 : 0}
-              onClick={() => openEdit(e)} onKeyDown={(k) => k.key === "Enter" && openEdit(e)}>
+            <tr key={rowKey(e)} data-key={rowKey(e)} class={`row-${e.kind} ${flash.value === rowKey(e) ? "flash" : ""}`}
+              tabIndex={readOnly.value ? -1 : 0}
+              onClick={() => openEdit(e)}
+              onKeyDown={(k) => {
+                if (k.key === "Enter") openEdit(e);
+                else if (k.key.toLowerCase() === "d" && !k.ctrlKey && !k.metaKey && !k.altKey) {
+                  k.preventDefault();
+                  onDuplicate(e);
+                }
+              }}>
               <td class="c-date">{shortDate(e.entry.date)}</td>
               <td class="c-item">
                 <span class="item" title={e.entry.item}>{e.entry.item}</span>
@@ -258,6 +286,14 @@ export function LedgerView() {
               <td class={`num c-amount amt-${e.kind}`}>
                 {e.kind === "expense" ? "−" : e.kind === "earning" ? "+" : ""}
                 {formatCents(e.entry.amount)}
+              </td>
+              <td class="c-act">
+                {!readOnly.value && (
+                  <button type="button" class="dup-btn" aria-label={`Duplicate ${e.entry.item}`} title="Duplicate (D)"
+                    onClick={(ev) => { ev.stopPropagation(); onDuplicate(e); }}>
+                    ⧉
+                  </button>
+                )}
               </td>
             </tr>
           ))}

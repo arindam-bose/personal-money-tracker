@@ -328,6 +328,45 @@ table.entries tbody tr:hover {
 .c-account { width: 320px; }
 .c-tags { width: 200px; }
 .c-amount { width: 120px; }
+.c-act { width: 36px; padding-left: 0 !important; padding-right: 6px !important; }
+
+/* Row actions stay quiet until the row is hovered or selected. */
+.dup-btn {
+  border: none;
+  background: none;
+  padding: 0 4px;
+  font-size: 15px;
+  line-height: 1;
+  color: var(--muted);
+  opacity: 0;
+}
+
+tr:hover .dup-btn,
+tr:focus-within .dup-btn,
+.dup-btn:focus-visible {
+  opacity: 1;
+}
+
+.dup-btn:hover {
+  color: var(--text);
+}
+
+/* A just-made copy glows briefly. */
+@keyframes flash {
+  from { background: rgba(var(--heat), 0.28); }
+  to { background: transparent; }
+}
+
+tr.flash td {
+  animation: flash 2s ease-out;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  tr.flash td {
+    animation: none;
+    background: rgba(var(--heat), 0.18);
+  }
+}
 
 .c-item .item,
 .c-item .notes {

@@ -38,6 +38,8 @@ npm run build      # static site in dist/
 
 - <kbd>E</kbd> / <kbd>I</kbd> / <kbd>T</kbd>: add an expense, earning or transfer
 - <kbd>/</kbd>: search
+- On a selected row: <kbd>Enter</kbd> edits it, <kbd>D</kbd> duplicates it (the copy's item ends in "-new").
+  The ⧉ button at the end of each row duplicates too.
 - In the form: <kbd>Enter</kbd> saves (from any field), <kbd>Esc</kbd> closes. After adding,
   the form stays open with the same date and accounts for the next entry.
 - In the tags box: <kbd>Enter</kbd> or <kbd>,</kbd> adds a tag (a new name creates it),

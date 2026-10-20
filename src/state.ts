@@ -5,7 +5,7 @@
 import { computed, signal } from "@preact/signals";
 import { deleteEntry, getSetting, listYears, loadYear, putEntry, putSetup, replaceYear, setSetting, type YearData } from "./db";
 import type { Ledger } from "./derive";
-import { ID_PREFIX, STORE, newId, slug, type AnyEntry, type Kind } from "./entries";
+import { ID_PREFIX, STORE, duplicateEntry, newId, slug, type AnyEntry, type Kind } from "./entries";
 import { emptyYearFile, nextYearSetup } from "./rollover";
 import { blankSetup, usageOf, type Usage } from "./setup";
 import type { PersistState } from "./storage";
@@ -147,6 +147,13 @@ export function saveEntry(e: AnyEntry, previousKind?: Kind): Promise<void> {
     await putEntry(STORE[e.kind], year, e.entry);
     current.value = withEntry(data, e);
   });
+}
+
+/** Save a copy of an entry with "-new" added to its item. Returns the copy. */
+export async function duplicate(e: AnyEntry): Promise<AnyEntry> {
+  const copy = duplicateEntry(e, nextEntryId(e.kind));
+  await saveEntry(copy);
+  return copy;
 }
 
 export function removeEntry(kind: Kind, id: string): Promise<void> {

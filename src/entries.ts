@@ -195,3 +195,28 @@ export const ID_PREFIX: Record<Kind, string> = { expense: "e", earning: "i", tra
 export function slug(name: string): string {
   return name.toLowerCase().replace(/[^a-z0-9]+/g, "-").replace(/^-|-$/g, "");
 }
+
+/** Added to the item of a duplicated entry: "Transfer to savings" -> "Transfer to savings-new". */
+export const DUPLICATE_SUFFIX = "-new";
+
+/**
+ * A copy of an entry under a new id, with every value the same except the item, which
+ * gets DUPLICATE_SUFFIX so the copy is easy to spot and rename. Tags and owed shares are
+ * copied too, not shared with the original.
+ */
+export function duplicateEntry(e: AnyEntry, id: string): AnyEntry {
+  const item = e.entry.item + DUPLICATE_SUFFIX;
+  switch (e.kind) {
+    case "expense": {
+      const { owed, ...rest } = e.entry;
+      return {
+        kind: "expense",
+        entry: { ...rest, id, item, tags: [...e.entry.tags], ...(owed ? { owed: { ...owed } } : {}) },
+      };
+    }
+    case "earning":
+      return { kind: "earning", entry: { ...e.entry, id, item } };
+    case "transfer":
+      return { kind: "transfer", entry: { ...e.entry, id, item } };
+  }
+}
