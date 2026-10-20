@@ -1,0 +1,70 @@
+{
+ "app": "money-tracker",
+ "schema": 1,
+ "year": 2026,
+ "exportedAt": "2026-03-01T12:00:00.000Z",
+ "accounts": [
+  { "id": "a_checking", "name": "Checking", "type": "checking", "ref": "**1111", "opening": 500000 },
+  { "id": "a_savings", "name": "Savings", "type": "savings", "ref": "**2222", "opening": 1000000 },
+  { "id": "a_wallet", "name": "Wallet", "type": "cash", "ref": "", "opening": 0 },
+  { "id": "a_card", "name": "Card", "type": "credit", "ref": "**3333", "opening": -20000, "limit": 500000 },
+  { "id": "a_ira", "name": "IRA", "type": "investment", "ref": "@me", "opening": 0 }
+ ],
+ "categories": {
+  "expense": [
+   { "id": "ce_food", "name": "Food" },
+   { "id": "ce_rent", "name": "Rent" },
+   { "id": "ce_charity", "name": "Charity", "role": "charity" },
+   { "id": "ce_loan", "name": "Loan", "role": "loan" }
+  ],
+  "earning": [
+   { "id": "ci_paycheck", "name": "Paycheck", "role": "paycheck" },
+   { "id": "ci_interest", "name": "Interest", "role": "income" },
+   { "id": "ci_refunds", "name": "Refunds", "role": "offset" },
+   { "id": "ci_payback", "name": "Paid back", "role": "reimbursement" }
+  ],
+  "transfer": [
+   { "id": "ct_cc", "name": "Payment to CC", "role": "cc_payment" },
+   { "id": "ct_save", "name": "Savings", "role": "savings_in" },
+   { "id": "ct_unsave", "name": "Savings Takeout", "role": "savings_out" },
+   { "id": "ct_ira", "name": "Investment - IRA", "role": "invest_retirement" },
+   { "id": "ct_atm", "name": "Cash Withdraw", "role": "cash_withdrawal" }
+  ]
+ },
+ "tags": [
+  { "id": "t_grocery", "name": "Grocery" },
+  { "id": "t_abroad", "name": "Abroad" }
+ ],
+ "people": [
+  { "id": "p_sam", "name": "Sam" }
+ ],
+ "expenses": [
+  { "id": "e0001", "date": "2026-01-01", "item": "Rent", "amount": 150000, "account": "a_checking", "cat": "ce_rent", "tags": [], "notes": "" },
+  { "id": "e0002", "date": "2026-01-03", "item": "Groceries", "amount": 8550, "account": "a_card", "cat": "ce_food", "tags": ["t_grocery"], "notes": "" },
+  { "id": "e0003", "date": "2026-01-10", "item": "Dinner for two", "amount": 6000, "account": "a_card", "cat": "ce_food", "tags": [], "notes": "Sam's half", "owed": { "person": "p_sam", "amount": 3000 } },
+  { "id": "e0004", "date": "2026-01-15", "item": "Sent abroad", "amount": 20000, "account": "a_checking", "cat": "ce_food", "tags": ["t_abroad"], "notes": "" },
+  { "id": "e0005", "date": "2026-02-02", "item": "Coffee", "amount": 450, "account": "a_wallet", "cat": "ce_food", "tags": [], "notes": "" },
+  { "id": "e0006", "date": "2026-02-05", "item": "Food bank", "amount": 2500, "account": "a_card", "cat": "ce_charity", "tags": [], "notes": "" },
+  { "id": "e0007", "date": "2026-02-20", "item": "Car loan", "amount": 30000, "account": "a_savings", "cat": "ce_loan", "tags": [], "notes": "" },
+  { "id": "e0008", "date": "2026-02-21", "item": "Free sample", "amount": 0, "account": "a_card", "cat": "ce_food", "tags": [], "notes": "" }
+ ],
+ "earnings": [
+  { "id": "i0001", "date": "2026-01-15", "item": "Salary", "amount": 400000, "account": "a_checking", "cat": "ci_paycheck", "notes": "" },
+  { "id": "i0002", "date": "2026-01-31", "item": "Interest", "amount": 1234, "account": "a_savings", "cat": "ci_interest", "notes": "" },
+  { "id": "i0003", "date": "2026-02-04", "item": "Grocery refund", "amount": 1550, "account": "a_card", "cat": "ci_refunds", "notes": "", "offsets": "ce_food" },
+  { "id": "i0004", "date": "2026-02-06", "item": "Store credit", "amount": 500, "account": "a_card", "cat": "ci_refunds", "notes": "", "offsets": null },
+  { "id": "i0005", "date": "2026-02-10", "item": "Sam paid back", "amount": 2000, "account": "a_checking", "cat": "ci_payback", "notes": "", "person": "p_sam" },
+  { "id": "i0006", "date": "2026-02-15", "item": "Salary", "amount": 400000, "account": "a_checking", "cat": "ci_paycheck", "notes": "" }
+ ],
+ "transfers": [
+  { "id": "x0001", "date": "2026-01-02", "item": "Pay card", "amount": 20000, "from": "a_checking", "to": "a_card", "cat": "ct_cc", "notes": "" },
+  { "id": "x0002", "date": "2026-01-16", "item": "To savings", "amount": 100000, "from": "a_checking", "to": "a_savings", "cat": "ct_save", "notes": "" },
+  { "id": "x0003", "date": "2026-01-20", "item": "IRA", "amount": 50000, "from": "a_checking", "to": "a_ira", "cat": "ct_ira", "notes": "" },
+  { "id": "x0004", "date": "2026-02-01", "item": "ATM", "amount": 4000, "from": "a_checking", "to": "a_wallet", "cat": "ct_atm", "notes": "" },
+  { "id": "x0005", "date": "2026-02-16", "item": "From savings", "amount": 25000, "from": "a_savings", "to": "a_checking", "cat": "ct_unsave", "notes": "" }
+ ],
+ "budgets": {
+  "default": { "ce_food": 40000, "ce_rent": 150000 },
+  "2026-02": { "ce_food": 50000 }
+ }
+}
