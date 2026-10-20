@@ -1,0 +1,55 @@
+// Reads the summary CSVs of a Notion "Money Tracker" export, for comparing our
+// numbers with Notion's. Test-only; the export lives in the git-ignored data/ folder.
+
+import { readdirSync, readFileSync } from "node:fs";
+import { basename, join } from "node:path";
+
+export type CsvRow = Record<string, string>;
+
+/** Parse CSV text: quoted fields, "" escapes, commas and newlines inside quotes. */
+export function parseCsv(text: string): CsvRow[] {
+  const rows: string[][] = [];
+  let row: string[] = [];
+  let field = "";
+  let quoted = false;
+  const src = text.replace(/^﻿/, "");
+  for (let i = 0; i < src.length; i++) {
+    const ch = src[i];
+    if (quoted) {
+      if (ch === '"' && src[i + 1] === '"') { field += '"'; i++; }
+      else if (ch === '"') quoted = false;
+      else field += ch;
+    } else if (ch === '"') quoted = true;
+    else if (ch === ",") { row.push(field); field = ""; }
+    else if (ch === "\n" || ch === "\r") {
+      if (ch === "\r" && src[i + 1] === "\n") i++;
+      row.push(field); rows.push(row); row = []; field = "";
+    } else field += ch;
+  }
+  if (field || row.length) { row.push(field); rows.push(row); }
+
+  const [header, ...body] = rows;
+  if (!header) return [];
+  return body
+    .filter((r) => r.some((f) => f !== ""))
+    .map((r) => Object.fromEntries(header.map((h, i) => [h, r[i] ?? ""])));
+}
+
+/**
+ * Find "[Money Tracker ]<key> <year> <id>_all.csv" anywhere under the export folder.
+ * The `_all` files hold every row; the others are filtered views. The word boundary
+ * keeps "Accounts" from matching "Transfers Between Accounts".
+ */
+export function readNotionTable(exportDir: string, key: string): CsvRow[] {
+  const rx = new RegExp(`^(Money Tracker )?${key}\\b.*_all\\.csv$`);
+  const hits = (readdirSync(exportDir, { recursive: true }) as string[])
+    .filter((p) => rx.test(basename(p)));
+  if (hits.length !== 1) throw new Error(`expected one ${key} file, found ${hits.length}`);
+  return parseCsv(readFileSync(join(exportDir, hits[0]!), "utf-8"));
+}
+
+/** Notion money ("-$1,234.56", or a raw float rollup like "87546.30000000002") to cents. */
+export function notionCents(s: string | undefined): number | null {
+  const t = (s ?? "").replace(/[$,]/g, "").trim();
+  return t ? Math.round(Number(t) * 100) : null;
+}
