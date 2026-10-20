@@ -114,7 +114,7 @@ export function LedgerView() {
   // Reads the year at call time: the keyboard shortcut below keeps this function from the first render.
   function openNew(kind: Kind) {
     const year = current.value?.setup.year;
-    if (year === undefined || readOnly.value) return;
+    if (year === undefined || readOnly.value || current.value!.setup.accounts.length === 0) return;
     form.value = emptyDraft(kind, defaultDate(year));
     window.scrollTo({ top: 0 });
   }
@@ -165,7 +165,9 @@ export function LedgerView() {
   return (
     <section class="ledger">
       <div class="toolbar">
-        {!readOnly.value ? (
+        {setup.accounts.length === 0 ? (
+          <span class="muted">Add your accounts on the <a href="#/accounts">Accounts</a> page first, then log entries here.</span>
+        ) : !readOnly.value ? (
           <>
             <button type="button" class="add add-expense" onClick={() => openNew("expense")}>+ Expense <kbd>E</kbd></button>
             <button type="button" class="add add-earning" onClick={() => openNew("earning")}>+ Earning <kbd>I</kbd></button>

@@ -6,7 +6,9 @@ import { downloadYear, importYear, readJsonFile } from "../backup";
 import { formatCents, parseCents } from "../money";
 import { balances } from "../derive";
 import { nextYearSetup } from "../rollover";
-import { closeYear, current, iraLimit, ledger, openYear, persistState, reopenYear, saveIraLimit, years } from "../state";
+import {
+  closeYear, current, iraLimit, ledger, openYear, persistState, reopenYear, saveIraLimit, startYear, years,
+} from "../state";
 import { daysSince, requestPersistence } from "../storage";
 import { validateYearFile } from "../validate";
 
@@ -28,6 +30,11 @@ export function DataView() {
   const errors = useSignal<string[]>([]);
   /** The year whose "Close year" panel is open. */
   const closing = useSignal<number | null>(null);
+
+  async function onStart() {
+    await startYear(new Date().getFullYear());
+    location.hash = "#/accounts";
+  }
 
   async function onReopen(year: number) {
     if (!confirm(`Reopen ${year} so it can be changed again? The next year's opening balances won't update by themselves.`)) return;
@@ -85,7 +92,11 @@ export function DataView() {
       )}
 
       {years.value.length === 0 ? (
-        <p>No data yet. Import a Money Tracker JSON file to start.</p>
+        <div class="start-options">
+          <p>No data yet. Import a Money Tracker JSON file below, or start from scratch.</p>
+          <button type="button" class="primary" onClick={onStart}>Start {new Date().getFullYear()} from scratch</button>
+          <p class="muted small">You'll get the standard categories, then add your accounts.</p>
+        </div>
       ) : (
         <table class="years">
           <thead>

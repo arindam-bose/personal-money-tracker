@@ -32,3 +32,11 @@ export function formatCompact(amount: Cents): string {
 export function formatPercent(fraction: number | null, digits = 1): string {
   return fraction === null ? "–" : `${(fraction * 100).toFixed(digits)}%`;
 }
+
+/** Like parseCents, but allows a leading minus, e.g. an overdrawn account: "-12.50" -> -1250. */
+export function parseSignedCents(text: string): Cents | null {
+  const t = text.trim();
+  const negative = t.startsWith("-") || t.startsWith("−");
+  const cents = parseCents(negative ? t.slice(1) : t);
+  return cents === null ? null : negative ? -cents : cents;
+}

@@ -7,6 +7,7 @@ import { deleteEntry, getSetting, listYears, loadYear, putEntry, putSetup, repla
 import type { Ledger } from "./derive";
 import { ID_PREFIX, STORE, newId, slug, type AnyEntry, type Kind } from "./entries";
 import { emptyYearFile, nextYearSetup } from "./rollover";
+import { blankSetup, usageOf, type Usage } from "./setup";
 import type { PersistState } from "./storage";
 import type { YearSetup } from "./types";
 
@@ -177,6 +178,26 @@ export function setBudget(key: string, cat: string, cents: number | null): Promi
     if (key !== "default" && Object.keys(targets).length === 0) delete budgets[key];
     await saveSetup({ ...setup, budgets });
   });
+}
+
+/**
+ * Change the open year's setup (accounts, categories, tags, people). `change` gets the
+ * current setup and what uses each item, and returns the new setup or throws a SetupError.
+ */
+export function updateSetup(change: (setup: YearSetup, usage: Usage) => YearSetup): Promise<void> {
+  return inTurn(async () => {
+    const data = editable();
+    await saveSetup(change(data.setup, usageOf(data)));
+  });
+}
+
+/** Start a year from scratch, with the standard categories and no accounts. */
+export async function startYear(year: number): Promise<void> {
+  await inTurn(async () => {
+    if ((await listYears()).some((y) => y.year === year)) throw new Error(`${year} already exists.`);
+    await replaceYear(emptyYearFile(blankSetup(year)));
+  });
+  await openYear(year);
 }
 
 export interface CloseResult {

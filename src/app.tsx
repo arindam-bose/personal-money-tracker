@@ -4,6 +4,7 @@ import { downloadYear } from "./backup";
 import { requestPersistence, daysSince } from "./storage";
 import { current, loadSettings, openYear, persistState, years } from "./state";
 import type { ComponentType } from "preact";
+import { AccountsView } from "./views/accounts";
 import { BudgetView } from "./views/budget";
 import { DashboardView } from "./views/dashboard";
 import { DataView } from "./views/data";
@@ -25,6 +26,7 @@ const PAGES = {
   ledger: { label: "Ledger", view: LedgerView },
   budget: { label: "Budget", view: BudgetView },
   reports: { label: "Reports", view: ReportsPage },
+  accounts: { label: "Accounts", view: AccountsView },
   data: { label: "Data", view: DataView },
 } as const;
 type Page = keyof typeof PAGES;

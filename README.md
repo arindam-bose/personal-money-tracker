@@ -24,7 +24,10 @@ npm run build      # static site in dist/
 - `src/backup.ts`: JSON import and export.
 - `src/derive.ts`: every computed figure (totals, balances, rates). Nothing computed is stored.
 - `src/entries.ts`: entry-form logic: drafts, validation, transfer-category suggestion.
-- `src/state.ts`: the open year as Preact signals, and the actions that change it.
+- `src/state.ts`: the open year as Preact signals, and the actions that change it
+  (run one at a time, so quick successive changes can't overwrite each other).
+- `src/setup.ts`: editing accounts, categories, tags and people; a blank year's defaults.
+- `src/rollover.ts`: what the next year starts with when a year is closed.
 - `src/views/`: Preact views. `chart.tsx` wraps ECharts; the Reports page (and ECharts)
   only loads when opened.
 - `tools/`: Python scripts that convert a Notion export (`notion_import.py`) and check
