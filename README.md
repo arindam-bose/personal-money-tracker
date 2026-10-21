@@ -1,52 +1,53 @@
 # Money Tracker
 
-A personal finance tracker that runs entirely in the browser. You enter expenses,
-earnings and transfers by hand. Everything is stored in your browser (IndexedDB),
-and a JSON export of each year is the backup. There is no server and no account.
+Keep track of what you earn, spend, save and invest, one year at a time.
 
-## Develop
+You type in your expenses, earnings and transfers yourself; the tracker works out
+the rest: where your money went, how much you saved, what your cards owe, and how
+you are doing against your monthly budgets.
 
-Needs Node 22 (`nvm use` picks it up from `.nvmrc`).
+## Your data stays with you
 
-```sh
-npm install
-npm run dev        # dev server
-npm test           # unit tests (Vitest)
-npm run typecheck  # app and tests
-npm run build      # static site in dist/
-```
+There is no account and no server. Everything you enter is stored in your own
+browser, on your own computer, and is never sent anywhere.
 
-## Layout
+That also means **you are the backup**. Download a copy of each year now and then
+(the app reminds you after a week). If you clear your browser data or switch
+computers, import that file to get everything back.
 
-- `src/types.ts`: the data model. Amounts are integer cents.
-- `src/validate.ts`: checks an imported JSON file before anything is stored.
-- `src/db.ts`: IndexedDB storage.
-- `src/backup.ts`: JSON import and export.
-- `src/derive.ts`: every computed figure (totals, balances, rates). Nothing computed is stored.
-- `src/entries.ts`: entry-form logic: drafts, validation, transfer-category suggestion.
-- `src/state.ts`: the open year as Preact signals, and the actions that change it
-  (run one at a time, so quick successive changes can't overwrite each other).
-- `src/setup.ts`: editing accounts, categories, tags and people; a blank year's defaults.
-- `src/rollover.ts`: what the next year starts with when a year is closed.
-- `src/views/`: Preact views. `chart.tsx` wraps ECharts; the Reports page (and ECharts)
-  only loads when opened.
-- `tools/`: Python scripts that convert a Notion export (`notion_import.py`) and check
-  the result against Notion's own totals (`verify.py`).
-- `tests/fixtures/`: synthetic data only.
+## Getting started
 
-## Ledger shortcuts
+1. Open the **Data** page.
+2. Either **import** a Money Tracker file (`.json`), or **start the year from
+   scratch**: you get a standard set of categories, then add your bank accounts,
+   cards and cash on the **Accounts** page.
+3. Log what happens on the **Ledger** page.
 
-- <kbd>E</kbd> / <kbd>I</kbd> / <kbd>T</kbd>: add an expense, earning or transfer
-- <kbd>/</kbd>: search
-- On a selected row: <kbd>Enter</kbd> edits it, <kbd>D</kbd> duplicates it (the copy's item ends in "-new").
-  The ⧉ button at the end of each row duplicates too.
-- In the form: <kbd>Enter</kbd> saves (from any field), <kbd>Esc</kbd> closes. After adding,
-  the form stays open with the same date and accounts for the next entry.
-- In the tags box: <kbd>Enter</kbd> or <kbd>,</kbd> adds a tag (a new name creates it),
-  <kbd>Backspace</kbd> removes the last one.
+## What's in it
 
-## Privacy
+- **Dashboard**: the month or year at a glance: earned, spent, what's left,
+  savings and investment rates, spending and earnings by category, budgets,
+  account balances and how much of your card limits you're using.
+- **Ledger**: every expense, earning and transfer in one list, with filters and
+  quick keyboard entry. Transfers (paying a card, moving money to savings) are
+  shown apart, because they aren't spending.
+- **Budget**: a monthly target for each spending category, with what's left.
+- **Reports**: charts of where your money went, month by month and week by week.
+- **Accounts**: your accounts, categories, tags and the people you share costs with.
+- **Data**: import, back up, and close a finished year. Closing a year starts the
+  next one from its closing balances.
 
-`data/` holds real financial data and is git-ignored. Never commit it.
-Tests that use real data read `data/money-tracker-2026.json` when it exists and are
-skipped when it doesn't.
+## Handy keys on the Ledger
+
+| Key | Does |
+|---|---|
+| <kbd>E</kbd> / <kbd>I</kbd> / <kbd>T</kbd> | Add an expense, earning or transfer |
+| <kbd>/</kbd> | Search |
+| <kbd>Enter</kbd> | Save the form, or edit the selected row |
+| <kbd>Esc</kbd> | Close the form |
+| <kbd>D</kbd> | Duplicate the selected row (the copy's name ends in "-new") |
+
+---
+
+For how it's built, and how to run, test or change it, see the
+[extended README](EXTENDED_README.md).
