@@ -6,7 +6,7 @@ import { fileURLToPath } from "node:url";
 import { beforeEach, describe, expect, it } from "vitest";
 import { exportYear, importYear } from "../src/backup";
 import {
-  accountsOverview, balances, budgetView, moneyFlow, summarize, tagTotal, weeklySpending, type Ledger, type Summary,
+  accountsOverview, balanceSeries, balances, budgetView, moneyFlow, summarize, tagTotal, weeklySpending, type Ledger, type Summary,
 } from "../src/derive";
 import { checkDraft, draftFrom, type AnyEntry } from "../src/entries";
 import { nextYearSetup } from "../src/rollover";
@@ -161,6 +161,11 @@ describe.skipIf(!present)("report functions on real data", () => {
     const openingNet = next.accounts.filter((a) => a.type !== "investment").reduce((s, a) => s + a.opening, 0);
     expect(openingNet).toBe(accountsOverview(ledger).netTangibleAssets);
     expect(next.accounts.filter((a) => a.type === "investment").every((a) => a.opening === 0)).toBe(true);
+  });
+
+  it("saved this year ends at the year's net savings", () => {
+    const [end] = balanceSeries(ledger, ["2026-12-31"]);
+    expect(end!.saved).toBe(summarize(ledger).netSavings);
   });
 
   it("weekly spending adds up to the year", () => {

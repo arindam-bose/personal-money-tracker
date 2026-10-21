@@ -299,11 +299,12 @@ function BalancesCard({ ledger: l, year, lastDate }: { ledger: Ledger; year: num
   const points = [`${year - 1}-12-31`, ...weeklySpending(l, year).map((w) => (w.end > lastDate ? lastDate : w.end))]
     .filter((d, i, all) => all.indexOf(d) === i && d <= lastDate);
   const series = balanceSeries(l, points);
-  const [c1, c2, c3] = seriesColors();
+  const [c1, c2, c3, c4] = seriesColors();
   const lines = [
     { key: "availableCash", name: "Available cash", color: c1 },
     { key: "cardDebt", name: "Card debt", color: c2 },
     { key: "invested", name: "Invested this year", color: c3 },
+    { key: "saved", name: "Saved this year", color: c4 },
   ] as const;
   const label = (d: string) => (d < `${year}-01-01` ? "Start" : shortDate(d));
   const option: ChartOption = {
@@ -314,13 +315,17 @@ function BalancesCard({ ledger: l, year, lastDate }: { ledger: Ledger; year: num
     series: lines.map((ln) => ({
       name: ln.name, type: "line", data: series.map((p) => p[ln.key]),
       showSymbol: false, symbolSize: 8, lineStyle: { width: 2, color: ln.color }, itemStyle: { color: ln.color },
-      endLabel: { show: true, color: token("--muted"), formatter: (p: { value: number }) => formatCompact(p.value) },
+      // With four lines, each is named at its end as well as in the legend.
+      endLabel: {
+        show: true, color: token("--muted"),
+        formatter: (p: { seriesName: string; value: number }) => `${p.seriesName} ${formatCompact(p.value)}`,
+      },
     })),
-    grid: { ...(baseOption().grid as object), right: 64 },
+    grid: { ...(baseOption().grid as object), right: 170 },
   };
   return (
-    <Card title="Balances over time" subtitle="At the end of each week. Investments count what you put in this year, not market value.">
-      <Chart option={option} height={300} label="Available cash, card debt and investments over the year" />
+    <Card title="Balances over time" subtitle="At the end of each week. Investments count what you put in this year, not market value. Saved is what went into savings minus what came out.">
+      <Chart option={option} height={320} label="Available cash, card debt, investments and savings over the year" />
       <TableView head={["Date", ...lines.map((x) => x.name)]}
         rows={series.map((p) => [label(p.date), ...lines.map((x) => formatCents(p[x.key]))])} />
     </Card>

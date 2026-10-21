@@ -359,15 +359,25 @@ export interface BalancePoint {
   cardDebt: Cents;
   /** Contributions to investment accounts so far this year. */
   invested: Cents;
+  /** Net savings so far this year: moved into savings minus taken out (Summary.netSavings to date). */
+  saved: Cents;
 }
 
 /** Account totals at the end of each given day. */
 export function balanceSeries(ledger: Ledger, dates: IsoDate[]): BalancePoint[] {
+  const roles = rolesOf(ledger);
   return dates.map((date) => {
     const o = accountsOverview(ledger, date);
     let invested = 0;
     for (const v of o.invested.values()) invested += v;
-    return { date, availableCash: o.availableCash, cardDebt: o.cardDebt, invested };
+    let saved = 0;
+    for (const t of ledger.transfers) {
+      if (t.date > date) continue;
+      const role = roles.transfer.get(t.cat);
+      if (role === "savings_in") saved += t.amount;
+      if (role === "savings_out") saved -= t.amount;
+    }
+    return { date, availableCash: o.availableCash, cardDebt: o.cardDebt, invested, saved };
   });
 }
 
