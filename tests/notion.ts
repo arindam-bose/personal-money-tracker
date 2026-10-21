@@ -3,6 +3,7 @@
 
 import { readdirSync, readFileSync } from "node:fs";
 import { basename, join } from "node:path";
+import type { Expense, YearFile } from "../src/types";
 
 export type CsvRow = Record<string, string>;
 
@@ -52,4 +53,28 @@ export function readNotionTable(exportDir: string, key: string): CsvRow[] {
 export function notionCents(s: string | undefined): number | null {
   const t = (s ?? "").replace(/[$,]/g, "").trim();
   return t ? Math.round(Number(t) * 100) : null;
+}
+
+// Must match tools/notion_import.py: rows it reshaped carry these notes.
+const REFUND_NOTE = "Imported from Notion, where it was a negative expense.";
+const INVEST_NOTE = "Imported from Notion, where it was an Investment expense.";
+
+/**
+ * The data as Notion counted it, for comparing totals: rows the importer reshaped go back to
+ * being expenses (a refund as a negative expense, an investment transfer as an expense).
+ * Same as notion_view() in tools/verify.py.
+ */
+export function asNotionSaw(file: YearFile): YearFile {
+  const expenses: Expense[] = [...file.expenses];
+  const earnings = file.earnings.filter((r) => {
+    if (!r.notes.includes(REFUND_NOTE)) return true;
+    expenses.push({ id: r.id, date: r.date, item: r.item, amount: -r.amount, account: r.account, cat: r.offsets ?? "", tags: [], notes: r.notes });
+    return false;
+  });
+  const transfers = file.transfers.filter((r) => {
+    if (!r.notes.includes(INVEST_NOTE)) return true;
+    expenses.push({ id: r.id, date: r.date, item: r.item, amount: r.amount, account: r.from, cat: "ce_investment", tags: [], notes: r.notes });
+    return false;
+  });
+  return { ...file, expenses, earnings, transfers };
 }

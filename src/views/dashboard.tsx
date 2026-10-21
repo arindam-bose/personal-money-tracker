@@ -57,13 +57,15 @@ export function DashboardView() {
   const cats = spendByCategory(l, month);
   const accounts = accountsOverview(l, month ? monthEnd(setup.year, month) : undefined);
   const lastMonth = Math.max(0, ...[...l.expenses, ...l.earnings, ...l.transfers].map((e) => Number(e.date.slice(5, 7))));
-  const periodName = month ? `${MONTHS[month - 1]} ${setup.year}` : `${setup.year} so far`;
+  // A past year is complete; only the current one is "so far".
+  const pastYear = setup.closed || setup.year < new Date().getFullYear();
+  const periodName = month ? `${MONTHS[month - 1]} ${setup.year}` : pastYear ? `${setup.year}` : `${setup.year} so far`;
 
   return (
     <div class="dashboard">
       <div class="filters">
         <select value={period.value} onChange={(e) => (period.value = e.currentTarget.value)} aria-label="Period">
-          <option value="">Year to date</option>
+          <option value="">{pastYear ? "Whole year" : "Year to date"}</option>
           {MONTHS.slice(0, Math.max(lastMonth, month ?? 0)).map((m, i) => <option value={String(i + 1)}>{m}</option>)}
         </select>
       </div>
@@ -123,7 +125,7 @@ export function DashboardView() {
 
         <section class="card">
           <h3>Accounts</h3>
-          <p class="muted small">{month ? `At the end of ${MONTHS[month - 1]}` : "Today"}</p>
+          <p class="muted small">{month ? `At the end of ${MONTHS[month - 1]}` : pastYear ? `At the end of ${setup.year}` : "Today"}</p>
           <AccountsTable overview={accounts} accounts={setup.accounts} />
           <RetirementRoom left={remainingRetirement(l, iraLimit.value)} limit={iraLimit.value} />
           <Owed />

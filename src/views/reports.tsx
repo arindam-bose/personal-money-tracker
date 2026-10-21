@@ -126,7 +126,8 @@ function MoneyFlowCard({ ledger: l, year }: { ledger: Ledger; year: number }) {
       // Room on the right for the longest label ("Transfer to external account  $15K").
       left: 8, right: 240, top: 8, bottom: 8,
       nodeWidth: 10,
-      nodeGap: 10,
+      // At least one label's height, so tiny nodes (a few dollars of interest) don't overlap.
+      nodeGap: 14,
       layoutIterations: 0,
       draggable: false,
       emphasis: { focus: "adjacency" },
@@ -148,7 +149,7 @@ function MoneyFlowCard({ ledger: l, year }: { ledger: Ledger; year: number }) {
 
   const height = Math.max(320, flow.nodes.filter((n) => n.group === "spending" || n.group === "investment").length * 34 + 60);
   return (
-    <Card title="Where the money went" subtitle={`${year} so far. Card payments and moves between your own accounts aren't shown: they don't earn or spend anything.`}>
+    <Card title="Where the money went" subtitle={`${year < new Date().getFullYear() ? year : `${year} so far`}. Card payments and moves between your own accounts aren't shown: they don't earn or spend anything.`}>
       <ul class="legend" aria-label="Colours">
         {usedGroups.map((g) => <li><span class="swatch" style={{ background: color[g] }} />{GROUP_LABEL[g]}</li>)}
       </ul>

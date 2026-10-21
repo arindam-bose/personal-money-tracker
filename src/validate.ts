@@ -114,7 +114,8 @@ export function validateYearFile(data: unknown): ValidationResult {
   function checkEntry(r: Obj, label: string) {
     if (!isDateInYear(r.date, y)) err(`${label} "${r.id}" date "${String(r.date)}" is not a date in ${y}.`);
     if (typeof r.item !== "string") err(`${label} "${r.id}" has no item.`);
-    if (!(isCents(r.amount) && r.amount >= 0)) err(`${label} "${r.id}" amount is not whole cents.`);
+    if (!isCents(r.amount)) err(`${label} "${r.id}" amount is not whole cents.`);
+    else if (r.amount < 0) err(`${label} "${r.id}" amount is negative (${r.amount / 100}). Record refunds as an earning that lowers spending.`);
     if (typeof r.notes !== "string") err(`${label} "${r.id}" notes must be text.`);
   }
 

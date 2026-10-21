@@ -28,6 +28,28 @@ def c(s):
     return round(float(s) * 100) if s else 0
 
 
+# Must match tools/notion_import.py: rows it reshaped carry these notes.
+REFUND_NOTE = "Imported from Notion, where it was a negative expense."
+INVEST_NOTE = "Imported from Notion, where it was an Investment expense."
+
+
+def notion_view(d):
+    """The data as Notion counted it: rows the importer reshaped go back to being
+    expenses (a refund as a negative expense, an investment transfer as an expense)."""
+    E, I, T = list(d["expenses"]), [], []
+    for r in d["earnings"]:
+        if REFUND_NOTE in r["notes"]:
+            E.append({**r, "amount": -r["amount"], "cat": r["offsets"], "tags": []})
+        else:
+            I.append(r)
+    for r in d["transfers"]:
+        if INVEST_NOTE in r["notes"]:
+            E.append({**r, "account": r["from"], "cat": "ce_investment", "tags": []})
+        else:
+            T.append(r)
+    return {**d, "expenses": E, "earnings": I, "transfers": T}
+
+
 def metrics(d, month=None):
     """Notion-equivalent (gross) metrics plus the new net view. month='MM' or None for YTD."""
     acct = {a["id"]: a for a in d["accounts"]}
@@ -69,7 +91,7 @@ def balances(d):
 
 
 def main(path, export_dir):
-    d = json.load(open(path, encoding="utf-8"))
+    d = notion_view(json.load(open(path, encoding="utf-8")))
     fails = 0
 
     def check(label, got, want):
@@ -82,7 +104,8 @@ def main(path, export_dir):
     notion_acc = {r["Name"]: r for r in load_csv(export_dir, "*Accounts*_all.csv")}
     bal = balances(d)
     for a in d["accounts"]:
-        check(f"balance {a['name']}", bal[a["id"]], c(notion_acc[a["name"]]["Closing Balance"]))
+        if a["name"] in notion_acc:  # accounts the importer added (2024 investments) aren't in Notion
+            check(f"balance {a['name']}", bal[a["id"]], c(notion_acc[a["name"]]["Closing Balance"]))
 
     # monthly + yearly summaries
     cols = {"earned": "Amount Earned", "paycheck": "Earnings from Paychecks",
@@ -110,11 +133,12 @@ def main(path, export_dir):
 
     cash = sum(bal[a["id"]] for a in d["accounts"] if a["type"] in ("checking", "savings", "cash"))
     debt = -sum(bal[a["id"]] for a in d["accounts"] if a["type"] == "credit")
-    limit = sum(a["limit"] for a in d["accounts"] if a["type"] == "credit")
-    print(f"{len(d['accounts'])} balances + {n_checked} summary figures checked, {fails} mismatches")
+    limit = sum(a.get("limit", 0) for a in d["accounts"] if a["type"] == "credit")  # 2024 had no limits
+    n_bal = sum(a["name"] in notion_acc for a in d["accounts"])
+    print(f"{n_bal} balances + {n_checked} summary figures checked, {fails} mismatches")
     print(f"YTD earned {m['earned']/100:,.2f} | spent {m['spent']/100:,.2f} | surplus {m['surplus']/100:,.2f}")
     print(f"cash {cash/100:,.2f} | card debt {debt/100:,.2f} | net {(cash-debt)/100:,.2f} | "
-          f"utilization {debt/limit:.2%}")
+          f"utilization {(f'{debt/limit:.2%}' if limit else 'n/a (no card limits)')}")
     print(f"NEW net view: offsets {m['offsets']/100:,.2f} | net income {m['net_income']/100:,.2f} | "
           f"net spending {m['net_spent']/100:,.2f} | surplus unchanged {m['surplus']/100:,.2f}")
     sys.exit(1 if fails else 0)
