@@ -201,6 +201,13 @@ export function spendByCategory(ledger: Ledger, month?: number): Map<string, Cat
   return out;
 }
 
+/** Earnings per earning category id, gross (refunds and paybacks included). Every category is present, even at 0. */
+export function earningsByCategory(ledger: Ledger, month?: number): Map<string, Cents> {
+  const out = new Map<string, Cents>(ledger.categories.earning.map((c) => [c.id, 0]));
+  for (const i of ledger.earnings) if (inMonth(i.date, month)) out.set(i.cat, (out.get(i.cat) ?? 0) + i.amount);
+  return out;
+}
+
 // --- Accounts ---
 
 /**
@@ -425,8 +432,7 @@ export function moneyFlow(ledger: Ledger, month?: number): MoneyFlow {
     links.push({ source: "hub", target: id, value });
   };
 
-  const earnedBy = new Map<string, Cents>();
-  for (const i of ledger.earnings) if (inMonth(i.date, month)) earnedBy.set(i.cat, (earnedBy.get(i.cat) ?? 0) + i.amount);
+  const earnedBy = earningsByCategory(ledger, month);
   for (const c of ledger.categories.earning) into(c.id, c.name, "income", earnedBy.get(c.id) ?? 0);
   into("from-savings", "Taken from savings", "savings", -s.netSavings);
 

@@ -3,7 +3,7 @@
 
 import { describe, expect, it } from "vitest";
 import {
-  accountsOverview, balanceSeries, budgetTarget, budgetView, monthProgress, balances, moneyFlow, monthlySummaries, receivables, remainingRetirement,
+  accountsOverview, balanceSeries, budgetTarget, earningsByCategory, budgetView, monthProgress, balances, moneyFlow, monthlySummaries, receivables, remainingRetirement,
   spendByCategory, spendingByMonth, summarize, tagTotal, weeklySpending, weeksOf, type MoneyFlow, type Summary,
 } from "../src/derive";
 import { sample } from "./helpers";
@@ -88,6 +88,17 @@ describe("spendByCategory", () => {
 
   it("can go below zero when a refund lands in a quiet month", () => {
     expect(spendByCategory(ledger, 2).get("ce_food")!.net).toBe(450 - 1550);
+  });
+});
+
+describe("earningsByCategory", () => {
+  it("sums each earning category, listing all of them", () => {
+    expect(Object.fromEntries(earningsByCategory(ledger))).toEqual({
+      ci_paycheck: 800000, ci_interest: 1234, ci_refunds: 2050, ci_payback: 2000,
+    });
+    expect(earningsByCategory(ledger, 1).get("ci_refunds")).toBe(0);
+    const total = [...earningsByCategory(ledger).values()].reduce((a, b) => a + b, 0);
+    expect(total).toBe(summarize(ledger).earned);
   });
 });
 

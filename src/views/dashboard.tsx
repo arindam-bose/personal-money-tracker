@@ -3,7 +3,7 @@
 
 import { useSignal, useSignalEffect } from "@preact/signals";
 import {
-  accountsOverview, budgetView, monthProgress, receivables, remainingRetirement, spendByCategory, summarize, tagTotal,
+  accountsOverview, budgetView, earningsByCategory, monthProgress, receivables, remainingRetirement, spendByCategory, summarize, tagTotal,
 } from "../derive";
 import { formatCents, formatPercent } from "../money";
 import { current, iraLimit, ledger, pinnedTags, savePinnedTags } from "../state";
@@ -103,8 +103,17 @@ export function DashboardView() {
         <section class="card">
           <h3>Spending by category</h3>
           <p class="muted small">{periodName}. Click a category to see its entries.</p>
-          <CategoryBars cats={cats} names={new Map(setup.categories.expense.map((c) => [c.id, c.name]))}
+          <CategoryBars amounts={new Map([...cats].map(([id, c]) => [id, c.gross]))}
+            names={new Map(setup.categories.expense.map((c) => [c.id, c.name]))} empty="No spending in this period."
             onPick={(cat) => showInLedger({ cat, kind: "expense", month: period.value })} />
+        </section>
+
+        <section class="card">
+          <h3>Earnings by category</h3>
+          <p class="muted small">{periodName}, including refunds, points and money paid back. Click a category to see its entries.</p>
+          <CategoryBars amounts={earningsByCategory(l, month)}
+            names={new Map(setup.categories.earning.map((c) => [c.id, c.name]))} empty="No earnings in this period."
+            onPick={(cat) => showInLedger({ cat, kind: "earning", month: period.value })} />
         </section>
 
         <BudgetCard month={month} lastMonth={Math.max(1, lastMonth)} />
@@ -155,25 +164,27 @@ function PinTag() {
 
 /** Horizontal bars, one hue: the job is comparing amounts, not telling categories apart. */
 function CategoryBars(props: {
-  cats: Map<string, { gross: number }>;
+  /** Category id -> amount. Categories at 0 are left out. */
+  amounts: Map<string, number>;
   names: Map<string, string>;
+  empty: string;
   onPick: (cat: string) => void;
 }) {
-  const rows = [...props.cats].filter(([, c]) => c.gross > 0).sort((a, b) => b[1].gross - a[1].gross);
-  if (!rows.length) return <p class="muted">No spending in this period.</p>;
-  const max = rows[0]![1].gross;
-  const total = rows.reduce((s, [, c]) => s + c.gross, 0);
+  const rows = [...props.amounts].filter(([, v]) => v > 0).sort((a, b) => b[1] - a[1]);
+  if (!rows.length) return <p class="muted">{props.empty}</p>;
+  const max = rows[0]![1];
+  const total = rows.reduce((s, [, v]) => s + v, 0);
   return (
     <ul class="hbars">
-      {rows.map(([id, c]) => (
+      {rows.map(([id, v]) => (
         <li>
           <button type="button" onClick={() => props.onPick(id)}>
             <span class="hbar-name">{props.names.get(id) ?? id}</span>
             <span class="hbar-track">
-              <span class="hbar-fill" style={{ width: `${(c.gross / max) * 100}%` }} />
+              <span class="hbar-fill" style={{ width: `${(v / max) * 100}%` }} />
             </span>
-            <span class="hbar-value">{formatCents(c.gross)}</span>
-            <span class="hbar-share">{formatPercent(c.gross / total, 0)}</span>
+            <span class="hbar-value">{formatCents(v)}</span>
+            <span class="hbar-share">{formatPercent(v / total, 0)}</span>
           </button>
         </li>
       ))}
