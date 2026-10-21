@@ -103,7 +103,9 @@ export function deleteAccount(setup: YearSetup, id: string, usage: Usage): YearS
 
 const CAT_PREFIX: Record<CategoryKind, string> = { expense: "ce", earning: "ci", transfer: "ct" };
 
-export function saveCategory(setup: YearSetup, kind: CategoryKind, cat: { id: string; name: string; role?: string }): YearSetup {
+export function saveCategory(
+  setup: YearSetup, kind: CategoryKind, cat: { id: string; name: string; role?: string; net?: boolean },
+): YearSetup {
   const list = setup.categories[kind] as Category<string>[];
   const name = cleanName(cat.name, "category");
   const all = new Set([...setup.categories.expense, ...setup.categories.earning, ...setup.categories.transfer].map((c) => c.id));
@@ -115,6 +117,8 @@ export function saveCategory(setup: YearSetup, kind: CategoryKind, cat: { id: st
     throw new SetupError(kind === "expense" ? "Unknown role." : "Pick what this category is for, so reports can count it.");
   }
   const clean: Category<string> = role ? { id, name, role } : { id, name };
+  // Only paycheck and income categories can be left out of net earnings; "true" is the default, so only false is kept.
+  if (kind === "earning" && (role === "paycheck" || role === "income") && cat.net === false) clean.net = false;
   return { ...setup, categories: { ...setup.categories, [kind]: upsert(list, clean) } };
 }
 
@@ -164,8 +168,11 @@ export function deletePerson(setup: YearSetup, id: string, usage: Usage): YearSe
 
 /** A new year with the standard categories and no accounts yet. */
 export function blankSetup(year: number): YearSetup {
-  const cats = <R extends string>(prefix: string, list: [string, R?][]): Category<R>[] =>
-    list.map(([name, role]) => (role ? { id: `${prefix}_${slug(name)}`, name, role } : { id: `${prefix}_${slug(name)}`, name }));
+  // [name, role?, net?]: "Other" starts outside net earnings, since it's usually one-offs.
+  const cats = <R extends string>(prefix: string, list: [string, R?, boolean?][]): Category<R>[] =>
+    list.map(([name, role, net]) => ({
+      id: `${prefix}_${slug(name)}`, name, ...(role ? { role } : {}), ...(net === false ? { net: false } : {}),
+    }));
   return {
     year,
     accounts: [],
@@ -175,7 +182,7 @@ export function blankSetup(year: number): YearSetup {
         ["Personal Care & Activities"], ["Shopping"], ["Transfer to external account"], ["Transport"],
       ]),
       earning: cats<EarningRole>("ci", [
-        ["Paycheck", "paycheck"], ["Interest", "income"], ["Tax Refund", "income"], ["Other", "income"],
+        ["Paycheck", "paycheck"], ["Interest", "income"], ["Tax Refund", "income"], ["Other", "income", false],
         ["Refunds", "offset"], ["Redeemed CC Points", "offset"], ["Paid back", "reimbursement"],
       ]),
       transfer: cats<TransferRole>("ct", [

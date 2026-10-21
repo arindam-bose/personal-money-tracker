@@ -3,10 +3,11 @@
 
 import { useSignal, useSignalEffect } from "@preact/signals";
 import {
-  accountsOverview, budgetView, earningsByCategory, monthProgress, receivables, remainingRetirement, spendByCategory, summarize, tagTotal,
+  accountsOverview, budgetView, earningsByCategory, monthProgress, netEarningCategories, receivables, remainingRetirement, spendByCategory, summarize, tagTotal,
 } from "../derive";
 import { formatCents, formatPercent } from "../money";
 import { current, iraLimit, ledger, pinnedTags, savePinnedTags } from "../state";
+import type { Ledger } from "../derive";
 import type { Account } from "../types";
 import { BudgetBar } from "./budget";
 import { showInLedger } from "./ledger";
@@ -80,6 +81,7 @@ export function DashboardView() {
           detail={`Paychecks ${formatCents(sum.paycheck)} · other ${formatCents(sum.otherEarned)}`} />
         <Tile label="Spent" value={formatCents(sum.spent)}
           detail={`Bank ${formatCents(sum.spentBySource.bank)} · card ${formatCents(sum.spentBySource.card)} · cash ${formatCents(sum.spentBySource.cash)}`} />
+        <Tile label="Net earnings" value={formatCents(sum.netEarnings)} detail={netEarningsDetail(l)} />
         <Tile label="Net spending" value={formatCents(sum.netSpent)}
           detail={`After ${formatCents(sum.offsets)} of refunds and points${sum.owed ? ` and ${formatCents(sum.owed)} owed to you` : ""}`} />
         <Tile label="Savings rate" value={formatPercent(sum.savingsRate)}
@@ -101,19 +103,19 @@ export function DashboardView() {
       <div class="columns">
         <div class="stack">
         <section class="card">
-          <h3>Spending by category</h3>
-          <p class="muted small">{periodName}. Click a category to see its entries.</p>
-          <CategoryBars amounts={new Map([...cats].map(([id, c]) => [id, c.gross]))}
-            names={new Map(setup.categories.expense.map((c) => [c.id, c.name]))} empty="No spending in this period."
-            onPick={(cat) => showInLedger({ cat, kind: "expense", month: period.value })} />
+          <h3>Earnings by category</h3>
+          <p class="muted small">{periodName}, including refunds, points and money paid back. Click a category to see its entries.</p>
+          <CategoryBars tone="earning" amounts={earningsByCategory(l, month)}
+            names={new Map(setup.categories.earning.map((c) => [c.id, c.name]))} empty="No earnings in this period."
+            onPick={(cat) => showInLedger({ cat, kind: "earning", month: period.value })} />
         </section>
 
         <section class="card">
-          <h3>Earnings by category</h3>
-          <p class="muted small">{periodName}, including refunds, points and money paid back. Click a category to see its entries.</p>
-          <CategoryBars amounts={earningsByCategory(l, month)}
-            names={new Map(setup.categories.earning.map((c) => [c.id, c.name]))} empty="No earnings in this period."
-            onPick={(cat) => showInLedger({ cat, kind: "earning", month: period.value })} />
+          <h3>Spending by category</h3>
+          <p class="muted small">{periodName}. Click a category to see its entries.</p>
+          <CategoryBars tone="expense" amounts={new Map([...cats].map(([id, c]) => [id, c.gross]))}
+            names={new Map(setup.categories.expense.map((c) => [c.id, c.name]))} empty="No spending in this period."
+            onPick={(cat) => showInLedger({ cat, kind: "expense", month: period.value })} />
         </section>
 
         <BudgetCard month={month} lastMonth={Math.max(1, lastMonth)} />
@@ -129,6 +131,13 @@ export function DashboardView() {
       </div>
     </div>
   );
+}
+
+/** Which categories make up net earnings, e.g. "Paycheck + Interest + Tax Refund". */
+function netEarningsDetail(l: Ledger): string {
+  const ids = netEarningCategories(l);
+  const names = l.categories.earning.filter((c) => ids.has(c.id)).map((c) => c.name);
+  return names.length ? names.join(" + ") : "No categories count. Choose them on the Accounts page.";
 }
 
 function Tile(props: { label: string; value: string; detail?: string; onRemove?: () => void }) {
@@ -164,6 +173,8 @@ function PinTag() {
 
 /** Horizontal bars, one hue: the job is comparing amounts, not telling categories apart. */
 function CategoryBars(props: {
+  /** Bar colour: green for earnings, red for spending, matching the ledger. */
+  tone: "earning" | "expense";
   /** Category id -> amount. Categories at 0 are left out. */
   amounts: Map<string, number>;
   names: Map<string, string>;
@@ -181,7 +192,7 @@ function CategoryBars(props: {
           <button type="button" onClick={() => props.onPick(id)}>
             <span class="hbar-name">{props.names.get(id) ?? id}</span>
             <span class="hbar-track">
-              <span class="hbar-fill" style={{ width: `${(v / max) * 100}%` }} />
+              <span class={`hbar-fill ${props.tone}`} style={{ width: `${(v / max) * 100}%` }} />
             </span>
             <span class="hbar-value">{formatCents(v)}</span>
             <span class="hbar-share">{formatPercent(v / total, 0)}</span>

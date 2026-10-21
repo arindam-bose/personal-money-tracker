@@ -3,7 +3,7 @@
 
 import { describe, expect, it } from "vitest";
 import {
-  accountsOverview, balanceSeries, budgetTarget, earningsByCategory, budgetView, monthProgress, balances, moneyFlow, monthlySummaries, receivables, remainingRetirement,
+  accountsOverview, balanceSeries, budgetTarget, countsInNetEarnings, earningsByCategory, budgetView, monthProgress, balances, moneyFlow, monthlySummaries, receivables, remainingRetirement,
   spendByCategory, spendingByMonth, summarize, tagTotal, weeklySpending, weeksOf, type MoneyFlow, type Summary,
 } from "../src/derive";
 import { sample } from "./helpers";
@@ -31,6 +31,7 @@ describe("summarize", () => {
       owed: 3000,
       netSpent: 212450, // 217500 − 2050 − 3000
       netIncome: 801234, // 805284 − 2050 − 2000
+      netEarnings: 801234, // paychecks 800000 + interest 1234; refunds and paybacks never count
       savingsRate: 75000 / 800000,
       investmentRate: 50000 / 800000,
       charityRate: 2500 / 800000,
@@ -88,6 +89,21 @@ describe("spendByCategory", () => {
 
   it("can go below zero when a refund lands in a quiet month", () => {
     expect(spendByCategory(ledger, 2).get("ce_food")!.net).toBe(450 - 1550);
+  });
+});
+
+describe("net earnings", () => {
+  it("leaves out income categories switched off", () => {
+    const l = sample();
+    l.categories.earning = l.categories.earning.map((c) => (c.id === "ci_interest" ? { ...c, net: false } : c));
+    expect(summarize(l).netEarnings).toBe(800000);
+  });
+
+  it("only paycheck and income roles can count", () => {
+    expect(countsInNetEarnings({ role: "paycheck" })).toBe(true);
+    expect(countsInNetEarnings({ role: "income", net: false })).toBe(false);
+    expect(countsInNetEarnings({ role: "offset", net: true })).toBe(false);
+    expect(countsInNetEarnings({ role: "reimbursement" })).toBe(false);
   });
 });
 

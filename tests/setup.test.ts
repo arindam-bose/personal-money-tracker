@@ -59,6 +59,15 @@ describe("categories", () => {
     expect(() => saveCategory(setup, "transfer", { id: "", name: "Odd", role: "nope" })).toThrow();
   });
 
+  it("keeps net: false only on paycheck and income earning categories", () => {
+    const off = saveCategory(setup, "earning", { id: "ci_interest", name: "Interest", role: "income", net: false });
+    expect(off.categories.earning.find((c) => c.id === "ci_interest")).toEqual({ id: "ci_interest", name: "Interest", role: "income", net: false });
+    const on = saveCategory(off, "earning", { id: "ci_interest", name: "Interest", role: "income", net: true });
+    expect(on.categories.earning.find((c) => c.id === "ci_interest")).not.toHaveProperty("net");
+    const refund = saveCategory(setup, "earning", { id: "ci_refunds", name: "Refunds", role: "offset", net: false });
+    expect(refund.categories.earning.find((c) => c.id === "ci_refunds")).not.toHaveProperty("net");
+  });
+
   it("deleting an unused category drops its budget targets too", () => {
     const s = deleteCategory(setup, "expense", "ce_rent", { ...usage, categories: new Map() });
     expect(s.categories.expense.map((c) => c.id)).not.toContain("ce_rent");
@@ -91,5 +100,6 @@ describe("blankSetup", () => {
     expect(r.ok ? [] : r.errors).toEqual([]);
     expect(new Set(s.categories.earning.map((c) => c.role))).toEqual(new Set(["paycheck", "income", "offset", "reimbursement"]));
     expect(s.categories.transfer).toHaveLength(7);
+    expect(s.categories.earning.find((c) => c.name === "Other")!.net).toBe(false);
   });
 });

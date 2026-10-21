@@ -87,6 +87,8 @@ export interface Summary {
   netSpent: Cents;
   /** What you really earned: earned − offsets − reimbursements. */
   netIncome: Cents;
+  /** Earnings in categories that count toward net earnings (see countsInNetEarnings). */
+  netEarnings: Cents;
 
   /** As fractions of paycheck income; null when there was no paycheck. */
   savingsRate: number | null;
@@ -110,10 +112,12 @@ export function summarize(ledger: Ledger, month?: number): Summary {
     owed += e.owed?.amount ?? 0;
   }
 
-  let earned = 0, paycheck = 0, offsets = 0, reimbursed = 0;
+  let earned = 0, paycheck = 0, offsets = 0, reimbursed = 0, netEarnings = 0;
+  const counted = netEarningCategories(ledger);
   for (const i of ledger.earnings) {
     if (!inMonth(i.date, month)) continue;
     earned += i.amount;
+    if (counted.has(i.cat)) netEarnings += i.amount;
     const role = roles.earning.get(i.cat);
     if (role === "paycheck") paycheck += i.amount;
     if (role === "offset") offsets += i.amount;
@@ -142,10 +146,24 @@ export function summarize(ledger: Ledger, month?: number): Summary {
     offsets, reimbursed, owed,
     netSpent: spent - offsets - owed,
     netIncome: earned - offsets - reimbursed,
+    netEarnings,
     savingsRate: ratio(netSavings, paycheck),
     investmentRate: ratio(investment, paycheck),
     charityRate: ratio(charity, paycheck),
   };
+}
+
+/**
+ * Whether an earning category counts toward net earnings: paycheck and income
+ * categories do, unless switched off (net: false). Refunds and paybacks never do.
+ */
+export function countsInNetEarnings(c: { role?: EarningRole; net?: boolean }): boolean {
+  return (c.role === "paycheck" || c.role === "income") && c.net !== false;
+}
+
+/** Ids of the earning categories that count toward net earnings. */
+export function netEarningCategories(ledger: Ledger): Set<string> {
+  return new Set(ledger.categories.earning.filter(countsInNetEarnings).map((c) => c.id));
 }
 
 /** Summaries for January to December, index 0 = January. */

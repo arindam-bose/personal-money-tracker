@@ -3,14 +3,14 @@
 
 import { useSignal } from "@preact/signals";
 import { useEffect, useRef } from "preact/hooks";
-import { balances } from "../derive";
+import { balances, countsInNetEarnings } from "../derive";
 import { formatCents, parseCents, parseSignedCents } from "../money";
 import {
   deleteAccount, deleteCategory, deletePerson, deleteTag, saveAccount, saveCategory, savePerson, saveTag,
   usageOf, type CategoryKind, type Usage,
 } from "../setup";
 import { current, ledger, readOnly, updateSetup } from "../state";
-import type { Account, AccountType, YearSetup } from "../types";
+import type { Account, AccountType, EarningRole, YearSetup } from "../types";
 
 const TYPE_LABEL: Record<AccountType, string> = {
   checking: "Checking", savings: "Savings", cash: "Cash", credit: "Credit card", investment: "Investment",
@@ -240,7 +240,7 @@ function CategoryCard({ kind, setup, usage }: { kind: CategoryKind; setup: YearS
   const error = useSignal<string | null>(null);
   const newName = useSignal("");
   const newRole = useSignal(kind === "expense" ? "" : Object.keys(ROLE_LABEL[kind])[0]!);
-  const list = setup.categories[kind] as { id: string; name: string; role?: string }[];
+  const list = setup.categories[kind] as { id: string; name: string; role?: string; net?: boolean }[];
   const locked = readOnly.value;
   const setError = (m: string | null) => (error.value = m);
 
@@ -254,10 +254,10 @@ function CategoryCard({ kind, setup, usage }: { kind: CategoryKind; setup: YearS
       <h3>{KIND_TITLE[kind]}</h3>
       <p class="muted small">{{
         expense: "Rename freely: entries keep their category. Charity shows as a share of pay on the dashboard.",
-        earning: "“Lowers spending” is for refunds and points. “Paid back” is someone settling what they owe you.",
+        earning: "“Lowers spending” is for refunds and points. “Paid back” is someone settling what they owe you. Tick “Net” for the earnings that make up net earnings on the dashboard; untick one-offs.",
         transfer: "What each one is for drives the savings, investing and card-payment figures.",
       }[kind]}</p>
-      <ul class="name-list">
+      <ul class={`name-list ${kind === "earning" ? "with-net" : ""}`}>
         {list.map((c) => (
           <li key={c.id}>
             <NameInput value={c.name} disabled={locked} label={`Rename ${c.name}`}
@@ -266,6 +266,7 @@ function CategoryCard({ kind, setup, usage }: { kind: CategoryKind; setup: YearS
               onChange={(e) => attempt((s) => saveCategory(s, kind, { ...c, role: e.currentTarget.value }), setError)}>
               {Object.entries(ROLE_LABEL[kind]).map(([role, label]) => <option value={role}>{label}</option>)}
             </select>
+            {kind === "earning" && <NetTick cat={c} locked={locked} onChange={(net) => attempt((s) => saveCategory(s, kind, { ...c, net }), setError)} />}
             <span class="uses" title="Entries using it">{usage.categories.get(c.id) ?? 0}</span>
             {!locked && (
               <DeleteButton used={usage.categories.get(c.id) ?? 0} name={c.name}
@@ -337,6 +338,19 @@ function NamesCard(props: {
       )}
       {error.value && <p class="form-error" role="alert">{error.value}</p>}
     </section>
+  );
+}
+
+/** "Counts in net earnings", for paycheck and income categories; others can't count. */
+function NetTick(props: { cat: { name: string; role?: string; net?: boolean }; locked: boolean; onChange: (net: boolean) => void }) {
+  const eligible = props.cat.role === "paycheck" || props.cat.role === "income";
+  return (
+    <label class="net-tick" title={eligible ? "Counts in net earnings" : "Refunds and paybacks aren't earnings, so they never count"}>
+      <input type="checkbox" checked={eligible && countsInNetEarnings(props.cat as { role?: EarningRole; net?: boolean })}
+        disabled={props.locked || !eligible} aria-label={`${props.cat.name} counts in net earnings`}
+        onChange={(e) => props.onChange(e.currentTarget.checked)} />
+      <span>Net</span>
+    </label>
   );
 }
 

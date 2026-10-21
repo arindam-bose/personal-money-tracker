@@ -45,6 +45,12 @@ describe("validateYearFile", () => {
     expect(errorsAfter((f) => delete f.categories.expense[2].role)).toEqual([]);
   });
 
+  it("allows net only as a boolean on earning categories", () => {
+    expect(errorsAfter((f) => (f.categories.earning[1].net = false))).toEqual([]);
+    expect(errorsAfter((f) => (f.categories.earning[1].net = "no"))).toHaveLength(1);
+    expect(errorsAfter((f) => (f.categories.expense[0].net = false))).toHaveLength(1);
+  });
+
   it("catches duplicate ids and a bad owed share", () => {
     expect(errorsAfter((f) => (f.expenses[1].id = "e0001"))).toEqual(['Expense id "e0001" is used twice.']);
     expect(errorsAfter((f) => (f.expenses[2].owed.amount = 999999))).toHaveLength(1);

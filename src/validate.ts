@@ -104,6 +104,9 @@ export function validateYearFile(data: unknown): ValidationResult {
       } else if (!roles.includes(c.role as string)) {
         err(`${kind} category "${c.name}" has unknown role "${String(c.role)}".`);
       }
+      if (c.net !== undefined && (kind !== "earning" || typeof c.net !== "boolean")) {
+        err(`${kind} category "${c.name}": "net" must be true or false, on earning categories only.`);
+      }
     }
   }
 

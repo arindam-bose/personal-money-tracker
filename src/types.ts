@@ -39,6 +39,12 @@ export interface Category<R extends string> {
   id: string;
   name: string;
   role?: R;
+  /**
+   * Earning categories with a paycheck or income role only: whether they count toward
+   * "Net earnings" on the dashboard. Left out, they count. Set false for one-offs
+   * like insurance payouts.
+   */
+  net?: boolean;
 }
 
 export interface Tag {

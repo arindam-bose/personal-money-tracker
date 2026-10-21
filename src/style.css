@@ -664,6 +664,10 @@ tr.row-transfer td {
   border-radius: 0 4px 4px 0;
 }
 
+/* The ledger's kind colours: earnings green, spending red. */
+.hbar-fill.earning { background: var(--earning); }
+.hbar-fill.expense { background: var(--expense); }
+
 .hbar-value,
 .hbar-share {
   text-align: right;
@@ -1141,4 +1145,21 @@ tr.row-transfer td {
 
 .start-options {
   margin: 8px 0 16px;
+}
+
+/* Earning categories have one more column: the net-earnings tick. */
+.name-list.with-net li {
+  grid-template-columns: minmax(0, 3fr) minmax(0, 2fr) 52px 32px 22px;
+}
+
+.net-tick {
+  display: flex;
+  align-items: center;
+  gap: 4px;
+  font-size: 12px;
+  color: var(--muted);
+}
+
+.net-tick input:disabled + span {
+  opacity: 0.4;
 }
