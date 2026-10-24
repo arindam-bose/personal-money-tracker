@@ -3,7 +3,7 @@
 
 import { describe, expect, it } from "vitest";
 import {
-  accountsOverview, balanceSeries, budgetTarget, countsInNetEarnings, earningsByCategory, budgetView, monthProgress, balances, moneyFlow, monthlySummaries, receivables, remainingRetirement,
+  accountsOverview, balanceSeries, budgetTarget, countsInNetEarnings, earningsByCategory, monthsBefore, budgetView, monthProgress, balances, moneyFlow, monthlySummaries, receivables, remainingRetirement,
   spendByCategory, spendingByMonth, summarize, tagTotal, weeklySpending, weeksOf, type MoneyFlow, type Summary,
 } from "../src/derive";
 import { sample } from "./helpers";
@@ -290,5 +290,17 @@ describe("budgets", () => {
   it("knows how far through the month today is", () => {
     expect(monthProgress(2026, 4, "2026-04-15")).toBe(0.5);
     expect(monthProgress(2026, 4, "2026-05-01")).toBeNull();
+  });
+});
+
+describe("monthsBefore", () => {
+  it.each([
+    ["2026-10-24", 1, "2026-09-24"],
+    ["2026-10-24", 12, "2025-10-24"],
+    ["2026-02-15", 3, "2025-11-15"],
+    ["2026-03-31", 1, "2026-02-28"], // February has no 31st
+    ["2024-03-30", 1, "2024-02-29"], // leap year
+  ])("%s minus %i months is %s", (date, n, want) => {
+    expect(monthsBefore(date, n)).toBe(want);
   });
 });

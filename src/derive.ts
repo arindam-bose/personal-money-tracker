@@ -35,6 +35,17 @@ export function inMonth(date: IsoDate, month: Month): boolean {
   return month === undefined || Number(date.slice(5, 7)) === month;
 }
 
+/**
+ * The same day n months earlier, as "YYYY-MM-DD": the start of "the last n months" up to `date`.
+ * A day the earlier month doesn't have becomes its last day: "2026-03-31" minus 1 -> "2026-02-28".
+ */
+export function monthsBefore(date: IsoDate, n: number): IsoDate {
+  const months = Number(date.slice(0, 4)) * 12 + Number(date.slice(5, 7)) - 1 - n;
+  const year = Math.floor(months / 12), month = (months % 12) + 1;
+  const day = Math.min(Number(date.slice(8, 10)), new Date(Date.UTC(year, month, 0)).getUTCDate());
+  return `${year}-${String(month).padStart(2, "0")}-${String(day).padStart(2, "0")}`;
+}
+
 /** Where the money for an expense came from, by the debited account's type. */
 export type SpendSource = "bank" | "card" | "cash";
 

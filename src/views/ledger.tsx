@@ -3,15 +3,18 @@
 
 import { useComputed, useSignal, useSignalEffect } from "@preact/signals";
 import { useEffect, useRef } from "preact/hooks";
-import { inMonth } from "../derive";
+import { inMonth, monthsBefore } from "../derive";
 import { draftFrom, emptyDraft, type AnyEntry, type Draft, type Kind } from "../entries";
 import { formatCents } from "../money";
 import { current, duplicate, readOnly } from "../state";
 import { EntryForm } from "./entry-form";
 
 export interface Filters {
-  /** "" for the whole year, or "1".."12". */
+  /** "" for the whole year, "1".."12" for that month, "last-1".."last-12" for the months up to today, or "range" for from–to. */
   month: string;
+  /** With month "range": first and last day shown, "YYYY-MM-DD". Either can be "" for open-ended. */
+  from: string;
+  to: string;
   kind: "" | Kind;
   account: string;
   cat: string;
@@ -20,8 +23,11 @@ export interface Filters {
   q: string;
 }
 
-const NO_FILTERS: Filters = { month: "", kind: "", account: "", cat: "", tag: "", q: "" };
+const NO_FILTERS: Filters = { month: "", from: "", to: "", kind: "", account: "", cat: "", tag: "", q: "" };
 const FILTERS_KEY = "ledger-filters";
+const SORT_KEY = "ledger-sort";
+const MONTH_NAMES = ["January", "February", "March", "April", "May", "June", "July",
+  "August", "September", "October", "November", "December"];
 /** Rows shown at a time; buttons under the table show more or fewer. */
 const PAGE = 100;
 const MONTHS = ["Jan", "Feb", "Mar", "Apr", "May", "Jun", "Jul", "Aug", "Sep", "Oct", "Nov", "Dec"];
@@ -39,6 +45,15 @@ function loadFilters(): Filters {
 export function showInLedger(f: Partial<Filters>) {
   saveFilters({ ...NO_FILTERS, ...f });
   location.hash = "#/ledger";
+}
+
+/** Sort order lasts until the tab is closed, like the filters, but Clear leaves it alone. */
+function loadOldestFirst(): boolean {
+  try {
+    return sessionStorage.getItem(SORT_KEY) === "oldest";
+  } catch {
+    return false;
+  }
 }
 
 function saveFilters(f: Filters) {
@@ -69,8 +84,25 @@ function allEntries(): AnyEntry[] {
   );
 }
 
-function matches(e: AnyEntry, f: Filters): boolean {
-  if (f.month && !inMonth(e.entry.date, Number(f.month))) return false;
+/** Today in the browser's time zone, "YYYY-MM-DD". */
+function localToday(): string {
+  const now = new Date();
+  return `${now.getFullYear()}-${String(now.getMonth() + 1).padStart(2, "0")}-${String(now.getDate()).padStart(2, "0")}`;
+}
+
+/** The dates a filter lets through, first to last; "" leaves that end open. Null for a single month. */
+function dateWindow(f: Filters, today: string): [string, string] | null {
+  if (f.month.startsWith("last-")) return [monthsBefore(today, Number(f.month.slice(5))), today];
+  if (f.month === "range") return [f.from, f.to];
+  return null;
+}
+
+function matches(e: AnyEntry, f: Filters, today: string): boolean {
+  const date = e.entry.date;
+  const window = dateWindow(f, today);
+  if (window) {
+    if ((window[0] && date < window[0]) || (window[1] && date > window[1])) return false;
+  } else if (f.month && !inMonth(date, Number(f.month))) return false;
   if (f.kind && e.kind !== f.kind) return false;
   if (f.cat && e.entry.cat !== f.cat) return false;
   if (f.account) {
@@ -95,9 +127,8 @@ function shortDate(iso: string): string {
 
 /** Today if it falls in the open year, otherwise January 1 of that year. */
 function defaultDate(year: number): string {
-  const now = new Date();
-  const today = `${now.getFullYear()}-${String(now.getMonth() + 1).padStart(2, "0")}-${String(now.getDate()).padStart(2, "0")}`;
-  return now.getFullYear() === year ? today : `${year}-01-01`;
+  const today = localToday();
+  return Number(today.slice(0, 4)) === year ? today : `${year}-01-01`;
 }
 
 export function LedgerView() {
@@ -108,15 +139,28 @@ export function LedgerView() {
   const searchRef = useRef<HTMLInputElement>(null);
   /** How many of the matching rows are shown, newest first. */
   const shown = useSignal(PAGE);
+  const oldestFirst = useSignal(loadOldestFirst());
 
   useSignalEffect(() => saveFilters(filters.value));
-  // New filters start again from the newest PAGE rows.
+  useSignalEffect(() => {
+    try {
+      sessionStorage.setItem(SORT_KEY, oldestFirst.value ? "oldest" : "newest");
+    } catch {
+      // Not kept; the sort still works for this page view.
+    }
+  });
+  // New filters or a new order start again from the first PAGE rows.
   useSignalEffect(() => {
     filters.value;
+    oldestFirst.value;
     shown.value = PAGE;
   });
 
-  const rows = useComputed(() => allEntries().filter((e) => matches(e, filters.value)));
+  const rows = useComputed(() => {
+    const today = localToday();
+    const out = allEntries().filter((e) => matches(e, filters.value, today));
+    return oldestFirst.value ? out.reverse() : out;
+  });
   const totals = useComputed(() => {
     const t = { expense: 0, earning: 0, transfer: 0 };
     for (const e of rows.value) t[e.kind] += e.entry.amount;
@@ -215,10 +259,28 @@ export function LedgerView() {
 
       <div class="filters">
         <input ref={searchRef} type="search" placeholder="Search…  /" value={f.q} onInput={(e) => setFilter("q", e.currentTarget.value)} />
-        <select value={f.month} onChange={(e) => setFilter("month", e.currentTarget.value)} aria-label="Month">
-          <option value="">All months</option>
-          {MONTHS.map((m, i) => <option value={String(i + 1)}>{m}</option>)}
+        <select value={f.month} aria-label="Dates"
+          onChange={(e) => (filters.value = { ...filters.value, month: e.currentTarget.value, from: "", to: "" })}>
+          <option value="">All dates</option>
+          <optgroup label="Up to today">
+            {Array.from({ length: 12 }, (_, i) => (
+              <option value={`last-${i + 1}`}>{i === 0 ? "Last month" : `Last ${i + 1} months`}</option>
+            ))}
+          </optgroup>
+          <optgroup label="Month">
+            {MONTH_NAMES.map((m, i) => <option value={String(i + 1)}>{m}</option>)}
+          </optgroup>
+          <option value="range">Pick dates…</option>
         </select>
+        {f.month === "range" && (
+          <>
+            <input type="date" aria-label="From" title="From" value={f.from} max={f.to || undefined}
+              onChange={(e) => setFilter("from", e.currentTarget.value)} />
+            <span class="muted">to</span>
+            <input type="date" aria-label="To" title="To" value={f.to} min={f.from || undefined}
+              onChange={(e) => setFilter("to", e.currentTarget.value)} />
+          </>
+        )}
         <select value={f.kind} onChange={(e) => setFilter("kind", e.currentTarget.value as Filters["kind"])} aria-label="Kind">
           <option value="">All kinds</option>
           <option value="earning">Earnings</option>
@@ -238,6 +300,11 @@ export function LedgerView() {
         <select value={f.tag} onChange={(e) => setFilter("tag", e.currentTarget.value)} aria-label="Tag">
           <option value="">All tags</option>
           {setup.tags.map((t) => <option value={t.id}>{t.name}</option>)}
+        </select>
+        <select value={oldestFirst.value ? "oldest" : "newest"} aria-label="Sort"
+          onChange={(e) => (oldestFirst.value = e.currentTarget.value === "oldest")}>
+          <option value="newest">Newest first</option>
+          <option value="oldest">Oldest first</option>
         </select>
         {filtered && <button type="button" class="link" onClick={() => (filters.value = NO_FILTERS)}>Clear</button>}
       </div>
