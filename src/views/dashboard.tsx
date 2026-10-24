@@ -92,7 +92,7 @@ export function DashboardView() {
         <Tile label="Savings" value={formatCents(sum.netSavings)}
           detail={`${formatPercent(sum.savingsRate)} of paychecks`} />
         <Tile label="Investment" value={formatCents(sum.investment)}
-          detail={`${formatPercent(sum.investmentRate)} of paychecks · retirement ${formatPercent(sum.investment ? sum.investRetirement / sum.investment : null, 0)}, taxable ${formatPercent(sum.investment ? sum.investTaxable / sum.investment : null, 0)}`} />
+          detail={`${formatPercent(sum.investmentRate)} of paychecks · retirement ${formatPercent(sum.investment ? sum.investRetirement / sum.investment : null)}, taxable ${formatPercent(sum.investment ? sum.investTaxable / sum.investment : null)}`} />
         <Tile label="Credit card payments" value={formatCents(sum.ccPayments)} detail="Transfers, not counted in spending" />
         <Tile label="Charity" value={formatCents(sum.charity)} detail={`${formatPercent(sum.charityRate)} of paychecks`} />
         <Tile label="Loan payments" value={formatCents(sum.loan)} detail="Counted in spending" />
@@ -201,7 +201,7 @@ function CategoryBars(props: {
               <span class={`hbar-fill ${props.tone}`} style={{ width: `${(v / max) * 100}%` }} />
             </span>
             <span class="hbar-value">{formatCents(v)}</span>
-            <span class="hbar-share">{formatPercent(v / total, 0)}</span>
+            <span class="hbar-share">{formatPercent(v / total)}</span>
           </button>
         </li>
       ))}
@@ -245,7 +245,7 @@ function AccountsTable(props: { overview: ReturnType<typeof accountsOverview>; a
           );
         })}
         <tr class="subtotal">
-          <td>Card debt · {formatPercent(o.utilization, 2)} of limits</td>
+          <td>Card debt · {formatPercent(o.utilization)} of limits</td>
           <td class="num">{formatCents(o.cardDebt)}</td>
         </tr>
         <tr class="total">

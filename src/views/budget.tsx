@@ -4,7 +4,7 @@
 import { useSignal, useSignalEffect } from "@preact/signals";
 import { useRef } from "preact/hooks";
 import { budgetView, monthKey, monthProgress, type BudgetLine } from "../derive";
-import { formatCents, parseCents } from "../money";
+import { formatCents, formatPercent, parseCents } from "../money";
 import { current, ledger, readOnly, setBudget } from "../state";
 import { showInLedger } from "./ledger";
 
@@ -92,7 +92,7 @@ export function BudgetView() {
         <div class="tile card">
           <div class="tile-label">{left < 0 ? "Over budget" : "Left to spend"}</div>
           <div class={`tile-value ${left < 0 ? "neg" : ""}`}>{formatCents(Math.abs(left))}</div>
-          {pace !== null && <div class="tile-detail">{Math.round(pace * 100)}% of the month has gone by</div>}
+          {pace !== null && <div class="tile-detail">{formatPercent(pace)} of the month has gone by</div>}
         </div>
       </div>
 

@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest";
-import { formatCents, parseCents, parseSignedCents } from "../src/money";
+import { formatCents, formatPercent, parseCents, parseSignedCents } from "../src/money";
 
 describe("parseCents", () => {
   it.each([
@@ -32,5 +32,15 @@ describe("parseSignedCents", () => {
     expect(parseSignedCents("−3")).toBe(-300);
     expect(parseSignedCents("7")).toBe(700);
     expect(parseSignedCents("--1")).toBeNull();
+  });
+});
+
+describe("formatPercent", () => {
+  it("always shows 2 decimals", () => {
+    expect(formatPercent(0.285)).toBe("28.50%");
+    expect(formatPercent(0.033)).toBe("3.30%");
+    expect(formatPercent(1)).toBe("100.00%");
+    expect(formatPercent(0)).toBe("0.00%");
+    expect(formatPercent(null)).toBe("–");
   });
 });

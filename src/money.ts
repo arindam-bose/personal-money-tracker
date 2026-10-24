@@ -28,9 +28,9 @@ export function formatCompact(amount: Cents): string {
   return compact.format(amount / 100);
 }
 
-/** A fraction as a percentage: 0.1234 -> "12.3%". Null (no meaningful ratio) shows as "–". */
-export function formatPercent(fraction: number | null, digits = 1): string {
-  return fraction === null ? "–" : `${(fraction * 100).toFixed(digits)}%`;
+/** A fraction as a percentage, always 2 decimals: 0.1234 -> "12.34%". Null (no meaningful ratio) shows as "–". */
+export function formatPercent(fraction: number | null): string {
+  return fraction === null ? "–" : `${(fraction * 100).toFixed(2)}%`;
 }
 
 /** Like parseCents, but allows a leading minus, e.g. an overdrawn account: "-12.50" -> -1250. */
