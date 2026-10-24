@@ -1,7 +1,7 @@
 import { describe, expect, it } from "vitest";
 import {
   SetupError, blankSetup, deleteAccount, deleteCategory, deletePerson, deleteTag, saveAccount, saveCategory,
-  savePerson, saveTag, usageOf,
+  savePerson, saveTag, uncategorizedId, usageOf, withUncategorized,
 } from "../src/setup";
 import type { YearSetup } from "../src/types";
 import { validateYearFile } from "../src/validate";
@@ -10,6 +10,7 @@ import { sample } from "./helpers";
 const file = sample();
 const setup: YearSetup = { ...file };
 const usage = usageOf(file);
+const data = { setup, expenses: file.expenses, earnings: file.earnings, transfers: file.transfers };
 
 describe("usageOf", () => {
   it("counts every reference", () => {
@@ -68,11 +69,52 @@ describe("categories", () => {
     expect(refund.categories.earning.find((c) => c.id === "ci_refunds")).not.toHaveProperty("net");
   });
 
-  it("deleting an unused category drops its budget targets too", () => {
-    const s = deleteCategory(setup, "expense", "ce_rent", { ...usage, categories: new Map() });
-    expect(s.categories.expense.map((c) => c.id)).not.toContain("ce_rent");
-    expect(s.budgets.default).toEqual({ ce_food: 40000 });
-    expect(() => deleteCategory(setup, "expense", "ce_rent", usage)).toThrow("used by 1 entry");
+  it("deleting a category drops its budget targets too", () => {
+    const r = deleteCategory(data, "expense", "ce_rent");
+    expect(r.setup.categories.expense.map((c) => c.id)).not.toContain("ce_rent");
+    expect(r.setup.budgets.default).toEqual({ ce_food: 40000 });
+  });
+
+  it("moves a deleted category's entries to Uncategorized, adding it if missing", () => {
+    const r = deleteCategory(data, "expense", "ce_food");
+    expect(r.setup.categories.expense.map((c) => c.id)).toEqual(["ce_rent", "ce_charity", "ce_loan", "ce_uncategorized"]);
+    expect(r.expenses.map((e) => [e.id, e.cat])).toEqual(
+      ["e0002", "e0003", "e0004", "e0005", "e0008"].map((id) => [id, "ce_uncategorized"]),
+    );
+    // The refund aimed at Food now lowers Uncategorized instead.
+    expect(r.earnings.map((i) => [i.id, i.offsets])).toEqual([["i0003", "ce_uncategorized"]]);
+    expect(r.transfers).toEqual([]);
+    expect(r.setup.budgets["2026-02"]).toEqual({});
+
+    const t = deleteCategory(data, "transfer", "ct_atm");
+    expect(t.transfers.map((x) => [x.id, x.cat])).toEqual([["x0004", "ct_uncategorized"]]);
+    expect(t.setup.categories.transfer.find((c) => c.id === "ct_uncategorized")!.role).toBe("general");
+
+    const i = deleteCategory(data, "earning", "ci_interest");
+    expect(i.earnings.map((x) => [x.id, x.cat])).toEqual([["i0002", "ci_uncategorized"]]);
+    expect(i.setup.categories.earning.at(-1)).toEqual({ id: "ci_uncategorized", name: "Uncategorized", role: "income", net: false });
+  });
+
+  it("keeps the result a valid year file", () => {
+    const r = deleteCategory(data, "expense", "ce_food");
+    const byId = new Map(r.expenses.map((e) => [e.id, e]));
+    const earnings = new Map(r.earnings.map((e) => [e.id, e]));
+    const moved = {
+      ...file, ...r.setup,
+      expenses: file.expenses.map((e) => byId.get(e.id) ?? e),
+      earnings: file.earnings.map((e) => earnings.get(e.id) ?? e),
+    };
+    const v = validateYearFile(moved);
+    expect(v.ok ? [] : v.errors).toEqual([]);
+  });
+
+  it("never deletes Uncategorized, or an Uncategorized the user already had", () => {
+    const once = deleteCategory(data, "expense", "ce_food");
+    expect(() => deleteCategory({ ...data, setup: once.setup }, "expense", "ce_uncategorized")).toThrow("can't be deleted");
+    const own = saveCategory(setup, "expense", { id: "", name: "uncategorized" });
+    expect(withUncategorized(own).categories.expense).toHaveLength(own.categories.expense.length);
+    const r = deleteCategory({ ...data, setup: own }, "expense", "ce_rent");
+    expect(r.expenses[0]!.cat).toBe(uncategorizedId(own, "expense"));
   });
 });
 
@@ -99,7 +141,8 @@ describe("blankSetup", () => {
     const r = validateYearFile({ app: "money-tracker", schema: 1, exportedAt: "", ...s, expenses: [], earnings: [], transfers: [] });
     expect(r.ok ? [] : r.errors).toEqual([]);
     expect(new Set(s.categories.earning.map((c) => c.role))).toEqual(new Set(["paycheck", "income", "offset", "reimbursement"]));
-    expect(s.categories.transfer).toHaveLength(7);
+    expect(s.categories.transfer).toHaveLength(8); // the 7 standard ones + Uncategorized
+    expect(["expense", "earning", "transfer"].map((k) => uncategorizedId(s, k as "expense"))).toEqual(["ce_uncategorized", "ci_uncategorized", "ct_uncategorized"]);
     expect(s.categories.earning.find((c) => c.name === "Other")!.net).toBe(false);
   });
 });

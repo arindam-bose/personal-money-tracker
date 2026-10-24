@@ -3,11 +3,11 @@
 // update the signal, so what you see is always what is stored.
 
 import { computed, signal } from "@preact/signals";
-import { deleteEntry, getSetting, listYears, loadYear, putEntry, putSetup, replaceYear, setSetting, type YearData } from "./db";
+import { deleteEntry, getSetting, listYears, loadYear, putEntry, putSetup, putSetupAndEntries, replaceYear, setSetting, type YearData } from "./db";
 import type { Ledger } from "./derive";
 import { ID_PREFIX, STORE, duplicateEntry, newId, slug, type AnyEntry, type Kind } from "./entries";
 import { emptyYearFile, nextYearSetup } from "./rollover";
-import { blankSetup, usageOf, type Usage } from "./setup";
+import { blankSetup, deleteCategory, usageOf, withUncategorized, type CategoryKind, type Usage } from "./setup";
 import type { PersistState } from "./storage";
 import type { YearSetup } from "./types";
 
@@ -81,7 +81,16 @@ export async function openYear(year?: number): Promise<void> {
   const stored = years.value.map((y) => y.setup.year);
   const saved = await getSetting("activeYear");
   const pick = [year, saved, stored[0]].find((y) => y !== undefined && stored.includes(y));
-  current.value = pick === undefined ? null : await loadYear(pick);
+  let data = pick === undefined ? null : await loadYear(pick);
+  // Years from before Uncategorized existed get it the first time they're opened (closed years stay as they are).
+  if (data && !data.setup.closed) {
+    const setup = withUncategorized(data.setup);
+    if (setup !== data.setup) {
+      await putSetup(setup);
+      data = { ...data, setup };
+    }
+  }
+  current.value = data;
   if (pick !== undefined && pick !== saved) await setSetting("activeYear", pick);
 }
 
@@ -195,6 +204,28 @@ export function updateSetup(change: (setup: YearSetup, usage: Usage) => YearSetu
   return inTurn(async () => {
     const data = editable();
     await saveSetup(change(data.setup, usageOf(data)));
+  });
+}
+
+/** A list with the given entries swapped in for the ones with the same id. */
+function replaced<T extends { id: string }>(list: T[], changed: T[]): T[] {
+  const byId = new Map(changed.map((x) => [x.id, x]));
+  return list.map((x) => byId.get(x.id) ?? x);
+}
+
+/** Delete a category; its entries move to Uncategorized. Returns how many entries moved. */
+export function removeCategory(kind: CategoryKind, id: string): Promise<number> {
+  return inTurn(async () => {
+    const data = editable();
+    const r = deleteCategory(data, kind, id);
+    await putSetupAndEntries(r.setup, { expenses: r.expenses, earnings: r.earnings, transfers: r.transfers });
+    current.value = {
+      setup: r.setup,
+      expenses: replaced(data.expenses, r.expenses),
+      earnings: replaced(data.earnings, r.earnings),
+      transfers: replaced(data.transfers, r.transfers),
+    };
+    return r.expenses.length + r.earnings.length + r.transfers.length;
   });
 }
 

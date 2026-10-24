@@ -176,6 +176,18 @@ export async function putSetup(setup: YearSetup): Promise<void> {
 
 // --- Single entries (used by the ledger) ---
 
+/** Store a new setup and some changed entries together: all of it is saved, or none. */
+export async function putSetupAndEntries(setup: YearSetup, entries: { [K in EntryKind]: EntryTypes[K][] }): Promise<void> {
+  const db = await openDb();
+  const tx = db.transaction(["years", ...ENTRY_KINDS], "readwrite");
+  tx.objectStore("years").put(setup);
+  for (const kind of ENTRY_KINDS) {
+    const store = tx.objectStore(kind);
+    for (const entry of entries[kind]) store.put({ ...entry, year: setup.year });
+  }
+  await committed(tx);
+}
+
 export async function putEntry<K extends EntryKind>(kind: K, year: number, entry: EntryTypes[K]): Promise<void> {
   const db = await openDb();
   const tx = db.transaction(kind, "readwrite");

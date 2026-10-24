@@ -5,7 +5,7 @@
 import type { YearData } from "./db";
 import { newId, slug } from "./entries";
 import type {
-  Account, Category, EarningRole, ExpenseRole, Person, Tag, TransferRole, YearSetup,
+  Account, Categories, Category, Earning, EarningRole, Expense, ExpenseRole, Person, Tag, Transfer, TransferRole, YearSetup,
 } from "./types";
 
 export class SetupError extends Error {}
@@ -122,16 +122,66 @@ export function saveCategory(
   return { ...setup, categories: { ...setup.categories, [kind]: upsert(list, clean) } };
 }
 
-export function deleteCategory(setup: YearSetup, kind: CategoryKind, id: string, usage: Usage): YearSetup {
-  const n = usage.categories.get(id) ?? 0;
-  if (n) throw new SetupError(`This category is used by ${n} ${n === 1 ? "entry" : "entries"}. Rename it instead, or move those entries first.`);
-  const list = (setup.categories[kind] as Category<string>[]).filter((c) => c.id !== id);
+/**
+ * Where a deleted category's entries go: one per kind, always there, never deleted.
+ * Its roles keep moved entries out of the headline figures: not paychecks, not in net
+ * earnings, not savings or investing.
+ */
+export const UNCATEGORIZED: { [K in CategoryKind]: Categories[K][number] } = {
+  expense: { id: "ce_uncategorized", name: "Uncategorized" },
+  earning: { id: "ci_uncategorized", name: "Uncategorized", role: "income", net: false },
+  transfer: { id: "ct_uncategorized", name: "Uncategorized", role: "general" },
+};
+
+/** The id of a kind's Uncategorized category: ours, or one the user already had by that name. */
+export function uncategorizedId(setup: YearSetup, kind: CategoryKind): string | undefined {
+  const list = setup.categories[kind] as Category<string>[];
+  const name = UNCATEGORIZED[kind].name.toLowerCase();
+  return (list.find((c) => c.id === UNCATEGORIZED[kind].id) ?? list.find((c) => c.name.toLowerCase() === name))?.id;
+}
+
+/** The setup with an Uncategorized category in every kind. The same object if nothing was missing. */
+export function withUncategorized(setup: YearSetup): YearSetup {
+  const missing = (["expense", "earning", "transfer"] as CategoryKind[]).filter((k) => !uncategorizedId(setup, k));
+  if (!missing.length) return setup;
+  const categories = { ...setup.categories };
+  for (const k of missing) (categories[k] as Category<string>[]) = [...categories[k], UNCATEGORIZED[k]];
+  return { ...setup, categories };
+}
+
+/** What deleting a category changes: the new setup, and the entries that moved (only those). */
+export interface CategoryRemoval {
+  setup: YearSetup;
+  expenses: Expense[];
+  earnings: Earning[];
+  transfers: Transfer[];
+}
+
+/**
+ * Delete a category. Entries that used it move to the kind's Uncategorized category, and so
+ * do refunds aimed at a deleted expense category. Uncategorized itself can't be deleted.
+ */
+export function deleteCategory(
+  data: { setup: YearSetup; expenses: Expense[]; earnings: Earning[]; transfers: Transfer[] }, kind: CategoryKind, id: string,
+): CategoryRemoval {
+  const withFallback = withUncategorized(data.setup);
+  const to = uncategorizedId(withFallback, kind)!;
+  if (id === to) throw new SetupError("Uncategorized can't be deleted: entries from deleted categories go there.");
+  const list = (withFallback.categories[kind] as Category<string>[]).filter((c) => c.id !== id);
+  const setup = withFallback;
   // Drop its budget targets too, so the file stays valid.
   const budgets = Object.fromEntries(Object.entries(setup.budgets).map(([k, targets]) => {
     const { [id]: _gone, ...rest } = targets;
     return [k, rest];
   })) as YearSetup["budgets"];
-  return { ...setup, categories: { ...setup.categories, [kind]: list }, budgets };
+  return {
+    setup: { ...setup, categories: { ...setup.categories, [kind]: list }, budgets },
+    expenses: kind === "expense" ? data.expenses.filter((e) => e.cat === id).map((e) => ({ ...e, cat: to })) : [],
+    earnings: kind === "earning"
+      ? data.earnings.filter((i) => i.cat === id).map((i) => ({ ...i, cat: to }))
+      : kind === "expense" ? data.earnings.filter((i) => i.offsets === id).map((i) => ({ ...i, offsets: to })) : [],
+    transfers: kind === "transfer" ? data.transfers.filter((t) => t.cat === id).map((t) => ({ ...t, cat: to })) : [],
+  };
 }
 
 // --- Tags and people ---
@@ -173,7 +223,7 @@ export function blankSetup(year: number): YearSetup {
     list.map(([name, role, net]) => ({
       id: `${prefix}_${slug(name)}`, name, ...(role ? { role } : {}), ...(net === false ? { net: false } : {}),
     }));
-  return {
+  return withUncategorized({
     year,
     accounts: [],
     categories: {
@@ -194,5 +244,5 @@ export function blankSetup(year: number): YearSetup {
     tags: [],
     people: [],
     budgets: { default: {} },
-  };
+  });
 }

@@ -6,10 +6,10 @@ import { useEffect, useRef } from "preact/hooks";
 import { balances, countsInNetEarnings } from "../derive";
 import { formatCents, parseCents, parseSignedCents } from "../money";
 import {
-  deleteAccount, deleteCategory, deletePerson, deleteTag, saveAccount, saveCategory, savePerson, saveTag,
-  usageOf, type CategoryKind, type Usage,
+  deleteAccount, deletePerson, deleteTag, saveAccount, saveCategory, savePerson, saveTag,
+  uncategorizedId, usageOf, type CategoryKind, type Usage,
 } from "../setup";
-import { current, ledger, readOnly, updateSetup } from "../state";
+import { current, ledger, readOnly, removeCategory, updateSetup } from "../state";
 import type { Account, AccountType, EarningRole, YearSetup } from "../types";
 
 const TYPE_LABEL: Record<AccountType, string> = {
@@ -61,7 +61,7 @@ export function AccountsView() {
       {readOnly.value && <p class="muted">{data.setup.year} is closed, so its setup can't be changed.</p>}
       <AccountsCard setup={data.setup} usage={usage} />
       <div class="cat-columns">
-        {(["expense", "earning", "transfer"] as CategoryKind[]).map((kind) => (
+        {(["earning", "expense", "transfer"] as CategoryKind[]).map((kind) => (
           <CategoryCard kind={kind} setup={data.setup} usage={usage} />
         ))}
       </div>
@@ -242,6 +242,7 @@ function CategoryCard({ kind, setup, usage }: { kind: CategoryKind; setup: YearS
   const newRole = useSignal(kind === "expense" ? "" : Object.keys(ROLE_LABEL[kind])[0]!);
   const list = setup.categories[kind] as { id: string; name: string; role?: string; net?: boolean }[];
   const locked = readOnly.value;
+  const fallback = uncategorizedId(setup, kind);
   const setError = (m: string | null) => (error.value = m);
 
   async function add(e: Event) {
@@ -249,11 +250,23 @@ function CategoryCard({ kind, setup, usage }: { kind: CategoryKind; setup: YearS
     if (await attempt((s) => saveCategory(s, kind, { id: "", name: newName.value, role: newRole.value }), setError)) newName.value = "";
   }
 
+  async function remove(c: { id: string; name: string }) {
+    const n = usage.categories.get(c.id) ?? 0;
+    const moves = n ? ` Its ${n} ${n === 1 ? "entry moves" : "entries move"} to Uncategorized.` : "";
+    if (!confirm(`Delete “${c.name}”?${moves}`)) return;
+    try {
+      await removeCategory(kind, c.id);
+      setError(null);
+    } catch (e) {
+      setError(e instanceof Error ? e.message : String(e));
+    }
+  }
+
   return (
     <section class="card">
       <h3>{KIND_TITLE[kind]}</h3>
       <p class="muted small">{{
-        expense: "Rename freely: entries keep their category. Charity shows as a share of pay on the dashboard.",
+        expense: "Rename freely: entries keep their category. Delete one and its entries move to Uncategorized. Charity shows as a share of pay on the dashboard.",
         earning: "“Lowers spending” is for refunds and points. “Paid back” is someone settling what they owe you. Tick “Net” for the earnings that make up net earnings on the dashboard; untick one-offs.",
         transfer: "What each one is for drives the savings, investing and card-payment figures.",
       }[kind]}</p>
@@ -268,10 +281,15 @@ function CategoryCard({ kind, setup, usage }: { kind: CategoryKind; setup: YearS
             </select>
             {kind === "earning" && <NetTick cat={c} locked={locked} onChange={(net) => attempt((s) => saveCategory(s, kind, { ...c, net }), setError)} />}
             <span class="uses" title="Entries using it">{usage.categories.get(c.id) ?? 0}</span>
-            {!locked && (
-              <DeleteButton used={usage.categories.get(c.id) ?? 0} name={c.name}
-                onDelete={() => attempt((s, u) => deleteCategory(s, kind, c.id, u), setError)} />
-            )}
+            {!locked && (c.id === fallback ? (
+              <span class="del-placeholder" title="Entries from deleted categories go here, so it can't be deleted." />
+            ) : (
+              <button type="button" class="icon-btn danger" aria-label={`Delete ${c.name}`}
+                title={usage.categories.get(c.id) ? "Delete; its entries move to Uncategorized" : "Delete (not used by any entry)"}
+                onClick={() => remove(c)}>
+                ×
+              </button>
+            ))}
           </li>
         ))}
       </ul>

@@ -83,6 +83,17 @@ without one. Earning categories with a `paycheck` or `income` role may also carr
 `net: false` to leave them out of **net earnings** (for one-offs such as an
 insurance payout). Left out, they count.
 
+### Uncategorized
+
+Each kind has an **Uncategorized** category (`ce_`/`ci_`/`ct_uncategorized`). It
+can't be deleted. Deleting any other category moves its entries there, and a
+refund aimed at a deleted expense category is re-aimed there too. The setup
+change and the moved entries are written in one transaction (`deleteCategory`
+in `setup.ts`, `removeCategory` in `state.ts`). The roles keep moved entries out
+of the headline figures: the earning one is `income` with `net: false`, and the
+transfer one is `general`. A new year starts with it, and an open year that
+doesn't have it gets it when it's opened.
+
 ### Shared costs
 
 An expense can carry `owed: { person, amount }`: the part someone else owes back.
@@ -173,7 +184,7 @@ already exists, it is left alone. A closed year can be reopened.
 | Ledger | `views/ledger.tsx`, `views/entry-form.tsx` | One table for all three kinds; filters kept per tab in `sessionStorage`. |
 | Budget | `views/budget.tsx` | Enter moves down a column; saves on Enter or blur. |
 | Reports | `views/reports.tsx` | Loaded on demand (see Charts). |
-| Accounts | `views/accounts.tsx` | Delete is offered only for things no entry uses. |
+| Accounts | `views/accounts.tsx` | Accounts, tags and people can be deleted only when no entry uses them; categories always (entries move to Uncategorized). |
 | Data | `views/data.tsx` | Import, export, close/reopen, start from scratch, settings. |
 
 Routing is by URL hash (`#/ledger`), which works on any static host.
