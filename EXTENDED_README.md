@@ -184,7 +184,7 @@ already exists, it is left alone. A closed year can be reopened.
 | Ledger | `views/ledger.tsx`, `views/entry-form.tsx` | One table for all three kinds; filters kept per tab in `sessionStorage`. |
 | Budget | `views/budget.tsx` | Enter moves down a column; saves on Enter or blur. |
 | Reports | `views/reports.tsx` | Loaded on demand (see Charts). |
-| Accounts | `views/accounts.tsx` | Accounts, tags and people can be deleted only when no entry uses them; categories always (entries move to Uncategorized). |
+| Accounts | `views/accounts.tsx` | Accounts and people can be deleted only when no entry uses them. Categories always (entries move to Uncategorized), and tags always (they come off their entries). |
 | Data | `views/data.tsx` | Import, export, close/reopen, start from scratch, settings. |
 
 Routing is by URL hash (`#/ledger`), which works on any static host.

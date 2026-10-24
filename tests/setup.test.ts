@@ -139,8 +139,16 @@ describe("tags and people", () => {
     expect(() => saveTag(s, { id: "", name: "grocery" })).toThrow("already");
   });
 
-  it("deletes only unused tags and people", () => {
-    expect(() => deleteTag(setup, "t_grocery", usage)).toThrow("on 1 entry");
+  it("deletes a used tag by taking it off its expenses", () => {
+    const r = deleteTag({ setup, expenses: file.expenses }, "t_grocery");
+    expect(r.setup.tags.map((t) => t.id)).not.toContain("t_grocery");
+    expect(r.expenses).toHaveLength(1);
+    expect(r.expenses[0]!.tags).not.toContain("t_grocery");
+    const before = file.expenses.find((e) => e.id === r.expenses[0]!.id)!;
+    expect(r.expenses[0]).toEqual({ ...before, tags: before.tags.filter((t) => t !== "t_grocery") });
+  });
+
+  it("deletes only unused people", () => {
     expect(() => deletePerson(setup, "p_sam", usage)).toThrow("on 2 entries");
     const s = savePerson(setup, { id: "", name: "Alex" });
     expect(deletePerson(s, "p_alex", usage).people).toEqual(setup.people);

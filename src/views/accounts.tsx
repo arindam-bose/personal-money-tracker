@@ -6,10 +6,10 @@ import { useEffect, useRef } from "preact/hooks";
 import { balances, countsInNetEarnings } from "../derive";
 import { formatCents, parseCents, parseSignedCents } from "../money";
 import {
-  deleteAccount, deletePerson, deleteTag, duplicateAccount, saveAccount, saveCategory, savePerson, saveTag,
+  deleteAccount, deletePerson, duplicateAccount, saveAccount, saveCategory, savePerson, saveTag,
   uncategorizedId, usageOf, type CategoryKind, type Usage,
 } from "../setup";
-import { current, ledger, readOnly, removeCategory, updateSetup } from "../state";
+import { current, ledger, readOnly, removeCategory, removeTag, updateSetup } from "../state";
 import type { Account, AccountType, EarningRole, YearSetup } from "../types";
 
 const TYPE_LABEL: Record<AccountType, string> = {
@@ -66,8 +66,8 @@ export function AccountsView() {
         ))}
       </div>
       <NamesCard title="Tags" what="tag" items={data.setup.tags} uses={usage.tags}
-          save={(id, name) => (s) => saveTag(s, { id, name })} remove={(id) => (s, u) => deleteTag(s, id, u)}
-          hint="Tags group expenses across categories, like “Costco” or “Vacation”. You can also add them while typing an expense." />
+          save={(id, name) => (s) => saveTag(s, { id, name })} removeAny={removeTag}
+          hint="Tags group expenses across categories, like “Costco” or “Vacation”. You can also add them while typing an expense. Deleting a tag takes it off its expenses." />
         <NamesCard title="People" what="person" items={data.setup.people ?? []} uses={usage.people}
           save={(id, name) => (s) => savePerson(s, { id, name })} remove={(id) => (s, u) => deletePerson(s, id, u)}
           hint="People who share expenses with you or pay you back." />
@@ -327,7 +327,10 @@ function NamesCard(props: {
   items: { id: string; name: string }[];
   uses: Map<string, number>;
   save: (id: string, name: string) => (s: YearSetup, u: Usage) => YearSetup;
-  remove: (id: string) => (s: YearSetup, u: Usage) => YearSetup;
+  /** Delete an unused item. */
+  remove?: (id: string) => (s: YearSetup, u: Usage) => YearSetup;
+  /** Delete an item even when entries use it (it comes off them). Takes the place of `remove`. */
+  removeAny?: (id: string) => Promise<void>;
   hint: string;
 }) {
   const error = useSignal<string | null>(null);
@@ -338,6 +341,18 @@ function NamesCard(props: {
   async function add(e: Event) {
     e.preventDefault();
     if (await attempt(props.save("", newName.value), setError)) newName.value = "";
+  }
+
+  async function removeAny(x: { id: string; name: string }, run: (id: string) => Promise<void>) {
+    const n = props.uses.get(x.id) ?? 0;
+    const off = n ? ` It comes off ${n === 1 ? "the 1 entry" : `the ${n} entries`} that ${n === 1 ? "has" : "have"} it.` : "";
+    if (!confirm(`Delete “${x.name}”?${off}`)) return;
+    try {
+      await run(x.id);
+      setError(null);
+    } catch (e) {
+      setError(e instanceof Error ? e.message : String(e));
+    }
   }
 
   return (
@@ -351,10 +366,16 @@ function NamesCard(props: {
             <NameInput value={x.name} disabled={locked} label={`Rename ${x.name}`}
               onCommit={(name) => attempt(props.save(x.id, name), setError)} />
             <span class="uses" title="Entries using it">{props.uses.get(x.id) ?? 0}</span>
-            {!locked && (
+            {!locked && (props.removeAny ? (
+              <button type="button" class="icon-btn danger" aria-label={`Delete ${x.name}`}
+                title={props.uses.get(x.id) ? `Delete; it comes off the entries that have it` : "Delete (not used by any entry)"}
+                onClick={() => removeAny(x, props.removeAny!)}>
+                ×
+              </button>
+            ) : props.remove && (
               <DeleteButton used={props.uses.get(x.id) ?? 0} name={x.name}
-                onDelete={() => attempt(props.remove(x.id), setError)} />
-            )}
+                onDelete={() => attempt(props.remove!(x.id), setError)} />
+            ))}
           </li>
         ))}
       </ul>

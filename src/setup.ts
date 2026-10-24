@@ -211,10 +211,14 @@ export function saveTag(setup: YearSetup, tag: Tag): YearSetup {
   return { ...setup, tags };
 }
 
-export function deleteTag(setup: YearSetup, id: string, usage: Usage): YearSetup {
-  const n = usage.tags.get(id) ?? 0;
-  if (n) throw new SetupError(`This tag is on ${n} ${n === 1 ? "entry" : "entries"}. Remove it from them first, or rename it.`);
-  return { ...setup, tags: setup.tags.filter((t) => t.id !== id) };
+/** Delete a tag, taking it off every expense that has it. Returns the new setup and the expenses that changed. */
+export function deleteTag(
+  data: { setup: YearSetup; expenses: Expense[] }, id: string,
+): { setup: YearSetup; expenses: Expense[] } {
+  return {
+    setup: { ...data.setup, tags: data.setup.tags.filter((t) => t.id !== id) },
+    expenses: data.expenses.filter((e) => e.tags.includes(id)).map((e) => ({ ...e, tags: e.tags.filter((t) => t !== id) })),
+  };
 }
 
 export function savePerson(setup: YearSetup, person: Person): YearSetup {

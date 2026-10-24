@@ -7,7 +7,7 @@ import { deleteEntry, getSetting, listYears, loadYear, putEntry, putSetup, putSe
 import type { Ledger } from "./derive";
 import { ID_PREFIX, STORE, duplicateEntry, newId, slug, type AnyEntry, type Kind } from "./entries";
 import { emptyYearFile, nextYearSetup } from "./rollover";
-import { blankSetup, deleteCategory, usageOf, withUncategorized, type CategoryKind, type Usage } from "./setup";
+import { blankSetup, deleteCategory, deleteTag, usageOf, withUncategorized, type CategoryKind, type Usage } from "./setup";
 import type { PersistState } from "./storage";
 import type { YearSetup } from "./types";
 
@@ -226,6 +226,16 @@ export function removeCategory(kind: CategoryKind, id: string): Promise<number> 
       transfers: replaced(data.transfers, r.transfers),
     };
     return r.expenses.length + r.earnings.length + r.transfers.length;
+  });
+}
+
+/** Delete a tag; it comes off every expense that has it. Pinned dashboard tiles for it just disappear. */
+export function removeTag(id: string): Promise<void> {
+  return inTurn(async () => {
+    const data = editable();
+    const r = deleteTag(data, id);
+    await putSetupAndEntries(r.setup, { expenses: r.expenses, earnings: [], transfers: [] });
+    current.value = { ...data, setup: r.setup, expenses: replaced(data.expenses, r.expenses) };
   });
 }
 
