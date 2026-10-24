@@ -1,4 +1,4 @@
-// The ledger: every expense, earning and transfer of the year in one table.
+// The ledger: every earning, expense and transfer of the year in one table.
 // Transfers are shown muted and unsigned, because they move money without spending it.
 
 import { useComputed, useSignal, useSignalEffect } from "@preact/signals";
@@ -188,8 +188,8 @@ export function LedgerView() {
           <span class="muted">Add your accounts on the <a href="#/accounts">Accounts</a> page first, then log entries here.</span>
         ) : !readOnly.value ? (
           <>
-            <button type="button" class="add add-expense" onClick={() => openNew("expense")}>+ Expense <kbd>E</kbd></button>
             <button type="button" class="add add-earning" onClick={() => openNew("earning")}>+ Earning <kbd>I</kbd></button>
+            <button type="button" class="add add-expense" onClick={() => openNew("expense")}>- Expense <kbd>E</kbd></button>
             <button type="button" class="add add-transfer" onClick={() => openNew("transfer")}>⇄ Transfer <kbd>T</kbd></button>
           </>
         ) : (
@@ -209,8 +209,8 @@ export function LedgerView() {
         </select>
         <select value={f.kind} onChange={(e) => setFilter("kind", e.currentTarget.value as Filters["kind"])} aria-label="Kind">
           <option value="">All kinds</option>
-          <option value="expense">Expenses</option>
           <option value="earning">Earnings</option>
+          <option value="expense">Expenses</option>
           <option value="transfer">Transfers</option>
         </select>
         <select value={f.account} onChange={(e) => setFilter("account", e.currentTarget.value)} aria-label="Account">
@@ -219,8 +219,8 @@ export function LedgerView() {
         </select>
         <select value={f.cat} onChange={(e) => setFilter("cat", e.currentTarget.value)} aria-label="Category">
           <option value="">All categories</option>
-          <optgroup label="Expenses">{setup.categories.expense.map((c) => <option value={c.id}>{c.name}</option>)}</optgroup>
           <optgroup label="Earnings">{setup.categories.earning.map((c) => <option value={c.id}>{c.name}</option>)}</optgroup>
+          <optgroup label="Expenses">{setup.categories.expense.map((c) => <option value={c.id}>{c.name}</option>)}</optgroup>
           <optgroup label="Transfers">{setup.categories.transfer.map((c) => <option value={c.id}>{c.name}</option>)}</optgroup>
         </select>
         <select value={f.tag} onChange={(e) => setFilter("tag", e.currentTarget.value)} aria-label="Tag">
@@ -232,8 +232,8 @@ export function LedgerView() {
 
       <div class="totals">
         <span>{rows.value.length} entries</span>
-        <span>Spent <b class="neg">{formatCents(totals.value.expense)}</b></span>
         <span>Earned <b class="pos">{formatCents(totals.value.earning)}</b></span>
+        <span>Spent <b class="neg">{formatCents(totals.value.expense)}</b></span>
         <span>Transferred <b>{formatCents(totals.value.transfer)}</b></span>
       </div>
 

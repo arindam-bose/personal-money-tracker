@@ -41,7 +41,7 @@ computers, import that file to get everything back.
 
 | Key | Does |
 |---|---|
-| <kbd>E</kbd> / <kbd>I</kbd> / <kbd>T</kbd> | Add an expense, earning or transfer |
+| <kbd>I</kbd> / <kbd>E</kbd> / <kbd>T</kbd> | Add an earning, expense or transfer |
 | <kbd>/</kbd> | Search |
 | <kbd>Enter</kbd> | Save the form, or edit the selected row |
 | <kbd>Esc</kbd> | Close the form |
