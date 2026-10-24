@@ -6,7 +6,7 @@ import { useEffect, useRef } from "preact/hooks";
 import { balances, countsInNetEarnings } from "../derive";
 import { formatCents, parseCents, parseSignedCents } from "../money";
 import {
-  deleteAccount, deletePerson, deleteTag, saveAccount, saveCategory, savePerson, saveTag,
+  deleteAccount, deletePerson, deleteTag, duplicateAccount, saveAccount, saveCategory, savePerson, saveTag,
   uncategorizedId, usageOf, type CategoryKind, type Usage,
 } from "../setup";
 import { current, ledger, readOnly, removeCategory, updateSetup } from "../state";
@@ -87,6 +87,16 @@ function AccountsCard({ setup, usage }: { setup: YearSetup; usage: Usage }) {
   async function toggleArchive(a: Account) {
     await attempt((s) => saveAccount(s, { ...a, archived: !a.archived }), (m) => (error.value = m));
   }
+  async function copy(a: Account) {
+    let id = "";
+    const ok = await attempt((s) => {
+      const r = duplicateAccount(s, a.id);
+      id = r.id;
+      return r.setup;
+    }, (m) => (error.value = m));
+    // Open the copy for editing: it usually needs a new name, number or opening balance.
+    if (ok) editing.value = id;
+  }
   async function remove(a: Account) {
     if (!confirm(`Delete the account “${a.name}”?`)) return;
     await attempt((s, u) => deleteAccount(s, a.id, u), (m) => (error.value = m));
@@ -134,6 +144,7 @@ function AccountsCard({ setup, usage }: { setup: YearSetup; usage: Usage }) {
                   {!readOnly.value && (
                     <div class="row-actions">
                       <button type="button" onClick={() => (editing.value = a.id)}>Edit</button>
+                      <button type="button" onClick={() => copy(a)} title={`Add a copy named “${a.name}_new”`}>Duplicate</button>
                       <button type="button" onClick={() => toggleArchive(a)}
                         title={a.archived ? "Show it again for new entries" : "Hide it from new entries; old entries keep it"}>
                         {a.archived ? "Unarchive" : "Archive"}

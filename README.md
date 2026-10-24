@@ -36,6 +36,7 @@ computers, import that file to get everything back.
 - **Reports**: charts of where your money went, month by month and week by week.
 - **Accounts**: your accounts, categories, tags and the people you share costs with.
   Deleting a category moves its entries to **Uncategorized**.
+  **Duplicate** an account to start a similar one (the copy is named "…_new").
 - **Data**: import, back up, and close a finished year. Closing a year starts the
   next one from its closing balances.
 

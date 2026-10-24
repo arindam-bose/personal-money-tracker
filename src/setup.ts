@@ -93,6 +93,23 @@ export function saveAccount(setup: YearSetup, account: Account): YearSetup {
   return { ...setup, accounts: upsert(setup.accounts, clean) };
 }
 
+/**
+ * Copy an account, named "<name>_new" ("_new2", "_new3"… if that's taken), right below the
+ * original. Everything else is copied as is, opening balance included; the copy is never archived.
+ * Returns the new setup and the copy's id.
+ */
+export function duplicateAccount(setup: YearSetup, id: string): { setup: YearSetup; id: string } {
+  const at = setup.accounts.findIndex((a) => a.id === id);
+  if (at < 0) throw new SetupError("That account no longer exists.");
+  const { archived: _a, ...original } = setup.accounts[at]!;
+  const taken = new Set(setup.accounts.map((a) => a.name.toLowerCase()));
+  let name = `${original.name}_new`;
+  for (let n = 2; taken.has(name.toLowerCase()); n++) name = `${original.name}_new${n}`;
+  const copy: Account = { ...original, id: idFor("a", name, new Set(setup.accounts.map((a) => a.id))), name };
+  const accounts = [...setup.accounts.slice(0, at + 1), copy, ...setup.accounts.slice(at + 1)];
+  return { setup: { ...setup, accounts }, id: copy.id };
+}
+
 export function deleteAccount(setup: YearSetup, id: string, usage: Usage): YearSetup {
   const n = usage.accounts.get(id) ?? 0;
   if (n) throw new SetupError(`This account is used by ${n} ${n === 1 ? "entry" : "entries"}. Archive it instead, to hide it from new entries.`);
