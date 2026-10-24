@@ -3,7 +3,7 @@
 
 import { useSignal, useSignalEffect } from "@preact/signals";
 import {
-  accountsOverview, budgetView, earningsByCategory, monthProgress, netEarningCategories, receivables, remainingRetirement, spendByCategory, summarize, tagTotal,
+  accountsOverview, budgetView, earningsByCategory, monthProgress, netEarningCategories, remainingRetirement, spendingOffsetCategories, spendByCategory, summarize, tagTotal,
 } from "../derive";
 import { formatCents, formatPercent } from "../money";
 import { current, iraLimit, ledger, pinnedTags, savePinnedTags } from "../state";
@@ -86,7 +86,7 @@ export function DashboardView() {
           detail={`Bank ${formatCents(sum.spentBySource.bank)} · card ${formatCents(sum.spentBySource.card)} · cash ${formatCents(sum.spentBySource.cash)}`} />
         <Tile label="Net earnings" value={formatCents(sum.netEarnings)} detail={netEarningsDetail(l)} />
         <Tile label="Net spending" value={formatCents(sum.netSpent)}
-          detail={`After ${formatCents(sum.offsets)} of refunds and points${sum.owed ? ` and ${formatCents(sum.owed)} owed to you` : ""}`} />
+          detail={netSpendingDetail(l, sum.offsets)} />
         <Tile label="Surplus" value={formatCents(sum.surplus)} tone={sum.surplus > 0 ? "pos" : sum.surplus < 0 ? "neg" : undefined}
           detail={`Earned ${formatCents(sum.earned)} − spent ${formatCents(sum.spent)}`} />
         <Tile label="Savings" value={formatCents(sum.netSavings)}
@@ -132,7 +132,6 @@ export function DashboardView() {
           <p class="muted small">{asOf}</p>
           <AccountsTable overview={accounts} accounts={setup.accounts} />
           <RetirementRoom left={remainingRetirement(l, iraLimit.value)} limit={iraLimit.value} />
-          <Owed />
         </section>
       </div>
     </div>
@@ -144,6 +143,13 @@ function netEarningsDetail(l: Ledger): string {
   const ids = netEarningCategories(l);
   const names = l.categories.earning.filter((c) => ids.has(c.id)).map((c) => c.name);
   return names.length ? names.join(" + ") : "No categories count. Choose them on the Accounts page.";
+}
+
+/** What net spending takes off, e.g. "After $26,273.42 of Expenses Remunerated + Redeemed CC Points + Refunds". */
+function netSpendingDetail(l: Ledger, offsets: number): string {
+  const ids = spendingOffsetCategories(l);
+  const names = l.categories.earning.filter((c) => ids.has(c.id)).map((c) => c.name);
+  return names.length ? `After ${formatCents(offsets)} of ${names.join(" + ")}` : "Every earning counts in net earnings, so nothing comes off.";
 }
 
 function Tile(props: { label: string; value: string; detail?: string; tone?: "pos" | "neg"; onRemove?: () => void }) {
@@ -280,26 +286,6 @@ function RetirementRoom({ left, limit }: { left: number; limit: number }) {
       Retirement room left this year: <b>{formatCents(left)}</b> of the {formatCents(limit)} limit{" "}
       <a href="#/data" class="small">change</a>
     </p>
-  );
-}
-
-function Owed() {
-  const l = ledger.value!;
-  const people = current.value!.setup.people ?? [];
-  const owed = [...receivables(l)].filter(([, v]) => v !== 0);
-  if (!owed.length) return null;
-  return (
-    <div class="owed">
-      <h4>Owed to you</h4>
-      <ul>
-        {owed.map(([id, v]) => (
-          <li>
-            {people.find((p) => p.id === id)?.name ?? id}{" "}
-            {v > 0 ? <>owes you <b>{formatCents(v)}</b></> : <>paid you <b>{formatCents(-v)}</b> more than owed</>}
-          </li>
-        ))}
-      </ul>
-    </div>
   );
 }
 

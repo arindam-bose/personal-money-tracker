@@ -8,7 +8,7 @@ export type ValidationResult = { ok: true; file: YearFile } | { ok: false; error
 
 const ACCOUNT_TYPES: AccountType[] = ["checking", "savings", "cash", "credit", "investment"];
 const EXPENSE_ROLES = ["charity", "loan"];
-const EARNING_ROLES = ["paycheck", "income", "offset", "reimbursement"];
+const EARNING_ROLES = ["paycheck", "income", "offset"];
 const TRANSFER_ROLES = [
   "cc_payment", "savings_in", "savings_out", "invest_retirement",
   "invest_taxable", "cash_withdrawal", "general",
@@ -32,11 +32,36 @@ export function isDateInYear(v: unknown, year: number): boolean {
   return d.toISOString().slice(0, 10) === v && d.getUTCFullYear() === year;
 }
 
-export function validateYearFile(data: unknown): ValidationResult {
+/** A copy of the list with `key` removed from every object in it. Anything else passes through. */
+function withoutKey(list: unknown, key: string): unknown {
+  if (!Array.isArray(list)) return list;
+  return list.map((r) => {
+    if (!isObj(r) || !(key in r)) return r;
+    const { [key]: _gone, ...keep } = r;
+    return keep;
+  });
+}
+
+/**
+ * Files saved before people were dropped can hold `people`, expense `owed` shares, earning
+ * `person`s and a "reimbursement" earning role. Strip them, and make reimbursement "offset"
+ * (money paid back now lowers spending), so those files still import.
+ */
+function withoutLegacyPeople(data: Obj): Obj {
+  const { people: _people, ...rest } = data;
+  const cats = rest.categories;
+  const categories = isObj(cats) && Array.isArray(cats.earning)
+    ? { ...cats, earning: cats.earning.map((c) => (isObj(c) && c.role === "reimbursement" ? { ...c, role: "offset" } : c)) }
+    : cats;
+  return { ...rest, categories, expenses: withoutKey(rest.expenses, "owed"), earnings: withoutKey(rest.earnings, "person") };
+}
+
+export function validateYearFile(raw: unknown): ValidationResult {
   const errors: string[] = [];
   const err = (msg: string) => errors.push(msg);
 
-  if (!isObj(data)) return { ok: false, errors: ["The file is not a JSON object."] };
+  if (!isObj(raw)) return { ok: false, errors: ["The file is not a JSON object."] };
+  const data = withoutLegacyPeople(raw);
   if (data.app !== "money-tracker") return { ok: false, errors: ["This is not a Money Tracker file."] };
   if (data.schema !== 1) return { ok: false, errors: [`Unsupported file version: ${String(data.schema)}.`] };
 
@@ -49,7 +74,6 @@ export function validateYearFile(data: unknown): ValidationResult {
   for (const key of ["accounts", "tags", "expenses", "earnings", "transfers"]) {
     if (!Array.isArray(data[key])) err(`"${key}" must be a list.`);
   }
-  if (data.people !== undefined && !Array.isArray(data.people)) err(`"people" must be a list.`);
   if (!isObj(data.categories)) err(`"categories" is missing.`);
   if (!isObj(data.budgets) || !isObj(data.budgets.default)) err(`"budgets.default" is missing.`);
   if (errors.length) return { ok: false, errors };
@@ -81,7 +105,6 @@ export function validateYearFile(data: unknown): ValidationResult {
   const earningCats = ids(cats.earning as unknown[], "Earning category", true);
   const transferCats = ids(cats.transfer as unknown[], "Transfer category", true);
   const tagIds = ids(data.tags as unknown[], "Tag", true);
-  const personIds = ids((data.people ?? []) as unknown[], "Person", true);
 
   for (const a of accounts.filter(isObj)) {
     if (!ACCOUNT_TYPES.includes(a.type as AccountType)) err(`Account "${a.id}" has unknown type "${String(a.type)}".`);
@@ -127,13 +150,6 @@ export function validateYearFile(data: unknown): ValidationResult {
     if (!expenseCats.has(r.cat as string)) err(`Expense "${r.id}" uses unknown category "${String(r.cat)}".`);
     if (!Array.isArray(r.tags)) err(`Expense "${r.id}" tags must be a list.`);
     else for (const t of r.tags) if (!tagIds.has(t as string)) err(`Expense "${r.id}" uses unknown tag "${String(t)}".`);
-    if (r.owed !== undefined) {
-      const o = r.owed;
-      if (!isObj(o) || !personIds.has(o.person as string)) err(`Expense "${r.id}" is owed by an unknown person.`);
-      else if (!(isCents(o.amount) && o.amount >= 0 && o.amount <= (r.amount as number))) {
-        err(`Expense "${r.id}" owed amount must be between 0 and the expense amount.`);
-      }
-    }
   }
 
   const earnings = data.earnings as unknown[];
@@ -143,7 +159,6 @@ export function validateYearFile(data: unknown): ValidationResult {
     if (!accountIds.has(r.account as string)) err(`Earning "${r.id}" uses unknown account "${String(r.account)}".`);
     if (!earningCats.has(r.cat as string)) err(`Earning "${r.id}" uses unknown category "${String(r.cat)}".`);
     if (r.offsets != null && !expenseCats.has(r.offsets as string)) err(`Earning "${r.id}" offsets unknown category "${String(r.offsets)}".`);
-    if (r.person !== undefined && !personIds.has(r.person as string)) err(`Earning "${r.id}" names unknown person "${String(r.person)}".`);
   }
 
   const transfers = data.transfers as unknown[];

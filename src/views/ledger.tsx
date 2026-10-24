@@ -364,11 +364,6 @@ export function LedgerView() {
               </td>
               <td class="c-tags">
                 {e.kind === "expense" && e.entry.tags.map((t) => <span class="chip">{tagName.get(t) ?? t}</span>)}
-                {e.kind === "expense" && e.entry.owed && (
-                  <span class="chip owed" title="Owed back to you">
-                    {setup.people?.find((p) => p.id === e.entry.owed!.person)?.name ?? "?"} owes {formatCents(e.entry.owed.amount)}
-                  </span>
-                )}
               </td>
               <td class={`num c-amount amt-${e.kind}`}>
                 {e.kind === "expense" ? "−" : e.kind === "earning" ? "+" : ""}

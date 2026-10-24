@@ -1,7 +1,7 @@
 import { describe, expect, it } from "vitest";
 import {
-  SetupError, blankSetup, deleteAccount, duplicateAccount, deleteCategory, deletePerson, deleteTag, saveAccount, saveCategory,
-  savePerson, saveTag, uncategorizedId, usageOf, withUncategorized,
+  SetupError, blankSetup, withoutPeople, deleteAccount, duplicateAccount, deleteCategory, deleteTag, saveAccount, saveCategory,
+  saveTag, uncategorizedId, usageOf, withUncategorized,
 } from "../src/setup";
 import type { YearSetup } from "../src/types";
 import { validateYearFile } from "../src/validate";
@@ -17,7 +17,6 @@ describe("usageOf", () => {
     expect(usage.accounts.get("a_card")).toBe(7); // 4 expenses + 2 refunds + 1 card payment
     expect(usage.categories.get("ce_food")).toBe(6); // 5 food expenses + 1 refund aimed at Food
     expect(usage.tags.get("t_grocery")).toBe(1);
-    expect(usage.people.get("p_sam")).toBe(2); // owed share + payback
     expect(usage.accounts.get("a_ira")).toBe(1);
   });
 });
@@ -130,7 +129,7 @@ describe("categories", () => {
   });
 });
 
-describe("tags and people", () => {
+describe("tags", () => {
   it("adds, renames and keeps tags sorted", () => {
     let s = saveTag(setup, { id: "", name: "Coffee" });
     expect(s.tags.map((t) => t.name)).toEqual(["Abroad", "Coffee", "Grocery"]);
@@ -148,10 +147,25 @@ describe("tags and people", () => {
     expect(r.expenses[0]).toEqual({ ...before, tags: before.tags.filter((t) => t !== "t_grocery") });
   });
 
-  it("deletes only unused people", () => {
-    expect(() => deletePerson(setup, "p_sam", usage)).toThrow("on 2 entries");
-    const s = savePerson(setup, { id: "", name: "Alex" });
-    expect(deletePerson(s, "p_alex", usage).people).toEqual(setup.people);
+});
+
+describe("withoutPeople", () => {
+  it("drops people, owed shares and the reimbursement role from an older year", () => {
+    const old = {
+      setup: { ...setup, people: [{ id: "p_sam", name: "Sam" }] } as YearSetup,
+      expenses: file.expenses.map((e) => (e.id === "e0003" ? { ...e, owed: { person: "p_sam", amount: 3000 } } : e)),
+      earnings: file.earnings.map((i) => (i.id === "i0005" ? { ...i, person: "p_sam" } : i)),
+    };
+    old.setup.categories = { ...setup.categories, earning: setup.categories.earning.map((c) => (c.id === "ci_payback" ? { ...c, role: "reimbursement" as never } : c)) };
+    const r = withoutPeople(old)!;
+    expect(r.setup).not.toHaveProperty("people");
+    expect(r.setup.categories.earning.find((c) => c.id === "ci_payback")!.role).toBe("offset");
+    expect(r.expenses).toEqual([file.expenses.find((e) => e.id === "e0003")]);
+    expect(r.earnings).toEqual([file.earnings.find((i) => i.id === "i0005")]);
+  });
+
+  it("leaves an up-to-date year alone", () => {
+    expect(withoutPeople({ setup, expenses: file.expenses, earnings: file.earnings })).toBeNull();
   });
 });
 
@@ -160,7 +174,7 @@ describe("blankSetup", () => {
     const s = blankSetup(2027);
     const r = validateYearFile({ app: "money-tracker", schema: 1, exportedAt: "", ...s, expenses: [], earnings: [], transfers: [] });
     expect(r.ok ? [] : r.errors).toEqual([]);
-    expect(new Set(s.categories.earning.map((c) => c.role))).toEqual(new Set(["paycheck", "income", "offset", "reimbursement"]));
+    expect(new Set(s.categories.earning.map((c) => c.role))).toEqual(new Set(["paycheck", "income", "offset"]));
     expect(s.categories.transfer).toHaveLength(8); // the 7 standard ones + Uncategorized
     expect(["expense", "earning", "transfer"].map((k) => uncategorizedId(s, k as "expense"))).toEqual(["ce_uncategorized", "ci_uncategorized", "ct_uncategorized"]);
     expect(s.categories.earning.find((c) => c.name === "Other")!.net).toBe(false);

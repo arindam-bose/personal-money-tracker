@@ -1,27 +1,26 @@
-// Editing a year's setup: accounts, categories, tags and people. Each function checks
+// Editing a year's setup: accounts, categories and tags. Each function checks
 // the change and returns a new setup, or throws a SetupError with a message for the user.
 // Everything refers to these by id, so renaming never touches a single entry.
 
 import type { YearData } from "./db";
 import { newId, slug } from "./entries";
 import type {
-  Account, Categories, Category, Earning, EarningRole, Expense, ExpenseRole, Person, Tag, Transfer, TransferRole, YearSetup,
+  Account, Categories, Category, Earning, EarningRole, Expense, ExpenseRole, Tag, Transfer, TransferRole, YearSetup,
 } from "./types";
 
 export class SetupError extends Error {}
 
 export type CategoryKind = "expense" | "earning" | "transfer";
 
-/** How many entries use each account, category, tag and person. Used to block unsafe deletes. */
+/** How many entries use each account, category and tag. Used to block unsafe deletes. */
 export interface Usage {
   accounts: Map<string, number>;
   categories: Map<string, number>;
   tags: Map<string, number>;
-  people: Map<string, number>;
 }
 
 export function usageOf(data: Pick<YearData, "expenses" | "earnings" | "transfers">): Usage {
-  const u: Usage = { accounts: new Map(), categories: new Map(), tags: new Map(), people: new Map() };
+  const u: Usage = { accounts: new Map(), categories: new Map(), tags: new Map() };
   const add = (m: Map<string, number>, id: string | null | undefined) => {
     if (id) m.set(id, (m.get(id) ?? 0) + 1);
   };
@@ -29,13 +28,11 @@ export function usageOf(data: Pick<YearData, "expenses" | "earnings" | "transfer
     add(u.accounts, e.account);
     add(u.categories, e.cat);
     e.tags.forEach((t) => add(u.tags, t));
-    add(u.people, e.owed?.person);
   }
   for (const i of data.earnings) {
     add(u.accounts, i.account);
     add(u.categories, i.cat);
     add(u.categories, i.offsets); // a refund aimed at a spending category uses it too
-    add(u.people, i.person);
   }
   for (const t of data.transfers) {
     add(u.accounts, t.from);
@@ -46,7 +43,7 @@ export function usageOf(data: Pick<YearData, "expenses" | "earnings" | "transfer
 }
 
 const EXPENSE_ROLES: (ExpenseRole | undefined)[] = [undefined, "charity", "loan"];
-const EARNING_ROLES: EarningRole[] = ["paycheck", "income", "offset", "reimbursement"];
+const EARNING_ROLES: EarningRole[] = ["paycheck", "income", "offset"];
 const TRANSFER_ROLES: TransferRole[] = [
   "cc_payment", "savings_in", "savings_out", "invest_retirement", "invest_taxable", "cash_withdrawal", "general",
 ];
@@ -151,7 +148,7 @@ export const UNCATEGORIZED: { [K in CategoryKind]: Categories[K][number] } = {
 };
 
 /** The id of a kind's Uncategorized category: ours, or one the user already had by that name. */
-export function uncategorizedId(setup: YearSetup, kind: CategoryKind): string | undefined {
+export function uncategorizedId(setup: Pick<YearSetup, "categories">, kind: CategoryKind): string | undefined {
   const list = setup.categories[kind] as Category<string>[];
   const name = UNCATEGORIZED[kind].name.toLowerCase();
   return (list.find((c) => c.id === UNCATEGORIZED[kind].id) ?? list.find((c) => c.name.toLowerCase() === name))?.id;
@@ -201,7 +198,7 @@ export function deleteCategory(
   };
 }
 
-// --- Tags and people ---
+// --- Tags ---
 
 export function saveTag(setup: YearSetup, tag: Tag): YearSetup {
   const name = cleanName(tag.name, "tag");
@@ -221,18 +218,25 @@ export function deleteTag(
   };
 }
 
-export function savePerson(setup: YearSetup, person: Person): YearSetup {
-  const people = setup.people ?? [];
-  const name = cleanName(person.name, "person");
-  const id = person.id || idFor("p", name, new Set(people.map((p) => p.id)));
-  assertUniqueName(people, name, id, "person");
-  return { ...setup, people: upsert(people, { id, name }) };
-}
+// --- Years saved before people were dropped ---
 
-export function deletePerson(setup: YearSetup, id: string, usage: Usage): YearSetup {
-  const n = usage.people.get(id) ?? 0;
-  if (n) throw new SetupError(`This person is on ${n} ${n === 1 ? "entry" : "entries"}. Rename them instead.`);
-  return { ...setup, people: (setup.people ?? []).filter((p) => p.id !== id) };
+/**
+ * Older years could hold people, shares of expenses they owed, who paid back, and a
+ * "Paid back" (reimbursement) earning role. Drop the people and those fields; a reimbursement
+ * category becomes "Lowers spending", which is how money paid back now counts.
+ * Returns the cleaned setup and the entries that changed, or null if there was nothing to do.
+ */
+export function withoutPeople(
+  data: { setup: YearSetup; expenses: Expense[]; earnings: Earning[] },
+): { setup: YearSetup; expenses: Expense[]; earnings: Earning[] } | null {
+  const { people, ...setup } = data.setup as YearSetup & { people?: unknown };
+  const earning = setup.categories.earning.map((c) =>
+    (c.role as string) === "reimbursement" ? { ...c, role: "offset" as const } : c);
+  const expenses = data.expenses.filter((e) => "owed" in e).map(({ owed: _o, ...e }: Expense & { owed?: unknown }) => e);
+  const earnings = data.earnings.filter((i) => "person" in i).map(({ person: _p, ...i }: Earning & { person?: unknown }) => i);
+  const roleChanged = earning.some((c, n) => c !== setup.categories.earning[n]);
+  if (people === undefined && !roleChanged && !expenses.length && !earnings.length) return null;
+  return { setup: { ...setup, categories: { ...setup.categories, earning } }, expenses, earnings };
 }
 
 // --- A year from scratch ---
@@ -254,7 +258,7 @@ export function blankSetup(year: number): YearSetup {
       ]),
       earning: cats<EarningRole>("ci", [
         ["Paycheck", "paycheck"], ["Interest", "income"], ["Tax Refund", "income"], ["Other", "income", false],
-        ["Refunds", "offset"], ["Redeemed CC Points", "offset"], ["Paid back", "reimbursement"],
+        ["Refunds", "offset"], ["Redeemed CC Points", "offset"], ["Paid back", "offset"],
       ]),
       transfer: cats<TransferRole>("ct", [
         ["Payment to CC", "cc_payment"], ["Savings", "savings_in"], ["Savings Takeout", "savings_out"],
@@ -263,7 +267,6 @@ export function blankSetup(year: number): YearSetup {
       ]),
     },
     tags: [],
-    people: [],
     budgets: { default: {} },
   });
 }

@@ -25,7 +25,7 @@ export interface Account {
 // Roles are hidden tags on categories, so users can rename categories
 // and the reports still know what each one means.
 export type ExpenseRole = "charity" | "loan";
-export type EarningRole = "paycheck" | "income" | "offset" | "reimbursement";
+export type EarningRole = "paycheck" | "income" | "offset";
 export type TransferRole =
   | "cc_payment"
   | "savings_in"
@@ -42,17 +42,12 @@ export interface Category<R extends string> {
   /**
    * Earning categories with a paycheck or income role only: whether they count toward
    * "Net earnings" on the dashboard. Left out, they count. Set false for one-offs
-   * like insurance payouts.
+   * like insurance payouts; earnings outside net earnings lower net spending instead.
    */
   net?: boolean;
 }
 
 export interface Tag {
-  id: string;
-  name: string;
-}
-
-export interface Person {
   id: string;
   name: string;
 }
@@ -69,8 +64,6 @@ export interface Expense {
   /** Tag ids. */
   tags: string[];
   notes: string;
-  /** The part of this expense someone else owes back (§5). */
-  owed?: { person: string; amount: Cents };
 }
 
 export interface Earning {
@@ -85,8 +78,6 @@ export interface Earning {
   notes: string;
   /** For role "offset": the expense category it reduces, or null for total spending only. */
   offsets?: string | null;
-  /** For role "reimbursement": the person id who paid back. */
-  person?: string;
 }
 
 export interface Transfer {
@@ -121,7 +112,6 @@ export interface YearFile {
   accounts: Account[];
   categories: Categories;
   tags: Tag[];
-  people?: Person[];
   expenses: Expense[];
   earnings: Earning[];
   transfers: Transfer[];
@@ -129,7 +119,7 @@ export interface YearFile {
 }
 
 /** The parts of a YearFile that are set up once, not entered day to day. */
-export type YearSetup = Pick<YearFile, "year" | "accounts" | "categories" | "tags" | "people" | "budgets"> & {
+export type YearSetup = Pick<YearFile, "year" | "accounts" | "categories" | "tags" | "budgets"> & {
   /** Set by "Close year"; a closed year is read-only. */
   closed?: boolean;
   /** When this year was last exported to JSON (ISO timestamp), for the backup reminder. */

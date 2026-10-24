@@ -1,5 +1,5 @@
 // Budget: monthly targets per expense category (brief §6). A usual target applies to
-// every month; any month can override it. Spending is net of refunds and shares owed.
+// every month; any month can override it. Spending is net of refunds aimed at each category.
 
 import { useSignal, useSignalEffect } from "@preact/signals";
 import { useRef } from "preact/hooks";
@@ -87,7 +87,7 @@ export function BudgetView() {
         <div class="tile card">
           <div class="tile-label">Spent in budgeted categories</div>
           <div class="tile-value">{formatCents(view.spentBudgeted)}</div>
-          <div class="tile-detail">After refunds and shares owed to you</div>
+          <div class="tile-detail">After refunds aimed at these categories</div>
         </div>
         <div class="tile card">
           <div class="tile-label">{left < 0 ? "Over budget" : "Left to spend"}</div>

@@ -3,7 +3,7 @@
 
 import { describe, expect, it } from "vitest";
 import {
-  accountsOverview, balanceSeries, budgetTarget, countsInNetEarnings, earningsByCategory, monthsBefore, budgetView, monthProgress, balances, moneyFlow, monthlySummaries, receivables, remainingRetirement,
+  accountsOverview, balanceSeries, budgetTarget, countsInNetEarnings, earningsByCategory, monthsBefore, budgetView, monthProgress, balances, moneyFlow, monthlySummaries, remainingRetirement, spendingOffsetCategories,
   spendByCategory, spendingByMonth, summarize, tagTotal, weeklySpending, weeksOf, type MoneyFlow, type Summary,
 } from "../src/derive";
 import { sample } from "./helpers";
@@ -26,11 +26,8 @@ describe("summarize", () => {
       investment: 50000,
       charity: 2500,
       loan: 30000,
-      offsets: 2050, // 1550 aimed at Food + 500 untargeted
-      reimbursed: 2000,
-      owed: 3000,
-      netSpent: 212450, // 217500 − 2050 − 3000
-      netIncome: 801234, // 805284 − 2050 − 2000
+      offsets: 4050, // refunds: 1550 aimed at Food + 500 untargeted; paid back: 2000
+      netSpent: 213450, // 217500 − 4050
       netEarnings: 801234, // paychecks 800000 + interest 1234; refunds and paybacks never count
       savingsRate: 75000 / 800000,
       investmentRate: 50000 / 800000,
@@ -48,7 +45,7 @@ describe("summarize", () => {
     const feb = summarize(ledger, 2);
     expect(feb.spentBySource).toEqual({ bank: 30000, card: 2500, cash: 450 });
     expect(feb.netSavings).toBe(-25000);
-    expect(feb.offsets).toBe(2050);
+    expect(feb.offsets).toBe(4050);
 
     const mar = summarize(ledger, 3);
     expect(mar.earned).toBe(0);
@@ -76,11 +73,11 @@ describe("tagTotal", () => {
 });
 
 describe("spendByCategory", () => {
-  it("nets out owed shares and targeted offsets", () => {
+  it("nets out targeted offsets", () => {
     const year = spendByCategory(ledger);
-    // Food: 8550 + 6000 + 20000 + 450 + 0, minus Sam's 3000, minus the 1550 grocery refund.
-    expect(year.get("ce_food")).toEqual({ gross: 35000, owed: 3000, offsets: 1550, net: 30450 });
-    expect(year.get("ce_rent")).toEqual({ gross: 150000, owed: 0, offsets: 0, net: 150000 });
+    // Food: 8550 + 6000 + 20000 + 450 + 0, minus the 1550 grocery refund.
+    expect(year.get("ce_food")).toEqual({ gross: 35000, offsets: 1550, net: 33450 });
+    expect(year.get("ce_rent")).toEqual({ gross: 150000, offsets: 0, net: 150000 });
     // Every category is listed, and the untargeted 500 refund is in no row.
     expect([...year.keys()].sort()).toEqual(["ce_charity", "ce_food", "ce_loan", "ce_rent"]);
     const offsetsInRows = [...year.values()].reduce((s, r) => s + r.offsets, 0);
@@ -103,7 +100,25 @@ describe("net earnings", () => {
     expect(countsInNetEarnings({ role: "paycheck" })).toBe(true);
     expect(countsInNetEarnings({ role: "income", net: false })).toBe(false);
     expect(countsInNetEarnings({ role: "offset", net: true })).toBe(false);
-    expect(countsInNetEarnings({ role: "reimbursement" })).toBe(false);
+  });
+});
+
+describe("net spending", () => {
+  it("is lowered by every earning outside net earnings, except Uncategorized", () => {
+    expect([...spendingOffsetCategories(ledger)].sort()).toEqual(["ci_payback", "ci_refunds"]);
+
+    const l = sample();
+    l.categories.earning = [
+      ...l.categories.earning.map((c) => (c.id === "ci_interest" ? { ...c, net: false } : c)),
+      { id: "ci_uncategorized", name: "Uncategorized", role: "income", net: false },
+    ];
+    l.earnings.push({ id: "i9", date: "2026-03-01", item: "Mystery", amount: 7000, account: "a_checking", cat: "ci_uncategorized", notes: "" });
+    expect([...spendingOffsetCategories(l)].sort()).toEqual(["ci_interest", "ci_payback", "ci_refunds"]);
+    const s = summarize(l);
+    // Unticked interest now lowers spending; Uncategorized counts in neither figure.
+    expect(s.offsets).toBe(4050 + 1234);
+    expect(s.netSpent).toBe(217500 - 4050 - 1234);
+    expect(s.netEarnings).toBe(800000);
   });
 });
 
@@ -165,12 +180,6 @@ describe("accounts", () => {
   it("caps remaining retirement room at zero", () => {
     expect(remainingRetirement(ledger, 750000)).toBe(700000);
     expect(remainingRetirement(ledger, 40000)).toBe(0);
-  });
-});
-
-describe("receivables", () => {
-  it("is what each person owes minus what they paid back", () => {
-    expect(Object.fromEntries(receivables(ledger))).toEqual({ p_sam: 1000 }); // 3000 owed − 2000 back
   });
 });
 
@@ -257,18 +266,18 @@ describe("budgets", () => {
     expect(budgetTarget(budgets, 2026, 2, "ce_loan")).toBeUndefined();
   });
 
-  it("compares one month, net of owed shares and refunds", () => {
+  it("compares one month, net of refunds", () => {
     const jan = budgetView(ledger, budgets, 2026, [1]);
     const food = jan.lines.find((l) => l.cat === "ce_food")!;
-    // Food in January: 8550 + 6000 + 20000, minus Sam's 3000.
-    expect(food).toEqual({ cat: "ce_food", target: 40000, overridden: false, spent: 31550, remaining: 8450 });
+    // Food in January: 8550 + 6000 + 20000.
+    expect(food).toEqual({ cat: "ce_food", target: 40000, overridden: false, spent: 34550, remaining: 5450 });
     expect(jan.lines.find((l) => l.cat === "ce_loan")).toMatchObject({ target: undefined, remaining: undefined });
     expect(jan.budgeted).toBe(190000);
 
     const feb = budgetView(ledger, budgets, 2026, [2]);
-    // February: 450 spent, 1550 refund aimed at Food; the 500 store credit isn't aimed anywhere.
+    // February: 450 spent, 1550 refund aimed at Food; the 500 store credit and 2000 paid back aren't aimed anywhere.
     expect(feb.lines.find((l) => l.cat === "ce_food")).toMatchObject({ target: 50000, overridden: true, spent: -1100 });
-    expect(feb.untargetedOffsets).toBe(500);
+    expect(feb.untargetedOffsets).toBe(2500);
     expect(feb.spentUnbudgeted).toBe(2500 + 30000); // charity and loan have no budget
   });
 

@@ -6,7 +6,7 @@ import type { YearSetup } from "../src/types";
 import { sample } from "./helpers";
 
 const file = sample();
-const setup: YearSetup = { ...file, people: file.people ?? [] };
+const setup: YearSetup = { ...file };
 const acct = (id: string) => setup.accounts.find((a) => a.id === id);
 
 function draft(kind: Draft["kind"], fields: Partial<Draft>): Draft {
@@ -38,30 +38,18 @@ describe("checkDraft", () => {
     expect(r.ok ? null : r.errors.date).toBeTruthy();
   });
 
-  it("keeps the owed share within the amount", () => {
-    const base = { item: "Dinner", amount: "60", account: "a_card", cat: "ce_food", owedPerson: "p_sam" };
-    const ok = checkDraft(draft("expense", { ...base, owedAmount: "30" }), setup, "e");
-    expect(ok.ok && ok.entry.kind === "expense" && ok.entry.entry.owed).toEqual({ person: "p_sam", amount: 3000 });
-    const tooMuch = checkDraft(draft("expense", { ...base, owedAmount: "61" }), setup, "e");
-    expect(tooMuch.ok ? null : tooMuch.errors.owedAmount).toBeTruthy();
-  });
-
   it("checks transfers go between two different accounts", () => {
     const r = checkDraft(draft("transfer", { item: "Move", amount: "5", from: "a_checking", to: "a_checking", cat: "ct_save" }), setup, "x");
     expect(r.ok ? null : r.errors.to).toBeTruthy();
   });
 
-  it("stores offset targets and reimbursement people only for those roles", () => {
+  it("stores offset targets only for the offset role", () => {
     const refund = checkDraft(draft("earning", { item: "Refund", amount: "5", account: "a_card", cat: "ci_refunds", offsets: "" }), setup, "i");
     expect(refund.ok && refund.entry.entry).toMatchObject({ offsets: null });
 
-    const payback = checkDraft(draft("earning", { item: "Back", amount: "5", account: "a_checking", cat: "ci_payback" }), setup, "i");
-    expect(payback.ok ? null : payback.errors.person).toBeTruthy();
-
-    // A paycheck carries neither field, even if the draft still has text in them.
-    const pay = checkDraft(draft("earning", { item: "Pay", amount: "5", account: "a_checking", cat: "ci_paycheck", offsets: "ce_food", person: "p_sam" }), setup, "i");
+    // A paycheck doesn't carry it, even if the draft still has text in it.
+    const pay = checkDraft(draft("earning", { item: "Pay", amount: "5", account: "a_checking", cat: "ci_paycheck", offsets: "ce_food" }), setup, "i");
     expect(pay.ok && pay.entry.entry).not.toHaveProperty("offsets");
-    expect(pay.ok && pay.entry.entry).not.toHaveProperty("person");
   });
 
   it("lets old entries keep an archived account, but not new ones", () => {
@@ -129,17 +117,16 @@ describe("duplicateEntry", () => {
     });
   });
 
-  it("copies tags and owed shares instead of sharing them", () => {
-    const original = { kind: "expense" as const, entry: file.expenses[2]! }; // dinner with Sam's share
+  it("copies tags instead of sharing them", () => {
+    const original = { kind: "expense" as const, entry: file.expenses[2]! }; // dinner for two
     const copy = duplicateEntry(original, "e_copy");
-    expect(copy.entry).toMatchObject({ item: "Dinner for two-new", amount: 6000, owed: { person: "p_sam", amount: 3000 } });
+    expect(copy.entry).toMatchObject({ item: "Dinner for two-new", amount: 6000 });
     if (copy.kind !== "expense") throw new Error("kind changed");
     expect(copy.entry.tags).not.toBe(original.entry.tags);
-    expect(copy.entry.owed).not.toBe(original.entry.owed);
     expect(original.entry.item).toBe("Dinner for two"); // the original is untouched
   });
 
-  it("keeps offset targets and people on earnings", () => {
+  it("keeps offset targets on earnings", () => {
     const refund = { kind: "earning" as const, entry: file.earnings[2]! };
     expect(duplicateEntry(refund, "i_copy").entry).toMatchObject({ item: "Grocery refund-new", offsets: "ce_food" });
   });

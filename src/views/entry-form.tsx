@@ -8,7 +8,7 @@ import {
   checkDraft, earningRole, suggestTransferCategory,
   type AnyEntry, type Draft, type DraftErrors, type DraftField, type Kind,
 } from "../entries";
-import { current, ensurePerson, ensureTag, nextEntryId, removeEntry, saveEntry } from "../state";
+import { current, ensureTag, nextEntryId, removeEntry, saveEntry } from "../state";
 import type { Account, YearSetup } from "../types";
 
 const KIND_LABEL: Record<Kind, string> = { expense: "Expense", earning: "Earning", transfer: "Transfer" };
@@ -27,8 +27,6 @@ export function EntryForm({ initial, onClose }: Props) {
   const saved = useSignal<string | null>(null);
   // The transfer category follows the accounts until the user picks one themselves.
   const catPicked = useSignal(initial.id !== undefined);
-  const owedName = useSignal(personName(setup, initial.owedPerson));
-  const personText = useSignal(personName(setup, initial.person));
   const itemRef = useRef<HTMLInputElement>(null);
   const editing = initial.id !== undefined;
   const d = draft.value;
@@ -68,12 +66,7 @@ export function EntryForm({ initial, onClose }: Props) {
   async function onSubmit(e: Event) {
     e.preventDefault();
     tried.value = true;
-    let dr = draft.value;
-    // People are typed by name; add anyone new before checking.
-    if (dr.kind === "expense") dr = { ...dr, owedPerson: owedName.value.trim() ? await ensurePerson(owedName.value) : "" };
-    if (dr.kind === "earning" && earningRole(dr, setup) === "reimbursement" && personText.value.trim()) {
-      dr = { ...dr, person: await ensurePerson(personText.value) };
-    }
+    const dr = draft.value;
     const r = checkDraft(dr, current.value!.setup, dr.id ?? nextEntryId(dr.kind));
     if (!r.ok) {
       draft.value = dr;
@@ -83,10 +76,8 @@ export function EntryForm({ initial, onClose }: Props) {
     await saveEntry(r.entry, editing ? initial.kind : undefined);
     if (editing) return onClose();
     // Ready for the next entry: keep kind, date and accounts, clear the rest.
-    draft.value = { ...dr, item: "", amount: "", notes: "", tags: [], owedPerson: "", owedAmount: "", offsets: "", person: "",
+    draft.value = { ...dr, item: "", amount: "", notes: "", tags: [], offsets: "",
       cat: dr.kind === "transfer" ? dr.cat : "" };
-    owedName.value = "";
-    personText.value = "";
     tried.value = false;
     errors.value = {};
     saved.value = `Saved “${r.entry.entry.item}”.`;
@@ -167,16 +158,6 @@ export function EntryForm({ initial, onClose }: Props) {
           <Field label="Tags" error={err.tags} class="w-tags">
             <TagPicker setup={setup} value={d.tags} onChange={(tags) => set("tags", tags)} />
           </Field>
-          <Field label="Someone owes me part" error={err.owedPerson} class="w-person">
-            <PersonInput setup={setup} value={owedName.value} placeholder="Nobody"
-              onInput={(v) => { owedName.value = v; saved.value = null; }} />
-          </Field>
-          {owedName.value.trim() && (
-            <Field label="Their share" error={err.owedAmount} class="w-amount">
-              <input type="text" inputMode="decimal" value={d.owedAmount} placeholder="0.00" class="num"
-                onInput={(e) => set("owedAmount", e.currentTarget.value)} />
-            </Field>
-          )}
         </div>
       )}
 
@@ -187,14 +168,6 @@ export function EntryForm({ initial, onClose }: Props) {
               <option value="">All spending</option>
               {setup.categories.expense.map((c) => <option value={c.id}>{c.name}</option>)}
             </select>
-          </Field>
-        </div>
-      )}
-      {role === "reimbursement" && (
-        <div class="fields">
-          <Field label="Paid back by" error={err.person} class="w-person">
-            <PersonInput setup={setup} value={personText.value} placeholder="Who?"
-              onInput={(v) => { personText.value = v; saved.value = null; }} />
           </Field>
         </div>
       )}
@@ -213,10 +186,6 @@ export function EntryForm({ initial, onClose }: Props) {
       </div>
     </form>
   );
-}
-
-function personName(setup: YearSetup, id: string): string {
-  return setup.people?.find((p) => p.id === id)?.name ?? "";
 }
 
 function Field(props: { label: string; error?: string; class?: string; children: JSX.Element | JSX.Element[] }) {
@@ -246,19 +215,6 @@ function AccountSelect(props: { accounts: Account[]; value: string; onChange: (i
         </optgroup>
       ))}
     </select>
-  );
-}
-
-/** Pick from known people by typing; a new name is added when the entry is saved. */
-function PersonInput(props: { setup: YearSetup; value: string; placeholder: string; onInput: (v: string) => void }) {
-  return (
-    <>
-      <input type="text" list="people-list" value={props.value} placeholder={props.placeholder}
-        onInput={(e) => props.onInput(e.currentTarget.value)} />
-      <datalist id="people-list">
-        {(props.setup.people ?? []).map((p) => <option value={p.name} />)}
-      </datalist>
-    </>
   );
 }
 

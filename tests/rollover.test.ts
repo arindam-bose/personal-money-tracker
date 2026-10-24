@@ -23,7 +23,6 @@ describe("nextYearSetup", () => {
   it("carries setup and usual budgets, not one-month overrides", () => {
     expect(next.categories).toEqual(file.categories);
     expect(next.tags).toEqual(file.tags);
-    expect(next.people).toEqual(file.people);
     expect(next.budgets).toEqual({ default: { ce_food: 40000, ce_rent: 150000 } });
   });
 });

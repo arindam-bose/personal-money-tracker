@@ -21,7 +21,7 @@
    { "id": "ci_paycheck", "name": "Paycheck", "role": "paycheck" },
    { "id": "ci_interest", "name": "Interest", "role": "income" },
    { "id": "ci_refunds", "name": "Refunds", "role": "offset" },
-   { "id": "ci_payback", "name": "Paid back", "role": "reimbursement" }
+   { "id": "ci_payback", "name": "Paid back", "role": "offset" }
   ],
   "transfer": [
    { "id": "ct_cc", "name": "Payment to CC", "role": "cc_payment" },
@@ -35,13 +35,10 @@
   { "id": "t_grocery", "name": "Grocery" },
   { "id": "t_abroad", "name": "Abroad" }
  ],
- "people": [
-  { "id": "p_sam", "name": "Sam" }
- ],
  "expenses": [
   { "id": "e0001", "date": "2026-01-01", "item": "Rent", "amount": 150000, "account": "a_checking", "cat": "ce_rent", "tags": [], "notes": "" },
   { "id": "e0002", "date": "2026-01-03", "item": "Groceries", "amount": 8550, "account": "a_card", "cat": "ce_food", "tags": ["t_grocery"], "notes": "" },
-  { "id": "e0003", "date": "2026-01-10", "item": "Dinner for two", "amount": 6000, "account": "a_card", "cat": "ce_food", "tags": [], "notes": "Sam's half", "owed": { "person": "p_sam", "amount": 3000 } },
+  { "id": "e0003", "date": "2026-01-10", "item": "Dinner for two", "amount": 6000, "account": "a_card", "cat": "ce_food", "tags": [], "notes": "Sam's half" },
   { "id": "e0004", "date": "2026-01-15", "item": "Sent abroad", "amount": 20000, "account": "a_checking", "cat": "ce_food", "tags": ["t_abroad"], "notes": "" },
   { "id": "e0005", "date": "2026-02-02", "item": "Coffee", "amount": 450, "account": "a_wallet", "cat": "ce_food", "tags": [], "notes": "" },
   { "id": "e0006", "date": "2026-02-05", "item": "Food bank", "amount": 2500, "account": "a_card", "cat": "ce_charity", "tags": [], "notes": "" },
@@ -53,7 +50,7 @@
   { "id": "i0002", "date": "2026-01-31", "item": "Interest", "amount": 1234, "account": "a_savings", "cat": "ci_interest", "notes": "" },
   { "id": "i0003", "date": "2026-02-04", "item": "Grocery refund", "amount": 1550, "account": "a_card", "cat": "ci_refunds", "notes": "", "offsets": "ce_food" },
   { "id": "i0004", "date": "2026-02-06", "item": "Store credit", "amount": 500, "account": "a_card", "cat": "ci_refunds", "notes": "", "offsets": null },
-  { "id": "i0005", "date": "2026-02-10", "item": "Sam paid back", "amount": 2000, "account": "a_checking", "cat": "ci_payback", "notes": "", "person": "p_sam" },
+  { "id": "i0005", "date": "2026-02-10", "item": "Sam paid back", "amount": 2000, "account": "a_checking", "cat": "ci_payback", "notes": "", "offsets": null },
   { "id": "i0006", "date": "2026-02-15", "item": "Salary", "amount": 400000, "account": "a_checking", "cat": "ci_paycheck", "notes": "" }
  ],
  "transfers": [

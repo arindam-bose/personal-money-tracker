@@ -18,7 +18,6 @@ export async function exportYear(year: number, now = new Date()): Promise<YearFi
     accounts: setup.accounts,
     categories: setup.categories,
     tags: setup.tags,
-    ...(setup.people ? { people: setup.people } : {}),
     expenses: data.expenses,
     earnings: data.earnings,
     transfers: data.transfers,

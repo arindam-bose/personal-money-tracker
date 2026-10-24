@@ -34,7 +34,9 @@ computers, import that file to get everything back.
   shown apart, because they aren't spending.
 - **Budget**: a monthly target for each spending category, with what's left.
 - **Reports**: charts of where your money went, month by month and week by week.
-- **Accounts**: your accounts, categories, tags and the people you share costs with.
+- **Accounts**: your accounts, categories and tags. Tick **Net** on the earning
+  categories that make up net earnings; every other earning (refunds, points,
+  money paid back) lowers net spending instead.
   Deleting a category moves its entries to **Uncategorized**; deleting a tag takes
   it off its expenses.
   **Duplicate** an account to start a similar one (the copy is named "…_new").

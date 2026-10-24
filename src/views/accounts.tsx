@@ -1,4 +1,4 @@
-// Accounts: set up the year's accounts, categories, tags and people (brief §8, view 5).
+// Accounts: set up the year's accounts, categories and tags (brief §8, view 5).
 // Everything is referenced by id, so renaming here never breaks an entry.
 
 import { useSignal } from "@preact/signals";
@@ -6,7 +6,7 @@ import { useEffect, useRef } from "preact/hooks";
 import { balances, countsInNetEarnings } from "../derive";
 import { formatCents, parseCents, parseSignedCents } from "../money";
 import {
-  deleteAccount, deletePerson, duplicateAccount, saveAccount, saveCategory, savePerson, saveTag,
+  deleteAccount, duplicateAccount, saveAccount, saveCategory, saveTag,
   uncategorizedId, usageOf, type CategoryKind, type Usage,
 } from "../setup";
 import { current, ledger, readOnly, removeCategory, removeTag, updateSetup } from "../state";
@@ -21,7 +21,6 @@ const ROLE_LABEL: Record<CategoryKind, Record<string, string>> = {
   expense: { "": "Regular", charity: "Charity", loan: "Loan payment" },
   earning: {
     paycheck: "Paycheck", income: "Other income", offset: "Lowers spending",
-    reimbursement: "Paid back",
   },
   transfer: {
     cc_payment: "Card payment", savings_in: "Into savings", savings_out: "Out of savings",
@@ -65,12 +64,7 @@ export function AccountsView() {
           <CategoryCard kind={kind} setup={data.setup} usage={usage} />
         ))}
       </div>
-      <NamesCard title="Tags" what="tag" items={data.setup.tags} uses={usage.tags}
-          save={(id, name) => (s) => saveTag(s, { id, name })} removeAny={removeTag}
-          hint="Tags group expenses across categories, like “Costco” or “Vacation”. You can also add them while typing an expense. Deleting a tag takes it off its expenses." />
-        <NamesCard title="People" what="person" items={data.setup.people ?? []} uses={usage.people}
-          save={(id, name) => (s) => savePerson(s, { id, name })} remove={(id) => (s, u) => deletePerson(s, id, u)}
-          hint="People who share expenses with you or pay you back." />
+      <TagsCard tags={data.setup.tags} uses={usage.tags} />
     </div>
   );
 }
@@ -278,7 +272,7 @@ function CategoryCard({ kind, setup, usage }: { kind: CategoryKind; setup: YearS
       <h3>{KIND_TITLE[kind]}</h3>
       <p class="muted small">{{
         expense: "Rename freely: entries keep their category. Delete one and its entries move to Uncategorized. Charity shows as a share of pay on the dashboard.",
-        earning: "“Lowers spending” is for refunds and points. “Paid back” is someone settling what they owe you. Tick “Net” for the earnings that make up net earnings on the dashboard; untick one-offs.",
+        earning: "Tick “Net” for the earnings that make up net earnings on the dashboard. Every other earning (refunds, points, money paid back, unticked one-offs) lowers net spending instead. Uncategorized counts in neither.",
         transfer: "What each one is for drives the savings, investing and card-payment figures.",
       }[kind]}</p>
       <ul class={`name-list ${kind === "earning" ? "with-net" : ""}`}>
@@ -319,20 +313,9 @@ function CategoryCard({ kind, setup, usage }: { kind: CategoryKind; setup: YearS
   );
 }
 
-// --- Tags and people ---
+// --- Tags ---
 
-function NamesCard(props: {
-  title: string;
-  what: string;
-  items: { id: string; name: string }[];
-  uses: Map<string, number>;
-  save: (id: string, name: string) => (s: YearSetup, u: Usage) => YearSetup;
-  /** Delete an unused item. */
-  remove?: (id: string) => (s: YearSetup, u: Usage) => YearSetup;
-  /** Delete an item even when entries use it (it comes off them). Takes the place of `remove`. */
-  removeAny?: (id: string) => Promise<void>;
-  hint: string;
-}) {
+function TagsCard({ tags, uses }: { tags: { id: string; name: string }[]; uses: Map<string, number> }) {
   const error = useSignal<string | null>(null);
   const newName = useSignal("");
   const locked = readOnly.value;
@@ -340,15 +323,15 @@ function NamesCard(props: {
 
   async function add(e: Event) {
     e.preventDefault();
-    if (await attempt(props.save("", newName.value), setError)) newName.value = "";
+    if (await attempt((s) => saveTag(s, { id: "", name: newName.value }), setError)) newName.value = "";
   }
 
-  async function removeAny(x: { id: string; name: string }, run: (id: string) => Promise<void>) {
-    const n = props.uses.get(x.id) ?? 0;
+  async function remove(t: { id: string; name: string }) {
+    const n = uses.get(t.id) ?? 0;
     const off = n ? ` It comes off ${n === 1 ? "the 1 entry" : `the ${n} entries`} that ${n === 1 ? "has" : "have"} it.` : "";
-    if (!confirm(`Delete “${x.name}”?${off}`)) return;
+    if (!confirm(`Delete “${t.name}”?${off}`)) return;
     try {
-      await run(x.id);
+      await removeTag(t.id);
       setError(null);
     } catch (e) {
       setError(e instanceof Error ? e.message : String(e));
@@ -357,31 +340,31 @@ function NamesCard(props: {
 
   return (
     <section class="card">
-      <h3>{props.title}</h3>
-      <p class="muted small">{props.hint}</p>
-      {props.items.length === 0 && <p class="muted small">None yet.</p>}
+      <h3>Tags</h3>
+      <p class="muted small">
+        Tags group expenses across categories, like “Costco” or “Vacation”. You can also add them while typing an
+        expense. Deleting a tag takes it off its expenses.
+      </p>
+      {tags.length === 0 && <p class="muted small">None yet.</p>}
       <ul class="name-list compact">
-        {props.items.map((x) => (
-          <li key={x.id}>
-            <NameInput value={x.name} disabled={locked} label={`Rename ${x.name}`}
-              onCommit={(name) => attempt(props.save(x.id, name), setError)} />
-            <span class="uses" title="Entries using it">{props.uses.get(x.id) ?? 0}</span>
-            {!locked && (props.removeAny ? (
-              <button type="button" class="icon-btn danger" aria-label={`Delete ${x.name}`}
-                title={props.uses.get(x.id) ? `Delete; it comes off the entries that have it` : "Delete (not used by any entry)"}
-                onClick={() => removeAny(x, props.removeAny!)}>
+        {tags.map((t) => (
+          <li key={t.id}>
+            <NameInput value={t.name} disabled={locked} label={`Rename ${t.name}`}
+              onCommit={(name) => attempt((s) => saveTag(s, { id: t.id, name }), setError)} />
+            <span class="uses" title="Entries using it">{uses.get(t.id) ?? 0}</span>
+            {!locked && (
+              <button type="button" class="icon-btn danger" aria-label={`Delete ${t.name}`}
+                title={uses.get(t.id) ? "Delete; it comes off the entries that have it" : "Delete (not used by any entry)"}
+                onClick={() => remove(t)}>
                 ×
               </button>
-            ) : props.remove && (
-              <DeleteButton used={props.uses.get(x.id) ?? 0} name={x.name}
-                onDelete={() => attempt(props.remove!(x.id), setError)} />
-            ))}
+            )}
           </li>
         ))}
       </ul>
       {!locked && (
         <form class="add-row" onSubmit={add}>
-          <input type="text" value={newName.value} placeholder={`New ${props.what}`} aria-label={`New ${props.what}`}
+          <input type="text" value={newName.value} placeholder="New tag" aria-label="New tag"
             onInput={(e) => (newName.value = e.currentTarget.value)} />
           <button type="submit">Add</button>
         </form>
@@ -395,23 +378,12 @@ function NamesCard(props: {
 function NetTick(props: { cat: { name: string; role?: string; net?: boolean }; locked: boolean; onChange: (net: boolean) => void }) {
   const eligible = props.cat.role === "paycheck" || props.cat.role === "income";
   return (
-    <label class="net-tick" title={eligible ? "Counts in net earnings" : "Refunds and paybacks aren't earnings, so they never count"}>
+    <label class="net-tick" title={eligible ? "Ticked: counts in net earnings. Unticked: lowers net spending." : "Refunds, points and paybacks lower net spending, so they never count as earnings"}>
       <input type="checkbox" checked={eligible && countsInNetEarnings(props.cat as { role?: EarningRole; net?: boolean })}
         disabled={props.locked || !eligible} aria-label={`${props.cat.name} counts in net earnings`}
         onChange={(e) => props.onChange(e.currentTarget.checked)} />
       <span>Net</span>
     </label>
-  );
-}
-
-/** Delete is offered only for unused items; used ones explain why it isn't there. */
-function DeleteButton(props: { used: number; name: string; onDelete: () => void }) {
-  if (props.used) return <span class="del-placeholder" title="In use, so it can't be deleted. Rename it instead." />;
-  return (
-    <button type="button" class="icon-btn danger" aria-label={`Delete ${props.name}`} title="Delete (not used by any entry)"
-      onClick={() => confirm(`Delete “${props.name}”?`) && props.onDelete()}>
-      ×
-    </button>
   );
 }
 

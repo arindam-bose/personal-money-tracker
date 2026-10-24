@@ -48,7 +48,7 @@ describe.skipIf(YEARS.length === 0).each(YEARS)("real %i data", (year) => {
 
     it("every entry opens in the form and saves back unchanged", () => {
       const file = load();
-      const setup = { ...file, people: file.people ?? [] };
+      const setup = { ...file };
       const all: AnyEntry[] = [
         ...file.expenses.map((entry) => ({ kind: "expense" as const, entry })),
         ...file.earnings.map((entry) => ({ kind: "earning" as const, entry })),

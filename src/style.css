@@ -420,10 +420,6 @@ tr.row-transfer td {
   white-space: nowrap;
 }
 
-.chip.owed {
-  border-color: var(--accent);
-}
-
 .chip button {
   border: none;
   background: none;
@@ -511,7 +507,6 @@ tr.row-transfer td {
 .w-account { width: 200px; }
 .w-cat { width: 210px; }
 .w-tags { flex: 1 1 300px; }
-.w-person { width: 200px; }
 .w-notes { flex: 1 1 100%; }
 
 .tag-picker {
@@ -746,16 +741,6 @@ tr.row-transfer td {
 .note {
   margin: 14px 0 0;
   font-size: 14px;
-}
-
-.owed h4 {
-  margin: 16px 0 4px;
-  font-size: 14px;
-}
-
-.owed ul {
-  margin: 0;
-  padding-left: 18px;
 }
 
 /* --- Reports --- */

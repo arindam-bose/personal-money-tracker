@@ -41,7 +41,7 @@ this started). TypeScript is strict, including `noUncheckedIndexedAccess`.
 | `src/backup.ts` | JSON import and export. |
 | `src/derive.ts` | Every computed figure. Plain functions, no UI. |
 | `src/entries.ts` | Entry-form logic: drafts, checks, transfer-category suggestion, duplicating. |
-| `src/setup.ts` | Editing accounts, categories, tags, people; a blank year's defaults. |
+| `src/setup.ts` | Editing accounts, categories, tags; a blank year's defaults; upgrading years saved with people. |
 | `src/rollover.ts` | What the next year starts with when a year is closed. |
 | `src/state.ts` | The open year as Preact signals, and the actions that change it. |
 | `src/views/` | One Preact view per page, plus `chart.tsx` (the ECharts wrapper). |
@@ -51,7 +51,7 @@ this started). TypeScript is strict, including `noUncheckedIndexedAccess`.
 
 ## Data model
 
-One year is one `YearFile` (`src/types.ts`): accounts, categories, tags, people,
+One year is one `YearFile` (`src/types.ts`): accounts, categories, tags,
 budgets, and three tables of entries: **expenses**, **earnings** and **transfers**.
 Users only ever enter entries; accounts and categories are set up once a year.
 
@@ -75,7 +75,7 @@ know what each one means:
 | Kind | Roles |
 |---|---|
 | Expense | none (regular), `charity`, `loan` |
-| Earning | `paycheck`, `income`, `offset` (refunds, points: lowers spending), `reimbursement` (someone paying you back) |
+| Earning | `paycheck`, `income`, `offset` (refunds, points, money paid back: lowers spending) |
 | Transfer | `cc_payment`, `savings_in`, `savings_out`, `invest_retirement`, `invest_taxable`, `cash_withdrawal`, `general` |
 
 Earning and transfer categories must have a role; the validator refuses a file
@@ -94,14 +94,15 @@ of the headline figures: the earning one is `income` with `net: false`, and the
 transfer one is `general`. A new year starts with it, and an open year that
 doesn't have it gets it when it's opened.
 
-### Shared costs
+### No people
 
-An expense can carry `owed: { person, amount }`: the part someone else owes back.
-When they pay, that's an earning in a `reimbursement` category with `person` set.
-What each person still owes is the sum of their shares minus what they paid back
-(`receivables` in `derive.ts`). Nothing is carried across years: a debt still open
-at year end is logged as "Transfer to external account" in one year and repaid as
-an earning in the next.
+Earlier versions tracked people: an expense could carry the share someone owed
+back (`owed`), and a `reimbursement` earning named who paid it (`person`). That
+was dropped to keep the figures simple: money paid back is now just an earning
+that lowers net spending (see below). Older files and stored years are upgraded
+on import and when first opened: `people`, `owed` and `person` are removed, and a
+`reimbursement` category becomes `offset` (`withoutLegacyPeople` in
+`validate.ts`, `withoutPeople` in `setup.ts`).
 
 ## How the figures are worked out
 
@@ -113,8 +114,8 @@ Tests).
 | Earned | All earnings (Notion's gross view) |
 | Spent | All expenses, split bank / card / cash by the debited account's type |
 | Surplus | Earned − spent |
-| Net spending | Spent − offsets − owed shares |
-| Net earnings | Earnings in paycheck/income categories not marked `net: false` |
+| Net earnings | Earnings in paycheck/income categories not marked `net: false` (the "Net" tick) |
+| Net spending | Spent (Uncategorized included) − every earning outside net earnings, except Uncategorized (`spendingOffsetCategories`) |
 | Net savings | `savings_in` − `savings_out` transfers |
 | Investment | `invest_retirement` + `invest_taxable` transfers |
 | Savings / investment / charity rate | As a share of paycheck income |
@@ -127,8 +128,8 @@ at 0 every year.
 
 **Budgets** (`budgetView`): each expense category has a usual monthly target
 (`budgets.default`) and optional one-month overrides (`budgets["2026-03"]`).
-Spending against a budget is net: minus owed shares and minus refunds aimed at
-that category (`offsets` on the earning). Refunds aimed at no category lower the
+Spending against a budget is net of refunds aimed at that category (`offsets` on
+the earning). Refunds aimed at no category lower the
 total only, shown as their own line so the bottom line equals net spending.
 
 **Money flow** (the Sankey, `moneyFlow`): earnings by category flow into one
@@ -141,7 +142,7 @@ moves between your own accounts aren't shown.
 
 `src/db.ts`. One IndexedDB database, `money-tracker`, with five stores:
 
-- `years`: one setup per year (accounts, categories, tags, people, budgets, plus
+- `years`: one setup per year (accounts, categories, tags, budgets, plus
   `closed` and `lastBackupAt`), keyed by year.
 - `expenses`, `earnings`, `transfers`: one record per entry, keyed by
   `[year, id]`, because ids like `e0001` repeat every year.
@@ -172,7 +173,7 @@ fixed order, so two backups of the same year diff cleanly.
 
 `closeYear` makes the year read-only and starts the next one
 (`nextYearSetup` in `rollover.ts`): bank, cash and card accounts open at their
-closing balance, investment accounts at 0; accounts, categories, tags, people and
+closing balance, investment accounts at 0; accounts, categories, tags and
 usual budget targets carry over (one-month overrides don't). If the next year
 already exists, it is left alone. A closed year can be reopened.
 
@@ -184,7 +185,7 @@ already exists, it is left alone. A closed year can be reopened.
 | Ledger | `views/ledger.tsx`, `views/entry-form.tsx` | One table for all three kinds; filters kept per tab in `sessionStorage`. |
 | Budget | `views/budget.tsx` | Enter moves down a column; saves on Enter or blur. |
 | Reports | `views/reports.tsx` | Loaded on demand (see Charts). |
-| Accounts | `views/accounts.tsx` | Accounts and people can be deleted only when no entry uses them. Categories always (entries move to Uncategorized), and tags always (they come off their entries). |
+| Accounts | `views/accounts.tsx` | Accounts can be deleted only when no entry uses them. Categories always (entries move to Uncategorized), and tags always (they come off their entries). |
 | Data | `views/data.tsx` | Import, export, close/reopen, start from scratch, settings. |
 
 Routing is by URL hash (`#/ledger`), which works on any static host.

@@ -4,6 +4,7 @@
 // These are plain functions with no UI code, so tests can check them directly
 // against the totals Notion computed (tests/derive.test.ts, tests/real-data.test.ts).
 
+import { uncategorizedId } from "./setup";
 import type {
   Account, Budgets, Cents, EarningRole, ExpenseRole, IsoDate, TransferRole, YearFile,
 } from "./types";
@@ -65,7 +66,7 @@ export interface Summary {
   earned: Cents;
   /** Earnings in a paycheck-role category. */
   paycheck: Cents;
-  /** Every other earning, including offsets and reimbursements. */
+  /** Every other earning, including refunds and points. */
   otherEarned: Cents;
 
   /** All expenses, as Notion counts them (gross). */
@@ -87,17 +88,11 @@ export interface Summary {
   charity: Cents;
   loan: Cents;
 
-  /** Earnings that reduce spending instead of counting as income (refunds, points). */
+  /** Earnings that lower spending instead of counting as income: see spendingOffsetCategories. */
   offsets: Cents;
-  /** Money people paid back (reimbursement role, §5). */
-  reimbursed: Cents;
-  /** The parts of expenses that other people owe back (§5). */
-  owed: Cents;
 
-  /** What you really spent on yourself: spent − offsets − owed shares. */
+  /** What you really spent: spent − offsets. */
   netSpent: Cents;
-  /** What you really earned: earned − offsets − reimbursements. */
-  netIncome: Cents;
   /** Earnings in categories that count toward net earnings (see countsInNetEarnings). */
   netEarnings: Cents;
 
@@ -111,7 +106,7 @@ export function summarize(ledger: Ledger, month?: number): Summary {
   const roles = rolesOf(ledger);
   const accountType = new Map(ledger.accounts.map((a) => [a.id, a.type]));
 
-  let spent = 0, charity = 0, loan = 0, owed = 0;
+  let spent = 0, charity = 0, loan = 0;
   const spentBySource: Record<SpendSource, Cents> = { bank: 0, card: 0, cash: 0 };
   for (const e of ledger.expenses) {
     if (!inMonth(e.date, month)) continue;
@@ -120,19 +115,17 @@ export function summarize(ledger: Ledger, month?: number): Summary {
     const role = roles.expense.get(e.cat);
     if (role === "charity") charity += e.amount;
     if (role === "loan") loan += e.amount;
-    owed += e.owed?.amount ?? 0;
   }
 
-  let earned = 0, paycheck = 0, offsets = 0, reimbursed = 0, netEarnings = 0;
+  let earned = 0, paycheck = 0, offsets = 0, netEarnings = 0;
   const counted = netEarningCategories(ledger);
+  const lowering = spendingOffsetCategories(ledger);
   for (const i of ledger.earnings) {
     if (!inMonth(i.date, month)) continue;
     earned += i.amount;
     if (counted.has(i.cat)) netEarnings += i.amount;
-    const role = roles.earning.get(i.cat);
-    if (role === "paycheck") paycheck += i.amount;
-    if (role === "offset") offsets += i.amount;
-    if (role === "reimbursement") reimbursed += i.amount;
+    if (lowering.has(i.cat)) offsets += i.amount;
+    if (roles.earning.get(i.cat) === "paycheck") paycheck += i.amount;
   }
 
   let ccPayments = 0, netSavings = 0, investRetirement = 0, investTaxable = 0;
@@ -154,9 +147,8 @@ export function summarize(ledger: Ledger, month?: number): Summary {
     surplus: earned - spent,
     ccPayments, netSavings, investRetirement, investTaxable, investment,
     charity, loan,
-    offsets, reimbursed, owed,
-    netSpent: spent - offsets - owed,
-    netIncome: earned - offsets - reimbursed,
+    offsets,
+    netSpent: spent - offsets,
     netEarnings,
     savingsRate: ratio(netSavings, paycheck),
     investmentRate: ratio(investment, paycheck),
@@ -177,6 +169,15 @@ export function netEarningCategories(ledger: Ledger): Set<string> {
   return new Set(ledger.categories.earning.filter(countsInNetEarnings).map((c) => c.id));
 }
 
+/**
+ * Ids of the earning categories that lower net spending: every one outside net earnings
+ * (refunds, points, money paid back, unticked one-offs), except Uncategorized, which counts nowhere.
+ */
+export function spendingOffsetCategories(ledger: Ledger): Set<string> {
+  const uncategorized = uncategorizedId(ledger, "earning");
+  return new Set(ledger.categories.earning.filter((c) => !countsInNetEarnings(c) && c.id !== uncategorized).map((c) => c.id));
+}
+
 /** Summaries for January to December, index 0 = January. */
 export function monthlySummaries(ledger: Ledger): Summary[] {
   return Array.from({ length: 12 }, (_, i) => summarize(ledger, i + 1));
@@ -194,11 +195,9 @@ export function tagTotal(ledger: Ledger, tagId: string, month?: number): Cents {
 export interface CategorySpend {
   /** Sum of expense amounts in the category. */
   gross: Cents;
-  /** Shares of those expenses owed by other people. */
-  owed: Cents;
   /** Offsets aimed at this category (refunds with `offsets` set to it). */
   offsets: Cents;
-  /** gross − owed − offsets: what the budget compares against. */
+  /** gross − offsets: what the budget compares against. */
   net: Cents;
 }
 
@@ -209,24 +208,19 @@ export interface CategorySpend {
  */
 export function spendByCategory(ledger: Ledger, month?: number): Map<string, CategorySpend> {
   const out = new Map<string, CategorySpend>();
-  for (const c of ledger.categories.expense) out.set(c.id, { gross: 0, owed: 0, offsets: 0, net: 0 });
+  for (const c of ledger.categories.expense) out.set(c.id, { gross: 0, offsets: 0, net: 0 });
   const row = (cat: string) => {
     let r = out.get(cat);
-    if (!r) out.set(cat, (r = { gross: 0, owed: 0, offsets: 0, net: 0 }));
+    if (!r) out.set(cat, (r = { gross: 0, offsets: 0, net: 0 }));
     return r;
   };
 
-  for (const e of ledger.expenses) {
-    if (!inMonth(e.date, month)) continue;
-    const r = row(e.cat);
-    r.gross += e.amount;
-    r.owed += e.owed?.amount ?? 0;
-  }
-  const roles = rolesOf(ledger);
+  for (const e of ledger.expenses) if (inMonth(e.date, month)) row(e.cat).gross += e.amount;
+  const lowering = spendingOffsetCategories(ledger);
   for (const i of ledger.earnings) {
-    if (inMonth(i.date, month) && roles.earning.get(i.cat) === "offset" && i.offsets) row(i.offsets).offsets += i.amount;
+    if (inMonth(i.date, month) && lowering.has(i.cat) && i.offsets) row(i.offsets).offsets += i.amount;
   }
-  for (const r of out.values()) r.net = r.gross - r.owed - r.offsets;
+  for (const r of out.values()) r.net = r.gross - r.offsets;
   return out;
 }
 
@@ -321,20 +315,6 @@ export function accountsOverview(ledger: Ledger, through?: IsoDate): AccountsOve
 /** How much more can go into retirement accounts this year. Never below 0. */
 export function remainingRetirement(ledger: Ledger, annualLimit: Cents): Cents {
   return Math.max(0, annualLimit - summarize(ledger).investRetirement);
-}
-
-// --- Shared expenses (§5) ---
-
-/** Person id -> what they still owe: owed shares minus what they paid back. Negative = overpaid. */
-export function receivables(ledger: Ledger): Map<string, Cents> {
-  const out = new Map<string, Cents>();
-  const add = (person: string, amount: Cents) => out.set(person, (out.get(person) ?? 0) + amount);
-  for (const e of ledger.expenses) if (e.owed) add(e.owed.person, e.owed.amount);
-  const roles = rolesOf(ledger);
-  for (const i of ledger.earnings) {
-    if (roles.earning.get(i.cat) === "reimbursement" && i.person) add(i.person, -i.amount);
-  }
-  return out;
 }
 
 // --- Report series ---
@@ -498,7 +478,7 @@ export interface BudgetLine {
   target: Cents | undefined;
   /** True when a single month is shown and it overrides the usual target. */
   overridden: boolean;
-  /** Net spending: expenses minus owed shares and refunds aimed at this category. */
+  /** Net spending: expenses minus refunds aimed at this category. */
   spent: Cents;
   /** target − spent; negative means over budget. Undefined without a target. */
   remaining: Cents | undefined;
@@ -521,13 +501,13 @@ export interface BudgetView {
 
 /** Budgeted against spent for the given months (one month, or January up to some month). */
 export function budgetView(ledger: Ledger, budgets: Budgets, year: number, months: number[]): BudgetView {
-  const roles = rolesOf(ledger);
+  const lowering = spendingOffsetCategories(ledger);
   const spent = new Map<string, Cents>();
   let untargetedOffsets = 0;
   for (const m of months) {
     for (const [cat, c] of spendByCategory(ledger, m)) spent.set(cat, (spent.get(cat) ?? 0) + c.net);
     for (const i of ledger.earnings) {
-      if (inMonth(i.date, m) && roles.earning.get(i.cat) === "offset" && !i.offsets) untargetedOffsets += i.amount;
+      if (inMonth(i.date, m) && lowering.has(i.cat) && !i.offsets) untargetedOffsets += i.amount;
     }
   }
 

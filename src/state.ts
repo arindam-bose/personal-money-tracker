@@ -7,7 +7,7 @@ import { deleteEntry, getSetting, listYears, loadYear, putEntry, putSetup, putSe
 import type { Ledger } from "./derive";
 import { ID_PREFIX, STORE, duplicateEntry, newId, slug, type AnyEntry, type Kind } from "./entries";
 import { emptyYearFile, nextYearSetup } from "./rollover";
-import { blankSetup, deleteCategory, deleteTag, usageOf, withUncategorized, type CategoryKind, type Usage } from "./setup";
+import { blankSetup, deleteCategory, deleteTag, usageOf, withUncategorized, withoutPeople, type CategoryKind, type Usage } from "./setup";
 import type { PersistState } from "./storage";
 import type { YearSetup } from "./types";
 
@@ -82,12 +82,15 @@ export async function openYear(year?: number): Promise<void> {
   const saved = await getSetting("activeYear");
   const pick = [year, saved, stored[0]].find((y) => y !== undefined && stored.includes(y));
   let data = pick === undefined ? null : await loadYear(pick);
-  // Years from before Uncategorized existed get it the first time they're opened (closed years stay as they are).
+  // Bring older years up to date the first time they're opened (closed years stay as they are):
+  // drop people and owed shares, and add Uncategorized if it's missing.
   if (data && !data.setup.closed) {
-    const setup = withUncategorized(data.setup);
-    if (setup !== data.setup) {
-      await putSetup(setup);
-      data = { ...data, setup };
+    const cleaned = withoutPeople(data);
+    const setup = withUncategorized(cleaned?.setup ?? data.setup);
+    if (cleaned || setup !== data.setup) {
+      const expenses = cleaned?.expenses ?? [], earnings = cleaned?.earnings ?? [];
+      await putSetupAndEntries(setup, { expenses, earnings, transfers: [] });
+      data = { setup, expenses: replaced(data.expenses, expenses), earnings: replaced(data.earnings, earnings), transfers: data.transfers };
     }
   }
   current.value = data;
@@ -197,7 +200,7 @@ export function setBudget(key: string, cat: string, cents: number | null): Promi
 }
 
 /**
- * Change the open year's setup (accounts, categories, tags, people). `change` gets the
+ * Change the open year's setup (accounts, categories, tags). `change` gets the
  * current setup and what uses each item, and returns the new setup or throws a SetupError.
  */
 export function updateSetup(change: (setup: YearSetup, usage: Usage) => YearSetup): Promise<void> {
@@ -294,22 +297,6 @@ export function ensureTag(name: string): Promise<string> {
     const id = ids.has(base) ? newId(base, (x) => ids.has(x)) : base;
     const tags = [...setup.tags, { id, name: clean }].sort((a, b) => a.name.localeCompare(b.name));
     await saveSetup({ ...setup, tags });
-    return id;
-  });
-}
-
-/** Find a person by name (ignoring case), or add them. Returns their id. */
-export function ensurePerson(name: string): Promise<string> {
-  return inTurn(async () => {
-    const { setup } = editable();
-    const clean = name.trim();
-    const people = setup.people ?? [];
-    const found = people.find((p) => p.name.toLowerCase() === clean.toLowerCase());
-    if (found) return found.id;
-    const ids = new Set(people.map((p) => p.id));
-    const base = `p_${slug(clean) || "person"}`;
-    const id = ids.has(base) ? newId(base, (x) => ids.has(x)) : base;
-    await saveSetup({ ...setup, people: [...people, { id, name: clean }] });
     return id;
   });
 }

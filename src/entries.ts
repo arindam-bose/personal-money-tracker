@@ -37,13 +37,8 @@ export interface Draft {
   cat: string;
   /** Expense: tag ids. */
   tags: string[];
-  /** Expense: someone owes part of it back (§5). Empty person = nobody. */
-  owedPerson: string;
-  owedAmount: string;
   /** Earning with an offset role: expense category it reduces, "" for total spending. */
   offsets: string;
-  /** Earning with a reimbursement role: who paid back. */
-  person: string;
 }
 
 export type DraftField = keyof Draft;
@@ -53,7 +48,7 @@ export function emptyDraft(kind: Kind, date: string): Draft {
   return {
     kind, date, item: "", amount: "", notes: "",
     account: "", from: "", to: "", cat: "", tags: [],
-    owedPerson: "", owedAmount: "", offsets: "", person: "",
+    offsets: "",
   };
 }
 
@@ -67,12 +62,9 @@ export function draftFrom(e: AnyEntry): Draft {
   const base = { ...emptyDraft(e.kind, e.entry.date), id: e.entry.id, item: e.entry.item, amount: amountText(e.entry.amount), notes: e.entry.notes, cat: e.entry.cat };
   switch (e.kind) {
     case "expense":
-      return {
-        ...base, account: e.entry.account, tags: [...e.entry.tags],
-        owedPerson: e.entry.owed?.person ?? "", owedAmount: e.entry.owed ? amountText(e.entry.owed.amount) : "",
-      };
+      return { ...base, account: e.entry.account, tags: [...e.entry.tags] };
     case "earning":
-      return { ...base, account: e.entry.account, offsets: e.entry.offsets ?? "", person: e.entry.person ?? "" };
+      return { ...base, account: e.entry.account, offsets: e.entry.offsets ?? "" };
     case "transfer":
       return { ...base, from: e.entry.from, to: e.entry.to };
   }
@@ -126,17 +118,8 @@ export function checkDraft(draft: Draft, setup: YearSetup, id: string): CheckRes
   if (draft.kind === "expense") {
     const tagIds = new Set(setup.tags.map((t) => t.id));
     if (draft.tags.some((t) => !tagIds.has(t))) errors.tags = "One of the tags no longer exists.";
-    let owed: Expense["owed"];
-    if (draft.owedPerson) {
-      const owedAmount = parseCents(draft.owedAmount);
-      if (!(setup.people ?? []).some((p) => p.id === draft.owedPerson)) errors.owedPerson = "Pick who owes you.";
-      if (owedAmount === null || owedAmount === 0) errors.owedAmount = "Enter how much they owe.";
-      else if (amount !== null && owedAmount > amount) errors.owedAmount = "They can't owe more than the whole amount.";
-      else owed = { person: draft.owedPerson, amount: owedAmount };
-    }
     if (Object.keys(errors).length) return { ok: false, errors };
     const entry: Expense = { ...head, account: draft.account, cat: draft.cat, tags: [...new Set(draft.tags)], notes };
-    if (owed) entry.owed = owed;
     return { ok: true, entry: { kind: "expense", entry } };
   }
 
@@ -145,10 +128,6 @@ export function checkDraft(draft: Draft, setup: YearSetup, id: string): CheckRes
   if (role === "offset") {
     if (draft.offsets && !setup.categories.expense.some((c) => c.id === draft.offsets)) errors.offsets = "Pick a spending category.";
     entry.offsets = draft.offsets || null;
-  }
-  if (role === "reimbursement") {
-    if (!(setup.people ?? []).some((p) => p.id === draft.person)) errors.person = "Pick who paid you back.";
-    entry.person = draft.person;
   }
   return Object.keys(errors).length ? { ok: false, errors } : { ok: true, entry: { kind: "earning", entry } };
 }
@@ -201,19 +180,14 @@ export const DUPLICATE_SUFFIX = "-new";
 
 /**
  * A copy of an entry under a new id, with every value the same except the item, which
- * gets DUPLICATE_SUFFIX so the copy is easy to spot and rename. Tags and owed shares are
- * copied too, not shared with the original.
+ * gets DUPLICATE_SUFFIX so the copy is easy to spot and rename. Tags are copied too,
+ * not shared with the original.
  */
 export function duplicateEntry(e: AnyEntry, id: string): AnyEntry {
   const item = e.entry.item + DUPLICATE_SUFFIX;
   switch (e.kind) {
-    case "expense": {
-      const { owed, ...rest } = e.entry;
-      return {
-        kind: "expense",
-        entry: { ...rest, id, item, tags: [...e.entry.tags], ...(owed ? { owed: { ...owed } } : {}) },
-      };
-    }
+    case "expense":
+      return { kind: "expense", entry: { ...e.entry, id, item, tags: [...e.entry.tags] } };
     case "earning":
       return { kind: "earning", entry: { ...e.entry, id, item } };
     case "transfer":

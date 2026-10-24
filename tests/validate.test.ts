@@ -51,9 +51,19 @@ describe("validateYearFile", () => {
     expect(errorsAfter((f) => (f.categories.expense[0].net = false))).toHaveLength(1);
   });
 
-  it("catches duplicate ids and a bad owed share", () => {
+  it("catches duplicate ids", () => {
     expect(errorsAfter((f) => (f.expenses[1].id = "e0001"))).toEqual(['Expense id "e0001" is used twice.']);
-    expect(errorsAfter((f) => (f.expenses[2].owed.amount = 999999))).toHaveLength(1);
+  });
+
+  it("still imports a file from when there were people, without them", () => {
+    const old = sample() as unknown as Record<string, any>;
+    old.people = [{ id: "p_sam", name: "Sam" }];
+    old.expenses[2].owed = { person: "p_sam", amount: 3000 };
+    old.earnings[4].person = "p_sam";
+    old.categories.earning[3].role = "reimbursement";
+    const r = validateYearFile(old);
+    if (!r.ok) throw new Error(r.errors.join("; "));
+    expect(r.file).toEqual(sample()); // the fixture is that same file, already without people
   });
 
   it("reports every problem, not just the first", () => {
