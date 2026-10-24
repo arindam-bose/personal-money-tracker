@@ -67,7 +67,7 @@ export function App() {
   return (
     <>
       <header class="topbar">
-        <h1>Personal Money Tracker <span class="version">v{version}</span></h1>
+        <h1>Money Tracker <span class="version">v{version}</span></h1>
         <nav>
           {(Object.keys(PAGES) as Page[]).map((p) => (
             <a href={`#/${p}`} class={p === page.value ? "active" : ""} aria-current={p === page.value ? "page" : undefined}>
