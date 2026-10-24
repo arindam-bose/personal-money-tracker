@@ -31,10 +31,10 @@ const ROLE_LABEL: Record<CategoryKind, Record<string, string>> = {
 
 const KIND_TITLE: Record<CategoryKind, string> = { expense: "Expense categories", earning: "Earning categories", transfer: "Transfer categories" };
 
-/** Run a setup change and turn a SetupError into a message for the user. */
-async function attempt(change: (s: YearSetup, u: Usage) => YearSetup, onError: (msg: string | null) => void): Promise<boolean> {
+/** Run a change and turn a failure into a message for the user. True if it worked. */
+async function tryAction(run: () => Promise<unknown>, onError: (msg: string | null) => void): Promise<boolean> {
   try {
-    await updateSetup(change);
+    await run();
     onError(null);
     return true;
   } catch (e) {
@@ -42,6 +42,11 @@ async function attempt(change: (s: YearSetup, u: Usage) => YearSetup, onError: (
     onError(e instanceof Error ? e.message : String(e));
     return false;
   }
+}
+
+/** Run a setup change, as tryAction does. */
+function attempt(change: (s: YearSetup, u: Usage) => YearSetup, onError: (msg: string | null) => void): Promise<boolean> {
+  return tryAction(() => updateSetup(change), onError);
 }
 
 export function AccountsView() {
@@ -259,13 +264,7 @@ function CategoryCard({ kind, setup, usage }: { kind: CategoryKind; setup: YearS
   async function remove(c: { id: string; name: string }) {
     const n = usage.categories.get(c.id) ?? 0;
     const moves = n ? ` Its ${n} ${n === 1 ? "entry moves" : "entries move"} to Uncategorized.` : "";
-    if (!confirm(`Delete “${c.name}”?${moves}`)) return;
-    try {
-      await removeCategory(kind, c.id);
-      setError(null);
-    } catch (e) {
-      setError(e instanceof Error ? e.message : String(e));
-    }
+    if (confirm(`Delete “${c.name}”?${moves}`)) await tryAction(() => removeCategory(kind, c.id), setError);
   }
 
   return (
@@ -281,11 +280,13 @@ function CategoryCard({ kind, setup, usage }: { kind: CategoryKind; setup: YearS
           <li key={c.id}>
             <NameInput value={c.name} disabled={locked} label={`Rename ${c.name}`}
               onCommit={(name) => attempt((s) => saveCategory(s, kind, { ...c, name }), setError)} />
-            <select value={c.role ?? ""} disabled={locked} aria-label={`What ${c.name} is for`}
+            {/* Uncategorized's role is fixed, so entries moved there stay out of the headline figures. */}
+            <select value={c.role ?? ""} disabled={locked || c.id === fallback} aria-label={`What ${c.name} is for`}
+              title={c.id === fallback ? "Fixed, so entries from deleted categories don't count as pay, savings or investing" : undefined}
               onChange={(e) => attempt((s) => saveCategory(s, kind, { ...c, role: e.currentTarget.value }), setError)}>
               {Object.entries(ROLE_LABEL[kind]).map(([role, label]) => <option value={role}>{label}</option>)}
             </select>
-            {kind === "earning" && <NetTick cat={c} locked={locked} onChange={(net) => attempt((s) => saveCategory(s, kind, { ...c, net }), setError)} />}
+            {kind === "earning" && <NetTick cat={c} locked={locked || c.id === fallback} onChange={(net) => attempt((s) => saveCategory(s, kind, { ...c, net }), setError)} />}
             <span class="uses" title="Entries using it">{usage.categories.get(c.id) ?? 0}</span>
             {!locked && (c.id === fallback ? (
               <span class="del-placeholder" title="Entries from deleted categories go here, so it can't be deleted." />
@@ -330,13 +331,7 @@ function TagsCard({ tags, uses }: { tags: { id: string; name: string }[]; uses: 
   async function remove(t: { id: string; name: string }) {
     const n = uses.get(t.id) ?? 0;
     const off = n ? ` It comes off ${n === 1 ? "the 1 entry" : `the ${n} entries`} that ${n === 1 ? "has" : "have"} it.` : "";
-    if (!confirm(`Delete “${t.name}”?${off}`)) return;
-    try {
-      await removeTag(t.id);
-      setError(null);
-    } catch (e) {
-      setError(e instanceof Error ? e.message : String(e));
-    }
+    if (confirm(`Delete “${t.name}”?${off}`)) await tryAction(() => removeTag(t.id), setError);
   }
 
   return (
@@ -393,13 +388,7 @@ function PeopleCard({ setup, usage }: { setup: YearSetup; usage: Usage }) {
   async function remove(m: { id: string; name: string }) {
     const n = memberUses(setup, usage, m.id);
     const moves = n ? ` ${n === 1 ? "Their 1 entry moves" : `Their ${n} entries move`} to ${first.name}.` : "";
-    if (!confirm(`Delete “${m.name}”?${moves}`)) return;
-    try {
-      await removeMember(m.id);
-      setError(null);
-    } catch (e) {
-      setError(e instanceof Error ? e.message : String(e));
-    }
+    if (confirm(`Delete “${m.name}”?${moves}`)) await tryAction(() => removeMember(m.id), setError);
   }
 
   return (

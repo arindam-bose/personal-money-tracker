@@ -7,7 +7,7 @@ import { deleteEntry, getSetting, listYears, loadYear, putEntry, putSetup, putSe
 import type { Ledger } from "./derive";
 import { ID_PREFIX, STORE, duplicateEntry, newId, slug, type AnyEntry, type Kind } from "./entries";
 import { emptyYearFile, nextYearSetup } from "./rollover";
-import { blankSetup, deleteCategory, deleteMember, deleteTag, usageOf, withUncategorized, withoutPeople, type CategoryKind, type Usage } from "./setup";
+import { blankSetup, deleteCategory, deleteMember, deleteTag, usageOf, withChange, withUncategorized, withoutPeople, type YearChange, type CategoryKind, type Usage } from "./setup";
 import type { PersistState } from "./storage";
 import type { YearSetup } from "./types";
 
@@ -105,15 +105,14 @@ export async function openYear(year?: number): Promise<void> {
   const saved = await getSetting("activeYear");
   const pick = [year, saved, stored[0]].find((y) => y !== undefined && stored.includes(y));
   let data = pick === undefined ? null : await loadYear(pick);
-  // Bring older years up to date the first time they're opened (closed years stay as they are):
-  // drop people and owed shares, and add Uncategorized if it's missing.
-  if (data && !data.setup.closed) {
+  // Bring older years up to date: drop people and owed shares, and give open years Uncategorized.
+  // An open year is saved that way the first time; a closed one is only cleaned in memory, never rewritten.
+  if (data) {
     const cleaned = withoutPeople(data);
-    const setup = withUncategorized(cleaned?.setup ?? data.setup);
-    if (cleaned || setup !== data.setup) {
-      const expenses = cleaned?.expenses ?? [], earnings = cleaned?.earnings ?? [];
-      await putSetupAndEntries(setup, { expenses, earnings, transfers: [] });
-      data = { setup, expenses: replaced(data.expenses, expenses), earnings: replaced(data.earnings, earnings), transfers: data.transfers };
+    const base = cleaned ?? { setup: data.setup };
+    const change = { ...base, setup: data.setup.closed ? base.setup : withUncategorized(base.setup) };
+    if (cleaned || change.setup !== data.setup) {
+      data = data.setup.closed ? withChange(data, change) : await saveChange(data, change);
     }
   }
   current.value = data;
@@ -233,10 +232,11 @@ export function updateSetup(change: (setup: YearSetup, usage: Usage) => YearSetu
   });
 }
 
-/** A list with the given entries swapped in for the ones with the same id. */
-function replaced<T extends { id: string }>(list: T[], changed: T[]): T[] {
-  const byId = new Map(changed.map((x) => [x.id, x]));
-  return list.map((x) => byId.get(x.id) ?? x);
+/** Save a change (new setup plus the entries it touched) in one transaction, then show it. */
+async function saveChange(data: YearData, change: YearChange): Promise<YearData> {
+  const { setup, expenses = [], earnings = [], transfers = [] } = change;
+  await putSetupAndEntries(setup, { expenses, earnings, transfers });
+  return withChange(data, change);
 }
 
 /** Delete a category; its entries move to Uncategorized. Returns how many entries moved. */
@@ -244,13 +244,7 @@ export function removeCategory(kind: CategoryKind, id: string): Promise<number> 
   return inTurn(async () => {
     const data = editable();
     const r = deleteCategory(data, kind, id);
-    await putSetupAndEntries(r.setup, { expenses: r.expenses, earnings: r.earnings, transfers: r.transfers });
-    current.value = {
-      setup: r.setup,
-      expenses: replaced(data.expenses, r.expenses),
-      earnings: replaced(data.earnings, r.earnings),
-      transfers: replaced(data.transfers, r.transfers),
-    };
+    current.value = await saveChange(data, r);
     return r.expenses.length + r.earnings.length + r.transfers.length;
   });
 }
@@ -259,9 +253,7 @@ export function removeCategory(kind: CategoryKind, id: string): Promise<number> 
 export function removeTag(id: string): Promise<void> {
   return inTurn(async () => {
     const data = editable();
-    const r = deleteTag(data, id);
-    await putSetupAndEntries(r.setup, { expenses: r.expenses, earnings: [], transfers: [] });
-    current.value = { ...data, setup: r.setup, expenses: replaced(data.expenses, r.expenses) };
+    current.value = await saveChange(data, deleteTag(data, id));
   });
 }
 
@@ -269,14 +261,7 @@ export function removeTag(id: string): Promise<void> {
 export function removeMember(id: string): Promise<void> {
   return inTurn(async () => {
     const data = editable();
-    const r = deleteMember(data, id);
-    await putSetupAndEntries(r.setup, { expenses: r.expenses, earnings: r.earnings, transfers: r.transfers });
-    current.value = {
-      setup: r.setup,
-      expenses: replaced(data.expenses, r.expenses),
-      earnings: replaced(data.earnings, r.earnings),
-      transfers: replaced(data.transfers, r.transfers),
-    };
+    current.value = await saveChange(data, deleteMember(data, id));
   });
 }
 

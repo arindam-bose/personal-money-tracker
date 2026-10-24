@@ -4,9 +4,12 @@
 
 import type { YearData } from "./db";
 import { newId, slug } from "./entries";
+import { membersOf } from "./members";
 import type {
   Account, Categories, Category, Earning, EarningRole, Expense, ExpenseRole, Member, Tag, Transfer, TransferRole, YearSetup,
 } from "./types";
+
+export { DEFAULT_MEMBER, membersOf } from "./members";
 
 export class SetupError extends Error {}
 
@@ -168,12 +171,26 @@ export function withUncategorized(setup: YearSetup): YearSetup {
   return { ...setup, categories };
 }
 
-/** What deleting a category changes: the new setup, and the entries that moved (only those). */
-export interface CategoryRemoval {
+/** A change to a year: its new setup, and only the entries that changed (any list can be left out). */
+export interface YearChange {
   setup: YearSetup;
-  expenses: Expense[];
-  earnings: Earning[];
-  transfers: Transfer[];
+  expenses?: Expense[];
+  earnings?: Earning[];
+  transfers?: Transfer[];
+}
+
+/** The year with a change applied: the new setup, and changed entries swapped in by id. */
+export function withChange(data: YearData, change: YearChange): YearData {
+  const swap = <T extends { id: string }>(list: T[], changed: T[] = []) => {
+    const byId = new Map(changed.map((x) => [x.id, x]));
+    return byId.size ? list.map((x) => byId.get(x.id) ?? x) : list;
+  };
+  return {
+    setup: change.setup,
+    expenses: swap(data.expenses, change.expenses),
+    earnings: swap(data.earnings, change.earnings),
+    transfers: swap(data.transfers, change.transfers),
+  };
 }
 
 /**
@@ -182,19 +199,18 @@ export interface CategoryRemoval {
  */
 export function deleteCategory(
   data: { setup: YearSetup; expenses: Expense[]; earnings: Earning[]; transfers: Transfer[] }, kind: CategoryKind, id: string,
-): CategoryRemoval {
+): Required<YearChange> {
   const withFallback = withUncategorized(data.setup);
   const to = uncategorizedId(withFallback, kind)!;
   if (id === to) throw new SetupError("Uncategorized can't be deleted: entries from deleted categories go there.");
   const list = (withFallback.categories[kind] as Category<string>[]).filter((c) => c.id !== id);
-  const setup = withFallback;
   // Drop its budget targets too, so the file stays valid.
-  const budgets = Object.fromEntries(Object.entries(setup.budgets).map(([k, targets]) => {
+  const budgets = Object.fromEntries(Object.entries(withFallback.budgets).map(([k, targets]) => {
     const { [id]: _gone, ...rest } = targets;
     return [k, rest];
   })) as YearSetup["budgets"];
   return {
-    setup: { ...setup, categories: { ...setup.categories, [kind]: list }, budgets },
+    setup: { ...withFallback, categories: { ...withFallback.categories, [kind]: list }, budgets },
     expenses: kind === "expense" ? data.expenses.filter((e) => e.cat === id).map((e) => ({ ...e, cat: to })) : [],
     earnings: kind === "earning"
       ? data.earnings.filter((i) => i.cat === id).map((i) => ({ ...i, cat: to }))
@@ -224,14 +240,6 @@ export function deleteTag(
 }
 
 // --- Members (the household) ---
-
-/** Everyone starts as this one member. */
-export const DEFAULT_MEMBER: Member = { id: "m_person-a", name: "Person A" };
-
-/** The household, never empty. The first member is the default: entries without `member` are theirs. */
-export function membersOf(setup: Pick<YearSetup, "members">): Member[] {
-  return setup.members?.length ? setup.members : [DEFAULT_MEMBER];
-}
 
 /** How many entries a member has. */
 export function memberUses(setup: Pick<YearSetup, "members">, usage: Usage, id: string): number {

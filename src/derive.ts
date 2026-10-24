@@ -1,5 +1,5 @@
 // Everything the app shows that isn't typed in by the user is computed here, from the
-// raw tables. Nothing computed is ever stored. See the project brief, §4 and §5.
+// raw tables. Nothing computed is ever stored. See the project brief, §4.
 //
 // These are plain functions with no UI code, so tests can check them directly
 // against the totals Notion computed (tests/derive.test.ts, tests/real-data.test.ts).
@@ -43,6 +43,23 @@ export function forMember(ledger: Ledger, member: string, defaultMember: string)
 /** True if a "YYYY-MM-DD" date falls in the month (or always, for the whole year). */
 export function inMonth(date: IsoDate, month: Month): boolean {
   return month === undefined || Number(date.slice(5, 7)) === month;
+}
+
+// --- Dates ---
+
+export const MONTH_NAMES = ["January", "February", "March", "April", "May", "June", "July",
+  "August", "September", "October", "November", "December"];
+/** "Jan" to "Dec". */
+export const MONTH_SHORT = MONTH_NAMES.map((m) => m.slice(0, 3));
+
+/** Today in the browser's time zone, "YYYY-MM-DD". */
+export function localToday(now = new Date()): IsoDate {
+  return `${now.getFullYear()}-${String(now.getMonth() + 1).padStart(2, "0")}-${String(now.getDate()).padStart(2, "0")}`;
+}
+
+/** "2026-03-09" -> "Mar 9". */
+export function shortDate(iso: IsoDate): string {
+  return `${MONTH_SHORT[Number(iso.slice(5, 7)) - 1]} ${Number(iso.slice(8, 10))}`;
 }
 
 /**

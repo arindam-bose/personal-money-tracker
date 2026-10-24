@@ -4,7 +4,7 @@
 
 import { useSignal, useSignalEffect } from "@preact/signals";
 import {
-  accountsOverview, budgetView, earningsByCategory, monthProgress, netEarningCategories, remainingRetirement, spendingOffsetCategories, spendByCategory, summarize, tagTotal,
+  MONTH_NAMES, accountsOverview, budgetView, earningsByCategory, localToday, monthProgress, netEarningCategories, remainingRetirement, spendingOffsetCategories, spendByCategory, summarize, tagTotal,
 } from "../derive";
 import { formatCents, formatPercent } from "../money";
 import { current, iraLimit, ledger, pinnedTags, savePinnedTags } from "../state";
@@ -14,8 +14,6 @@ import { BudgetBar } from "./budget";
 import { showInLedger } from "./ledger";
 import { MemberPicker, viewedLedger, viewedMember } from "./people";
 
-const MONTHS = ["January", "February", "March", "April", "May", "June", "July",
-  "August", "September", "October", "November", "December"];
 const PERIOD_KEY = "dashboard-period";
 
 function loadPeriod(): string {
@@ -64,8 +62,8 @@ export function DashboardView() {
   const lastMonth = Math.max(0, ...[...all.expenses, ...all.earnings, ...all.transfers].map((e) => Number(e.date.slice(5, 7))));
   // A past year is complete; only the current one is "so far".
   const pastYear = setup.closed || setup.year < new Date().getFullYear();
-  const periodName = month ? `${MONTHS[month - 1]} ${setup.year}` : pastYear ? `${setup.year}` : `${setup.year} so far`;
-  const asOf = month ? `End of ${MONTHS[month - 1]}` : pastYear ? `End of ${setup.year}` : "Today";
+  const periodName = month ? `${MONTH_NAMES[month - 1]} ${setup.year}` : pastYear ? `${setup.year}` : `${setup.year} so far`;
+  const asOf = month ? `End of ${MONTH_NAMES[month - 1]}` : pastYear ? `End of ${setup.year}` : "Today";
   // Clicking a category opens the ledger with the same period and person.
   const inLedger = { month: period.value, member: member?.id ?? "" };
 
@@ -93,7 +91,7 @@ export function DashboardView() {
       <div class="filters">
         <select value={period.value} onChange={(e) => (period.value = e.currentTarget.value)} aria-label="Period">
           <option value="">{pastYear ? "Whole year" : "Year to date"}</option>
-          {MONTHS.slice(0, Math.max(lastMonth, month ?? 0)).map((m, i) => <option value={String(i + 1)}>{m}</option>)}
+          {MONTH_NAMES.slice(0, Math.max(lastMonth, month ?? 0)).map((m, i) => <option value={String(i + 1)}>{m}</option>)}
         </select>
         <MemberPicker />
       </div>
@@ -322,9 +320,7 @@ function BudgetCard({ month, lastMonth }: { month: number | undefined; lastMonth
   const months = month ? [month] : Array.from({ length: lastMonth }, (_, i) => i + 1);
   const view = budgetView(l, setup.budgets, setup.year, months);
   const lines = view.lines.filter((x) => x.target !== undefined);
-  const now = new Date();
-  const today = `${now.getFullYear()}-${String(now.getMonth() + 1).padStart(2, "0")}-${String(now.getDate()).padStart(2, "0")}`;
-  const pace = month ? monthProgress(setup.year, month, today) : null;
+  const pace = month ? monthProgress(setup.year, month, localToday()) : null;
   const names = new Map(setup.categories.expense.map((c) => [c.id, c.name]));
   const left = view.budgeted - view.spentBudgeted;
 

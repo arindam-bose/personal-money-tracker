@@ -1,6 +1,6 @@
 import { beforeEach, describe, expect, it } from "vitest";
-import { importYear } from "../src/backup";
-import { loadYear } from "../src/db";
+import { exportYear, importYear } from "../src/backup";
+import { loadYear, putEntry, putSetup } from "../src/db";
 import { current, ensureTag, openYear, setBudget } from "../src/state";
 import { freshDb, sample } from "./helpers";
 
@@ -38,5 +38,38 @@ describe("state changes", () => {
     current.value = { ...current.value!, setup: { ...current.value!.setup, closed: false } };
     await setBudget("default", "ce_food", 6);
     expect(current.value!.setup.budgets.default.ce_food).toBe(6);
+  });
+});
+
+describe("years saved before people were dropped", () => {
+  /** Store 2026 the way an older version did: a person, an owed share, a "Paid back" role. */
+  async function storeOldShape(closed: boolean) {
+    const { setup, expenses } = (await loadYear(2026))!;
+    const earning = setup.categories.earning.map((c) => (c.id === "ci_payback" ? { ...c, role: "reimbursement" } : c));
+    await putSetup({ ...setup, closed, categories: { ...setup.categories, earning }, people: [{ id: "p_sam", name: "Sam" }] } as never);
+    await putEntry("expenses", 2026, { ...expenses[2]!, owed: { person: "p_sam", amount: 3000 } } as never);
+  }
+
+  it("cleans an open year and saves it that way", async () => {
+    await storeOldShape(false);
+    await openYear(2026);
+    const stored = (await loadYear(2026))!;
+    expect(stored.setup).not.toHaveProperty("people");
+    expect(stored.setup.categories.earning.find((c) => c.id === "ci_payback")!.role).toBe("offset");
+    expect(stored.expenses[2]).not.toHaveProperty("owed");
+  });
+
+  it("shows and backs up a closed year cleaned, without rewriting it", async () => {
+    await storeOldShape(true);
+    await openYear(2026);
+    expect(current.value!.setup).not.toHaveProperty("people");
+    expect(current.value!.setup.categories.earning.find((c) => c.id === "ci_payback")!.role).toBe("offset");
+    expect(current.value!.expenses[2]).not.toHaveProperty("owed");
+    expect((await loadYear(2026))!.setup).toHaveProperty("people"); // storage untouched
+
+    const backup = (await exportYear(2026))!;
+    expect(backup).not.toHaveProperty("people");
+    expect(backup.expenses[2]).not.toHaveProperty("owed");
+    expect(backup.categories.earning.find((c) => c.id === "ci_payback")!.role).toBe("offset");
   });
 });

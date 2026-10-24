@@ -2,13 +2,17 @@
 // in the same shape the importer and tools/notion_import.py produce.
 
 import { loadYear, putSetup, replaceYear } from "./db";
+import { withChange, withoutPeople } from "./setup";
 import type { YearFile } from "./types";
 import { validateYearFile, type ValidationResult } from "./validate";
 
 /** Build the backup file for a stored year, or null if the year isn't stored. */
 export async function exportYear(year: number, now = new Date()): Promise<YearFile | null> {
-  const data = await loadYear(year);
-  if (!data) return null;
+  const stored = await loadYear(year);
+  if (!stored) return null;
+  // A closed year saved before people were dropped still holds them in storage; the backup leaves them out.
+  const cleaned = withoutPeople(stored);
+  const data = cleaned ? withChange(stored, cleaned) : stored;
   const { setup } = data;
   return {
     app: "money-tracker",

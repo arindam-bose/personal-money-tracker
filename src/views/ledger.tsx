@@ -3,11 +3,12 @@
 
 import { useComputed, useSignal, useSignalEffect } from "@preact/signals";
 import { useEffect, useRef } from "preact/hooks";
-import { inMonth, monthsBefore } from "../derive";
+import { MONTH_NAMES, inMonth, localToday, monthsBefore, shortDate } from "../derive";
 import { draftFrom, emptyDraft, type AnyEntry, type Draft, type Kind } from "../entries";
 import { formatCents } from "../money";
 import { membersOf } from "../setup";
 import { current, duplicate, readOnly } from "../state";
+import type { YearSetup } from "../types";
 import { EntryForm } from "./entry-form";
 
 export interface Filters {
@@ -29,11 +30,8 @@ export interface Filters {
 const NO_FILTERS: Filters = { month: "", from: "", to: "", kind: "", account: "", cat: "", tag: "", member: "", q: "" };
 const FILTERS_KEY = "ledger-filters";
 const SORT_KEY = "ledger-sort";
-const MONTH_NAMES = ["January", "February", "March", "April", "May", "June", "July",
-  "August", "September", "October", "November", "December"];
 /** Rows shown at a time; buttons under the table show more or fewer. */
 const PAGE = 100;
-const MONTHS = ["Jan", "Feb", "Mar", "Apr", "May", "Jun", "Jul", "Aug", "Sep", "Oct", "Nov", "Dec"];
 
 /** Filters last until the tab is closed. Storage can be unavailable (private mode), so failures are ignored. */
 function loadFilters(): Filters {
@@ -87,10 +85,28 @@ function allEntries(): AnyEntry[] {
   );
 }
 
-/** Today in the browser's time zone, "YYYY-MM-DD". */
-function localToday(): string {
-  const now = new Date();
-  return `${now.getFullYear()}-${String(now.getMonth() + 1).padStart(2, "0")}-${String(now.getDate()).padStart(2, "0")}`;
+/** Whether "Last N months" can reach the year at all: it's this year, or last year's tail is within 12 months. */
+function recentReaches(year: number, today: string): boolean {
+  return `${year}-01-01` <= today && `${year}-12-31` >= monthsBefore(today, 12);
+}
+
+/**
+ * The filters that actually apply to a year. Saved filters can name things it doesn't have:
+ * a category, tag or person deleted since, or another year's. Those are dropped, so the
+ * dropdowns (which then show "All …") and the rows agree.
+ */
+function liveFilters(f: Filters, setup: YearSetup, today: string): Filters {
+  const has = (list: { id: string }[], id: string) => !id || list.some((x) => x.id === id);
+  const { expense, earning, transfer } = setup.categories;
+  const members = membersOf(setup);
+  return {
+    ...f,
+    month: f.month.startsWith("last-") && !recentReaches(setup.year, today) ? "" : f.month,
+    account: has(setup.accounts, f.account) ? f.account : "",
+    cat: has([...expense, ...earning, ...transfer], f.cat) ? f.cat : "",
+    tag: has(setup.tags, f.tag) ? f.tag : "",
+    member: members.length > 1 && has(members, f.member) ? f.member : "",
+  };
 }
 
 /** The dates a filter lets through, first to last; "" leaves that end open. Null for a single month. */
@@ -100,10 +116,10 @@ function dateWindow(f: Filters, today: string): [string, string] | null {
   return null;
 }
 
-function matches(e: AnyEntry, f: Filters, today: string, defaultMember: string): boolean {
+/** `window` is dateWindow(f), worked out once for all rows. */
+function matches(e: AnyEntry, f: Filters, window: [string, string] | null, defaultMember: string): boolean {
   if (f.member && (e.entry.member ?? defaultMember) !== f.member) return false;
   const date = e.entry.date;
-  const window = dateWindow(f, today);
   if (window) {
     if ((window[0] && date < window[0]) || (window[1] && date > window[1])) return false;
   } else if (f.month && !inMonth(date, Number(f.month))) return false;
@@ -123,11 +139,6 @@ function matches(e: AnyEntry, f: Filters, today: string, defaultMember: string):
 
 /** A row's unique key: ids are only unique within their kind. */
 const rowKey = (e: AnyEntry) => `${e.kind}:${e.entry.id}`;
-
-/** "2026-03-09" -> "Mar 9". */
-function shortDate(iso: string): string {
-  return `${MONTHS[Number(iso.slice(5, 7)) - 1]} ${Number(iso.slice(8, 10))}`;
-}
 
 /** Today if it falls in the open year, otherwise January 1 of that year. */
 function defaultDate(year: number): string {
@@ -160,10 +171,16 @@ export function LedgerView() {
     shown.value = PAGE;
   });
 
+  /** The filters in effect: the saved ones, minus anything the open year doesn't have. */
+  const live = useComputed(() => {
+    const setup = current.value?.setup;
+    return setup ? liveFilters(filters.value, setup, localToday()) : filters.value;
+  });
   const rows = useComputed(() => {
-    const today = localToday();
+    const f = live.value;
+    const window = dateWindow(f, localToday());
     const defaultMember = membersOf(current.value?.setup ?? {})[0]!.id;
-    const out = allEntries().filter((e) => matches(e, filters.value, today, defaultMember));
+    const out = allEntries().filter((e) => matches(e, f, window, defaultMember));
     return oldestFirst.value ? out.reverse() : out;
   });
   const totals = useComputed(() => {
@@ -178,7 +195,9 @@ export function LedgerView() {
   function openNew(kind: Kind) {
     const year = current.value?.setup.year;
     if (year === undefined || readOnly.value || current.value!.setup.accounts.length === 0) return;
-    form.value = emptyDraft(kind, defaultDate(year));
+    // Filtered to one person: the new entry is theirs, so it stays in view once saved.
+    const member = live.value.member === membersOf(current.value!.setup)[0]!.id ? "" : live.value.member;
+    form.value = { ...emptyDraft(kind, defaultDate(year)), member };
     window.scrollTo({ top: 0 });
   }
 
@@ -242,8 +261,9 @@ export function LedgerView() {
   // The person filter and column appear once there's more than one person.
   const household = members.length > 1;
   const memberName = (id: string | undefined) => members.find((m) => m.id === (id ?? members[0]!.id))?.name ?? "?";
-  const f = filters.value;
-  const setFilter = <K extends keyof Filters>(key: K, value: Filters[K]) => (filters.value = { ...filters.value, [key]: value });
+  const f = live.value;
+  // Built on the live filters, so changing any filter also drops values that no longer apply.
+  const setFilter = <K extends keyof Filters>(key: K, value: Filters[K]) => (filters.value = { ...live.value, [key]: value });
   const filtered = Object.entries(f).some(([k, v]) => v !== NO_FILTERS[k as keyof Filters]);
 
   return (
@@ -269,13 +289,15 @@ export function LedgerView() {
       <div class="filters">
         <input ref={searchRef} type="search" placeholder="Search…  /" value={f.q} onInput={(e) => setFilter("q", e.currentTarget.value)} />
         <select value={f.month} aria-label="Dates"
-          onChange={(e) => (filters.value = { ...filters.value, month: e.currentTarget.value, from: "", to: "" })}>
+          onChange={(e) => (filters.value = { ...live.value, month: e.currentTarget.value, from: "", to: "" })}>
           <option value="">All dates</option>
-          <optgroup label="Up to today">
-            {Array.from({ length: 12 }, (_, i) => (
-              <option value={`last-${i + 1}`}>{i === 0 ? "Last month" : `Last ${i + 1} months`}</option>
-            ))}
-          </optgroup>
+          {recentReaches(setup.year, localToday()) && (
+            <optgroup label="Up to today">
+              {Array.from({ length: 12 }, (_, i) => (
+                <option value={`last-${i + 1}`}>{i === 0 ? "Last month" : `Last ${i + 1} months`}</option>
+              ))}
+            </optgroup>
+          )}
           <optgroup label="Month">
             {MONTH_NAMES.map((m, i) => <option value={String(i + 1)}>{m}</option>)}
           </optgroup>

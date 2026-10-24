@@ -4,7 +4,7 @@
 
 import type { ComponentChildren } from "preact";
 import {
-  balanceSeries, moneyFlow, monthlySummaries, spendingByMonth, weeklySpending,
+  MONTH_SHORT, balanceSeries, moneyFlow, monthlySummaries, shortDate, spendingByMonth, weeklySpending,
   type FlowGroup, type Ledger,
 } from "../derive";
 import { formatCents, formatCompact } from "../money";
@@ -14,15 +14,8 @@ import { Chart, axisStyle, baseOption, seriesColors, token, type ChartOption } f
 import { showInLedger } from "./ledger";
 import { MemberPicker, viewedLedger, viewedMember } from "./people";
 
-const MONTHS = ["Jan", "Feb", "Mar", "Apr", "May", "Jun", "Jul", "Aug", "Sep", "Oct", "Nov", "Dec"];
-
 /** How many categories get their own colour in the stacked chart; the rest fold into "Other". */
 const TOP_CATEGORIES = 6;
-
-/** "2026-03-09" -> "Mar 9". */
-function shortDate(iso: string): string {
-  return `${MONTHS[Number(iso.slice(5, 7)) - 1]} ${Number(iso.slice(8, 10))}`;
-}
 
 /** Tooltip values in dollars and cents. */
 const money = (v: unknown) => formatCents(Number(v));
@@ -180,7 +173,7 @@ function CashFlowCard({ ledger: l, months }: { ledger: Ledger; months: number })
   const option: ChartOption = {
     ...baseOption(),
     tooltip: { ...(baseOption().tooltip as object), trigger: "axis", axisPointer: { type: "shadow" }, valueFormatter: money },
-    xAxis: { type: "category", data: MONTHS.slice(0, months), ...axisStyle(), splitLine: { show: false } },
+    xAxis: { type: "category", data: MONTH_SHORT.slice(0, months), ...axisStyle(), splitLine: { show: false } },
     yAxis: { type: "value", ...axisStyle(), axisLine: { show: false }, axisLabel: { color: token("--muted"), formatter: formatCompact } },
     series: [
       { name: "Earned", type: "bar", data: sums.map((s) => s.earned), itemStyle: { color: c1, borderRadius: [4, 4, 0, 0] }, barMaxWidth: 24, barGap: "15%" },
@@ -191,7 +184,7 @@ function CashFlowCard({ ledger: l, months }: { ledger: Ledger; months: number })
     <Card title="Monthly cash flow" subtitle="Everything earned and spent each month (refunds count as earnings, as in Notion).">
       <Chart option={option} height={300} label="Earned and spent per month" />
       <TableView head={["Month", "Earned", "Spent", "Surplus"]}
-        rows={sums.map((s, i) => [MONTHS[i]!, formatCents(s.earned), formatCents(s.spent), formatCents(s.surplus)])}
+        rows={sums.map((s, i) => [MONTH_SHORT[i]!, formatCents(s.earned), formatCents(s.spent), formatCents(s.surplus)])}
         foot={["Total", ...(["earned", "spent", "surplus"] as const).map((k) => formatCents(sums.reduce((a, s) => a + s[k], 0)))]} />
     </Card>
   );
@@ -220,7 +213,7 @@ function CategoryCard({ ledger: l, months }: { ledger: Ledger; months: number })
   const option: ChartOption = {
     ...baseOption(),
     tooltip: { ...(baseOption().tooltip as object), trigger: "axis", axisPointer: { type: "shadow" }, valueFormatter: money },
-    xAxis: { type: "category", data: MONTHS.slice(0, months), ...axisStyle(), splitLine: { show: false } },
+    xAxis: { type: "category", data: MONTH_SHORT.slice(0, months), ...axisStyle(), splitLine: { show: false } },
     yAxis: { type: "value", ...axisStyle(), axisLine: { show: false }, axisLabel: { color: token("--muted"), formatter: formatCompact } },
     series: stacks.map((st, i) => ({
       name: st.name, type: "bar", stack: "spend", data: st.data, barMaxWidth: 24,
@@ -240,7 +233,7 @@ function CategoryCard({ ledger: l, months }: { ledger: Ledger; months: number })
           <thead>
             <tr>
               <th>Category</th>
-              {MONTHS.slice(0, months).map((m) => <th class="num">{m}</th>)}
+              {MONTH_SHORT.slice(0, months).map((m) => <th class="num">{m}</th>)}
               <th class="num">Total</th>
             </tr>
           </thead>
@@ -253,7 +246,7 @@ function CategoryCard({ ledger: l, months }: { ledger: Ledger; months: number })
                   return (
                     <td class="num cell" style={{ background: v ? `rgba(${heat}, ${0.08 + a * 0.82})` : undefined, color: a > 0.5 ? "#fff" : undefined }}
                       onClick={() => v && showInLedger({ cat: id, kind: "expense", month: String(m + 1), member: viewedMember()?.id ?? "" })}
-                      title={v ? `${names.get(id)}, ${MONTHS[m]}: ${formatCents(v)}` : undefined}>
+                      title={v ? `${names.get(id)}, ${MONTH_SHORT[m]}: ${formatCents(v)}` : undefined}>
                       {v ? formatCompact(v) : ""}
                     </td>
                   );

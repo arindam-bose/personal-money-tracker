@@ -3,20 +3,13 @@
 
 import { useSignal, useSignalEffect } from "@preact/signals";
 import { useRef } from "preact/hooks";
-import { budgetView, monthKey, monthProgress, type BudgetLine } from "../derive";
+import { MONTH_NAMES, budgetView, localToday, monthKey, monthProgress, type BudgetLine } from "../derive";
 import { formatCents, formatPercent, parseCents } from "../money";
 import { current, ledger, readOnly, setBudget } from "../state";
 import { showInLedger } from "./ledger";
 
-const MONTHS = ["January", "February", "March", "April", "May", "June", "July",
-  "August", "September", "October", "November", "December"];
 const PERIOD_KEY = "budget-period";
 
-/** Today as "YYYY-MM-DD" in local time. */
-function today(): string {
-  const d = new Date();
-  return `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, "0")}-${String(d.getDate()).padStart(2, "0")}`;
-}
 
 /** The month to open: the one kept for this tab, else this month if it's in the year, else January. */
 function initialPeriod(year: number): string {
@@ -26,7 +19,7 @@ function initialPeriod(year: number): string {
   } catch {
     // Fall through to the default.
   }
-  return Number(today().slice(0, 4)) === year ? String(Number(today().slice(5, 7))) : "1";
+  return Number(localToday().slice(0, 4)) === year ? String(Number(localToday().slice(5, 7))) : "1";
 }
 
 export function BudgetView() {
@@ -53,12 +46,12 @@ export function BudgetView() {
 
   const { setup } = data;
   const year = setup.year;
-  const lastMonth = Math.max(1, ...l.expenses.map((e) => Number(e.date.slice(5, 7))), Number(today().slice(0, 4)) === year ? Number(today().slice(5, 7)) : 1);
+  const lastMonth = Math.max(1, ...l.expenses.map((e) => Number(e.date.slice(5, 7))), Number(localToday().slice(0, 4)) === year ? Number(localToday().slice(5, 7)) : 1);
   const month = period.value === "ytd" ? undefined : Number(period.value);
   const months = month ? [month] : Array.from({ length: lastMonth }, (_, i) => i + 1);
   const view = budgetView(l, setup.budgets, year, months);
   const names = new Map(setup.categories.expense.map((c) => [c.id, c.name]));
-  const pace = month ? monthProgress(year, month, today()) : null;
+  const pace = month ? monthProgress(year, month, localToday()) : null;
   const left = view.budgeted - view.spentBudgeted;
   const editable = month !== undefined && !readOnly.value;
 
@@ -72,8 +65,8 @@ export function BudgetView() {
       <div class="filters">
         <button type="button" onClick={() => step(-1)} disabled={!month || month === 1} aria-label="Previous month">‹</button>
         <select value={period.value} onChange={(e) => (period.value = e.currentTarget.value)} aria-label="Month">
-          {MONTHS.map((m, i) => <option value={String(i + 1)}>{m} {year}</option>)}
-          <option value="ytd">Year to date (Jan–{MONTHS[lastMonth - 1]!.slice(0, 3)})</option>
+          {MONTH_NAMES.map((m, i) => <option value={String(i + 1)}>{m} {year}</option>)}
+          <option value="ytd">Year to date (Jan–{MONTH_NAMES[lastMonth - 1]!.slice(0, 3)})</option>
         </select>
         <button type="button" onClick={() => step(1)} disabled={!month || month === 12} aria-label="Next month">›</button>
       </div>
@@ -137,7 +130,7 @@ export function BudgetView() {
                     </td>
                     <td class="num">
                       <MoneyInput value={setup.budgets[monthKey(year, month)]?.[line.cat]} placeholder="Same" disabled={!editable}
-                        label={`${names.get(line.cat)} in ${MONTHS[month - 1]} only`} row={row} col={1}
+                        label={`${names.get(line.cat)} in ${MONTH_NAMES[month - 1]} only`} row={row} col={1}
                         onCommit={(v) => setBudget(monthKey(year, month), line.cat, v)} />
                     </td>
                   </>

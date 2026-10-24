@@ -1,6 +1,7 @@
 // The logic behind the entry form, kept apart from the UI so it can be tested:
 // drafts (what the form holds), validation, and the transfer-category suggestion.
 
+import { membersOf } from "./members";
 import { formatCents, parseCents } from "./money";
 import type {
   Account, Earning, EarningRole, Expense, Transfer, TransferRole, YearSetup,
@@ -109,9 +110,9 @@ export function checkDraft(draft: Draft, setup: YearSetup, id: string): CheckRes
   const head = { id: draft.id ?? id, date: draft.date, item, amount: amount ?? 0 };
   const notes = draft.notes.trim();
   // Only someone other than the default (first) member is written down.
-  const members = setup.members ?? [];
+  const members = membersOf(setup);
   if (draft.member && !members.some((m) => m.id === draft.member)) errors.member = "Pick someone from the list.";
-  const owner = draft.member && draft.member !== members[0]?.id ? { member: draft.member } : {};
+  const owner = draft.member && draft.member !== members[0]!.id ? { member: draft.member } : {};
 
   if (draft.kind === "transfer") {
     if (!usable(draft.from)) errors.from = "Pick the account the money left.";
@@ -180,7 +181,7 @@ export function newId(prefix: string, taken: (id: string) => boolean, now = Date
 /** Id prefix per kind, matching the imported ids (e0001, i0001, x0001). */
 export const ID_PREFIX: Record<Kind, string> = { expense: "e", earning: "i", transfer: "x" };
 
-/** "Movies/Shows" -> "movies-shows", for tag and person ids. */
+/** "Movies/Shows" -> "movies-shows", for ids made from names. */
 export function slug(name: string): string {
   return name.toLowerCase().replace(/[^a-z0-9]+/g, "-").replace(/^-|-$/g, "");
 }

@@ -41,10 +41,11 @@ this started). TypeScript is strict, including `noUncheckedIndexedAccess`.
 | `src/backup.ts` | JSON import and export. |
 | `src/derive.ts` | Every computed figure. Plain functions, no UI. |
 | `src/entries.ts` | Entry-form logic: drafts, checks, transfer-category suggestion, duplicating. |
-| `src/setup.ts` | Editing accounts, categories, tags; a blank year's defaults; upgrading years saved with people. |
+| `src/setup.ts` | Editing accounts, categories, tags and members; a blank year's defaults; upgrading years saved with people. |
+| `src/members.ts` | The default member and `membersOf`, apart so `entries.ts` can use them without an import loop. |
 | `src/rollover.ts` | What the next year starts with when a year is closed. |
 | `src/state.ts` | The open year as Preact signals, and the actions that change it. |
-| `src/views/` | One Preact view per page, plus `chart.tsx` (the ECharts wrapper). |
+| `src/views/` | One Preact view per page, plus `chart.tsx` (the ECharts wrapper) and `people.tsx` (the person picker). |
 | `tools/` | Python: Notion export to JSON (`notion_import.py`), and a checker (`verify.py`). |
 | `tests/` | Vitest. `fixtures/` holds synthetic data only. |
 | `data/` | Your real data and Notion exports. Git-ignored; never commit it. |
@@ -97,7 +98,7 @@ doesn't have it gets it when it's opened.
 ### Members (a household)
 
 `members` on the year lists the household; left out, it's one default member,
-"Person A" (`membersOf` in `setup.ts`). The first member is the default: an entry
+"Person A" (`membersOf` in `members.ts`). The first member is the default: an entry
 carries `member` only when it belongs to someone else, so a one-person year looks
 exactly as before. Deleting a member drops `member` from their entries, which
 gives them back to the default; the default can't be deleted.
@@ -116,10 +117,12 @@ Not to be confused with the **people** of earlier versions, below.
 Earlier versions tracked people: an expense could carry the share someone owed
 back (`owed`), and a `reimbursement` earning named who paid it (`person`). That
 was dropped to keep the figures simple: money paid back is now just an earning
-that lowers net spending (see below). Older files and stored years are upgraded
-on import and when first opened: `people`, `owed` and `person` are removed, and a
-`reimbursement` category becomes `offset` (`withoutLegacyPeople` in
-`validate.ts`, `withoutPeople` in `setup.ts`).
+that lowers net spending (see below). Older data is upgraded wherever it comes
+in: `people`, `owed` and `person` are removed, and a `reimbursement` category
+becomes `offset`. Imported files are cleaned before checking
+(`withoutLegacyPeople` in `validate.ts`). Stored years are cleaned when opened
+(`withoutPeople` in `setup.ts`): an open year is saved that way, a closed one
+only in memory, and its backup leaves them out too.
 
 ## How the figures are worked out
 
