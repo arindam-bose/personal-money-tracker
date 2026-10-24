@@ -60,6 +60,7 @@ export function DashboardView() {
   // A past year is complete; only the current one is "so far".
   const pastYear = setup.closed || setup.year < new Date().getFullYear();
   const periodName = month ? `${MONTHS[month - 1]} ${setup.year}` : pastYear ? `${setup.year}` : `${setup.year} so far`;
+  const asOf = month ? `End of ${MONTHS[month - 1]}` : pastYear ? `End of ${setup.year}` : "Today";
 
   return (
     <div class="dashboard">
@@ -71,10 +72,10 @@ export function DashboardView() {
       </div>
 
       <section class="hero card">
-        <div class="tile-label">Surplus · {periodName}</div>
-        <div class={`hero-value ${sum.surplus < 0 ? "neg" : ""}`}>{formatCents(sum.surplus)}</div>
+        <div class="tile-label">Net tangible assets · {asOf}</div>
+        <div class={`hero-value ${accounts.netTangibleAssets < 0 ? "neg" : ""}`}>{formatCents(accounts.netTangibleAssets)}</div>
         <div class="muted">
-          Earned {formatCents(sum.earned)} − spent {formatCents(sum.spent)}
+          Available cash {formatCents(accounts.availableCash)} − card debt {formatCents(accounts.cardDebt)}
         </div>
       </section>
 
@@ -86,10 +87,13 @@ export function DashboardView() {
         <Tile label="Net earnings" value={formatCents(sum.netEarnings)} detail={netEarningsDetail(l)} />
         <Tile label="Net spending" value={formatCents(sum.netSpent)}
           detail={`After ${formatCents(sum.offsets)} of refunds and points${sum.owed ? ` and ${formatCents(sum.owed)} owed to you` : ""}`} />
-        <Tile label="Savings rate" value={formatPercent(sum.savingsRate)}
-          detail={`${formatCents(sum.netSavings)} saved, of paychecks`} />
-        <Tile label="Investment rate" value={formatPercent(sum.investmentRate)}
-          detail={`${formatCents(sum.investment)} invested: retirement ${formatPercent(sum.investment ? sum.investRetirement / sum.investment : null, 0)}, taxable ${formatPercent(sum.investment ? sum.investTaxable / sum.investment : null, 0)}`} />
+        <Tile label="Surplus" value={formatCents(sum.surplus)} tone={sum.surplus > 0 ? "pos" : sum.surplus < 0 ? "neg" : undefined}
+          detail={`Earned ${formatCents(sum.earned)} − spent ${formatCents(sum.spent)}`} />
+        <Tile label="Savings" value={formatCents(sum.netSavings)}
+          detail={`${formatPercent(sum.savingsRate)} of paychecks`} />
+        <Tile label="Investment" value={formatCents(sum.investment)}
+          detail={`${formatPercent(sum.investmentRate)} of paychecks · retirement ${formatPercent(sum.investment ? sum.investRetirement / sum.investment : null, 0)}, taxable ${formatPercent(sum.investment ? sum.investTaxable / sum.investment : null, 0)}`} />
+        <Tile label="Credit card payments" value={formatCents(sum.ccPayments)} detail="Transfers, not counted in spending" />
         <Tile label="Charity" value={formatCents(sum.charity)} detail={`${formatPercent(sum.charityRate)} of paychecks`} />
         <Tile label="Loan payments" value={formatCents(sum.loan)} detail="Counted in spending" />
         {pinnedTags.value.map((id) => {
@@ -125,7 +129,7 @@ export function DashboardView() {
 
         <section class="card">
           <h3>Accounts</h3>
-          <p class="muted small">{month ? `At the end of ${MONTHS[month - 1]}` : pastYear ? `At the end of ${setup.year}` : "Today"}</p>
+          <p class="muted small">{asOf}</p>
           <AccountsTable overview={accounts} accounts={setup.accounts} />
           <RetirementRoom left={remainingRetirement(l, iraLimit.value)} limit={iraLimit.value} />
           <Owed />
@@ -142,7 +146,7 @@ function netEarningsDetail(l: Ledger): string {
   return names.length ? names.join(" + ") : "No categories count. Choose them on the Accounts page.";
 }
 
-function Tile(props: { label: string; value: string; detail?: string; onRemove?: () => void }) {
+function Tile(props: { label: string; value: string; detail?: string; tone?: "pos" | "neg"; onRemove?: () => void }) {
   return (
     <div class="tile card">
       <div class="tile-label">
@@ -151,7 +155,7 @@ function Tile(props: { label: string; value: string; detail?: string; onRemove?:
           <button type="button" class="unpin" aria-label={`Unpin ${props.label}`} onClick={props.onRemove}>×</button>
         )}
       </div>
-      <div class="tile-value">{props.value}</div>
+      <div class={`tile-value ${props.tone ?? ""}`}>{props.value}</div>
       {props.detail && <div class="tile-detail">{props.detail}</div>}
     </div>
   );

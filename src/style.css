@@ -582,6 +582,10 @@ tr.row-transfer td {
   color: var(--expense);
 }
 
+.tile-value.pos {
+  color: var(--earning);
+}
+
 .tiles {
   display: grid;
   grid-template-columns: repeat(auto-fill, minmax(220px, 1fr));

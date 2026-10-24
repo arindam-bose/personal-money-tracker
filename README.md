@@ -25,8 +25,8 @@ computers, import that file to get everything back.
 
 ## What's in it
 
-- **Dashboard**: the month or year at a glance: earned, spent, what's left,
-  savings and investment rates, spending and earnings by category, budgets,
+- **Dashboard**: the month or year at a glance: what you have after card debt,
+  earned, spent, surplus, savings, investment and card payments, spending and earnings by category, budgets,
   account balances and how much of your card limits you're using.
 - **Ledger**: every expense, earning and transfer in one list, with filters and
   quick keyboard entry. Transfers (paying a card, moving money to savings) are
