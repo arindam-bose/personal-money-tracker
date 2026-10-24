@@ -1,5 +1,6 @@
 // Dashboard: the month (or year so far) at a glance. Mostly figures and simple bars;
-// the charts live on the Reports page.
+// the charts live on the Reports page. With more than one person, it can show one
+// person's figures; balances and budgets are the household's, so those stay in "All people".
 
 import { useSignal, useSignalEffect } from "@preact/signals";
 import {
@@ -11,6 +12,7 @@ import type { Ledger } from "../derive";
 import type { Account } from "../types";
 import { BudgetBar } from "./budget";
 import { showInLedger } from "./ledger";
+import { MemberPicker, viewedLedger, viewedMember } from "./people";
 
 const MONTHS = ["January", "February", "March", "April", "May", "June", "July",
   "August", "September", "October", "November", "December"];
@@ -42,8 +44,10 @@ export function DashboardView() {
 
   const month = period.value ? Number(period.value) : undefined;
   const data = current.value;
-  const l = ledger.value;
-  if (!data || !l) {
+  const all = ledger.value;
+  const l = viewedLedger();
+  const member = viewedMember();
+  if (!data || !all || !l) {
     return (
       <section class="panel">
         <h2>Dashboard</h2>
@@ -55,12 +59,34 @@ export function DashboardView() {
   const { setup } = data;
   const sum = summarize(l, month);
   const cats = spendByCategory(l, month);
-  const accounts = accountsOverview(l, month ? monthEnd(setup.year, month) : undefined);
-  const lastMonth = Math.max(0, ...[...l.expenses, ...l.earnings, ...l.transfers].map((e) => Number(e.date.slice(5, 7))));
+  // Balances come from every entry: accounts are shared.
+  const accounts = accountsOverview(all, month ? monthEnd(setup.year, month) : undefined);
+  const lastMonth = Math.max(0, ...[...all.expenses, ...all.earnings, ...all.transfers].map((e) => Number(e.date.slice(5, 7))));
   // A past year is complete; only the current one is "so far".
   const pastYear = setup.closed || setup.year < new Date().getFullYear();
   const periodName = month ? `${MONTHS[month - 1]} ${setup.year}` : pastYear ? `${setup.year}` : `${setup.year} so far`;
   const asOf = month ? `End of ${MONTHS[month - 1]}` : pastYear ? `End of ${setup.year}` : "Today";
+  // Clicking a category opens the ledger with the same period and person.
+  const inLedger = { month: period.value, member: member?.id ?? "" };
+
+  const earningsCard = (
+    <section class="card">
+      <h3>Earnings by category</h3>
+      <p class="muted small">{periodName}, including refunds, points and money paid back. Click a category to see its entries.</p>
+      <CategoryBars tone="earning" amounts={earningsByCategory(l, month)}
+        names={new Map(setup.categories.earning.map((c) => [c.id, c.name]))} empty="No earnings in this period."
+        onPick={(cat) => showInLedger({ ...inLedger, cat, kind: "earning" })} />
+    </section>
+  );
+  const spendingCard = (
+    <section class="card">
+      <h3>Spending by category</h3>
+      <p class="muted small">{periodName}. Click a category to see its entries.</p>
+      <CategoryBars tone="expense" amounts={new Map([...cats].map(([id, c]) => [id, c.gross]))}
+        names={new Map(setup.categories.expense.map((c) => [c.id, c.name]))} empty="No spending in this period."
+        onPick={(cat) => showInLedger({ ...inLedger, cat, kind: "expense" })} />
+    </section>
+  );
 
   return (
     <div class="dashboard">
@@ -69,15 +95,22 @@ export function DashboardView() {
           <option value="">{pastYear ? "Whole year" : "Year to date"}</option>
           {MONTHS.slice(0, Math.max(lastMonth, month ?? 0)).map((m, i) => <option value={String(i + 1)}>{m}</option>)}
         </select>
+        <MemberPicker />
       </div>
 
-      <section class="hero card">
-        <div class="tile-label">Net tangible assets · {asOf}</div>
-        <div class={`hero-value ${accounts.netTangibleAssets < 0 ? "neg" : ""}`}>{formatCents(accounts.netTangibleAssets)}</div>
-        <div class="muted">
-          Available cash {formatCents(accounts.availableCash)} − card debt {formatCents(accounts.cardDebt)}
-        </div>
-      </section>
+      {member ? (
+        <p class="muted member-note">
+          {member.name}’s entries only. Account balances and budgets are shared, so they’re under All people.
+        </p>
+      ) : (
+        <section class="hero card">
+          <div class="tile-label">Net tangible assets · {asOf}</div>
+          <div class={`hero-value ${accounts.netTangibleAssets < 0 ? "neg" : ""}`}>{formatCents(accounts.netTangibleAssets)}</div>
+          <div class="muted">
+            Available cash {formatCents(accounts.availableCash)} − card debt {formatCents(accounts.cardDebt)}
+          </div>
+        </section>
+      )}
 
       <div class="tiles">
         <Tile label="Earned" value={formatCents(sum.earned)}
@@ -106,34 +139,27 @@ export function DashboardView() {
         <PinTag />
       </div>
 
-      <div class="columns">
-        <div class="stack">
-        <section class="card">
-          <h3>Earnings by category</h3>
-          <p class="muted small">{periodName}, including refunds, points and money paid back. Click a category to see its entries.</p>
-          <CategoryBars tone="earning" amounts={earningsByCategory(l, month)}
-            names={new Map(setup.categories.earning.map((c) => [c.id, c.name]))} empty="No earnings in this period."
-            onPick={(cat) => showInLedger({ cat, kind: "earning", month: period.value })} />
-        </section>
-
-        <section class="card">
-          <h3>Spending by category</h3>
-          <p class="muted small">{periodName}. Click a category to see its entries.</p>
-          <CategoryBars tone="expense" amounts={new Map([...cats].map(([id, c]) => [id, c.gross]))}
-            names={new Map(setup.categories.expense.map((c) => [c.id, c.name]))} empty="No spending in this period."
-            onPick={(cat) => showInLedger({ cat, kind: "expense", month: period.value })} />
-        </section>
-
-        <BudgetCard month={month} lastMonth={Math.max(1, lastMonth)} />
+      {member ? (
+        <div class="columns">
+          {earningsCard}
+          {spendingCard}
         </div>
+      ) : (
+        <div class="columns">
+          <div class="stack">
+            {earningsCard}
+            {spendingCard}
+            <BudgetCard month={month} lastMonth={Math.max(1, lastMonth)} />
+          </div>
 
-        <section class="card">
-          <h3>Accounts</h3>
-          <p class="muted small">{asOf}</p>
-          <AccountsTable overview={accounts} accounts={setup.accounts} />
-          <RetirementRoom left={remainingRetirement(l, iraLimit.value)} limit={iraLimit.value} />
-        </section>
-      </div>
+          <section class="card">
+            <h3>Accounts</h3>
+            <p class="muted small">{asOf}</p>
+            <AccountsTable overview={accounts} accounts={setup.accounts} />
+            <RetirementRoom left={remainingRetirement(all, iraLimit.value)} limit={iraLimit.value} />
+          </section>
+        </div>
+      )}
     </div>
   );
 }

@@ -3,7 +3,7 @@
 
 import { describe, expect, it } from "vitest";
 import {
-  accountsOverview, balanceSeries, budgetTarget, countsInNetEarnings, earningsByCategory, monthsBefore, budgetView, monthProgress, balances, moneyFlow, monthlySummaries, remainingRetirement, spendingOffsetCategories,
+  accountsOverview, balanceSeries, budgetTarget, countsInNetEarnings, earningsByCategory, forMember, monthsBefore, budgetView, monthProgress, balances, moneyFlow, monthlySummaries, remainingRetirement, spendingOffsetCategories,
   spendByCategory, spendingByMonth, summarize, tagTotal, weeklySpending, weeksOf, type MoneyFlow, type Summary,
 } from "../src/derive";
 import { sample } from "./helpers";
@@ -311,5 +311,31 @@ describe("monthsBefore", () => {
     ["2024-03-30", 1, "2024-02-29"], // leap year
   ])("%s minus %i months is %s", (date, n, want) => {
     expect(monthsBefore(date, n)).toBe(want);
+  });
+});
+
+describe("forMember", () => {
+  // Riya logged the grocery run and the card payment; everything else is the default person's.
+  const l = sample();
+  l.expenses = l.expenses.map((e) => (e.id === "e0002" ? { ...e, member: "m_riya" } : e));
+  l.transfers = l.transfers.map((t) => (t.id === "x0001" ? { ...t, member: "m_riya" } : t));
+  const riya = forMember(l, "m_riya", "m_person-a");
+  const a = forMember(l, "m_person-a", "m_person-a");
+
+  it("keeps only that person's entries, and every account", () => {
+    expect(riya.expenses.map((e) => e.id)).toEqual(["e0002"]);
+    expect(riya.transfers.map((t) => t.id)).toEqual(["x0001"]);
+    expect(riya.earnings).toEqual([]);
+    expect(riya.accounts).toBe(l.accounts);
+    expect(a.expenses).toHaveLength(l.expenses.length - 1);
+  });
+
+  it("everyone's figures add up to the household's", () => {
+    const all = summarize(l), sa = summarize(a), sr = summarize(riya);
+    for (const key of ["earned", "spent", "offsets", "netSpent", "netEarnings", "ccPayments", "netSavings", "investment"] as const) {
+      expect(sa[key] + sr[key], key).toBe(all[key]);
+    }
+    expect(sr.spent).toBe(8550);
+    expect(sr.ccPayments).toBe(20000);
   });
 });

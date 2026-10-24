@@ -94,6 +94,23 @@ of the headline figures: the earning one is `income` with `net: false`, and the
 transfer one is `general`. A new year starts with it, and an open year that
 doesn't have it gets it when it's opened.
 
+### Members (a household)
+
+`members` on the year lists the household; left out, it's one default member,
+"Person A" (`membersOf` in `setup.ts`). The first member is the default: an entry
+carries `member` only when it belongs to someone else, so a one-person year looks
+exactly as before. Deleting a member drops `member` from their entries, which
+gives them back to the default; the default can't be deleted.
+
+A member's dashboard and reports use `forMember` (`derive.ts`): the ledger with
+only their entries and every account. So their earned, spent, net figures,
+savings and investing add up across members to the household's. Balances (net
+tangible assets, the Accounts card, Balances over time) and budgets are the
+household's and only show under "All people". The picker (`views/people.tsx`)
+and the Ledger's person filter appear once there are two members.
+
+Not to be confused with the **people** of earlier versions, below.
+
 ### No people
 
 Earlier versions tracked people: an expense could carry the share someone owed

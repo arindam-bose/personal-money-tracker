@@ -31,6 +31,15 @@ function rolesOf(ledger: Ledger): Roles {
   };
 }
 
+/**
+ * The ledger with only one member's entries, for their own dashboard and reports.
+ * Accounts and categories stay whole: accounts are shared by the household.
+ */
+export function forMember(ledger: Ledger, member: string, defaultMember: string): Ledger {
+  const mine = <T extends { member?: string }>(list: T[]) => list.filter((e) => (e.member ?? defaultMember) === member);
+  return { ...ledger, expenses: mine(ledger.expenses), earnings: mine(ledger.earnings), transfers: mine(ledger.transfers) };
+}
+
 /** True if a "YYYY-MM-DD" date falls in the month (or always, for the whole year). */
 export function inMonth(date: IsoDate, month: Month): boolean {
   return month === undefined || Number(date.slice(5, 7)) === month;

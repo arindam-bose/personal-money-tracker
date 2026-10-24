@@ -1,6 +1,6 @@
 import { describe, expect, it } from "vitest";
 import {
-  SetupError, blankSetup, withoutPeople, deleteAccount, duplicateAccount, deleteCategory, deleteTag, saveAccount, saveCategory,
+  DEFAULT_MEMBER, SetupError, blankSetup, deleteMember, memberUses, membersOf, saveMember, withoutPeople, deleteAccount, duplicateAccount, deleteCategory, deleteTag, saveAccount, saveCategory,
   saveTag, uncategorizedId, usageOf, withUncategorized,
 } from "../src/setup";
 import type { YearSetup } from "../src/types";
@@ -178,5 +178,36 @@ describe("blankSetup", () => {
     expect(s.categories.transfer).toHaveLength(8); // the 7 standard ones + Uncategorized
     expect(["expense", "earning", "transfer"].map((k) => uncategorizedId(s, k as "expense"))).toEqual(["ce_uncategorized", "ci_uncategorized", "ct_uncategorized"]);
     expect(s.categories.earning.find((c) => c.name === "Other")!.net).toBe(false);
+  });
+});
+
+describe("members", () => {
+  it("starts with Person A, who owns every entry", () => {
+    expect(membersOf(setup)).toEqual([DEFAULT_MEMBER]);
+    expect(memberUses(setup, usage, DEFAULT_MEMBER.id)).toBe(file.expenses.length + file.earnings.length + file.transfers.length);
+  });
+
+  it("adds and renames people; names stay unique", () => {
+    let s = saveMember(setup, { id: "", name: "Riya" });
+    expect(s.members).toEqual([DEFAULT_MEMBER, { id: "m_riya", name: "Riya" }]);
+    s = saveMember(s, { id: DEFAULT_MEMBER.id, name: "Arin" });
+    expect(membersOf(s).map((m) => m.name)).toEqual(["Arin", "Riya"]);
+    expect(() => saveMember(s, { id: "", name: "riya" })).toThrow("already");
+  });
+
+  it("deleting someone gives their entries back to the default person", () => {
+    const withRiya = saveMember(setup, { id: "", name: "Riya" });
+    const data = {
+      setup: withRiya,
+      expenses: file.expenses.map((e) => (e.id === "e0002" ? { ...e, member: "m_riya" } : e)),
+      earnings: file.earnings,
+      transfers: file.transfers.map((t) => (t.id === "x0001" ? { ...t, member: "m_riya" } : t)),
+    };
+    expect(memberUses(withRiya, usageOf(data), "m_riya")).toBe(2);
+    const r = deleteMember(data, "m_riya");
+    expect(r.setup.members).toEqual([DEFAULT_MEMBER]);
+    expect(r.expenses).toEqual([file.expenses.find((e) => e.id === "e0002")]);
+    expect(r.transfers).toEqual([file.transfers.find((t) => t.id === "x0001")]);
+    expect(() => deleteMember(data, DEFAULT_MEMBER.id)).toThrow("can't be deleted");
   });
 });

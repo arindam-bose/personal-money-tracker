@@ -23,6 +23,8 @@ describe("nextYearSetup", () => {
   it("carries setup and usual budgets, not one-month overrides", () => {
     expect(next.categories).toEqual(file.categories);
     expect(next.tags).toEqual(file.tags);
+    const members = [{ id: "m_person-a", name: "Person A" }, { id: "m_riya", name: "Riya" }];
+    expect(nextYearSetup({ ...setup, members }, file).members).toEqual(members);
     expect(next.budgets).toEqual({ default: { ce_food: 40000, ce_rent: 150000 } });
   });
 });

@@ -39,6 +39,8 @@ export interface Draft {
   tags: string[];
   /** Earning with an offset role: expense category it reduces, "" for total spending. */
   offsets: string;
+  /** Member id; "" for the default (first) member. */
+  member: string;
 }
 
 export type DraftField = keyof Draft;
@@ -48,7 +50,7 @@ export function emptyDraft(kind: Kind, date: string): Draft {
   return {
     kind, date, item: "", amount: "", notes: "",
     account: "", from: "", to: "", cat: "", tags: [],
-    offsets: "",
+    offsets: "", member: "",
   };
 }
 
@@ -59,7 +61,10 @@ function amountText(cents: number): string {
 
 /** Fill a draft from an existing entry, for editing. */
 export function draftFrom(e: AnyEntry): Draft {
-  const base = { ...emptyDraft(e.kind, e.entry.date), id: e.entry.id, item: e.entry.item, amount: amountText(e.entry.amount), notes: e.entry.notes, cat: e.entry.cat };
+  const base = {
+    ...emptyDraft(e.kind, e.entry.date), id: e.entry.id, item: e.entry.item, amount: amountText(e.entry.amount),
+    notes: e.entry.notes, cat: e.entry.cat, member: e.entry.member ?? "",
+  };
   switch (e.kind) {
     case "expense":
       return { ...base, account: e.entry.account, tags: [...e.entry.tags] };
@@ -103,6 +108,10 @@ export function checkDraft(draft: Draft, setup: YearSetup, id: string): CheckRes
   // Keys in the same order as the importer writes them, so backup files diff cleanly.
   const head = { id: draft.id ?? id, date: draft.date, item, amount: amount ?? 0 };
   const notes = draft.notes.trim();
+  // Only someone other than the default (first) member is written down.
+  const members = setup.members ?? [];
+  if (draft.member && !members.some((m) => m.id === draft.member)) errors.member = "Pick someone from the list.";
+  const owner = draft.member && draft.member !== members[0]?.id ? { member: draft.member } : {};
 
   if (draft.kind === "transfer") {
     if (!usable(draft.from)) errors.from = "Pick the account the money left.";
@@ -110,7 +119,7 @@ export function checkDraft(draft: Draft, setup: YearSetup, id: string): CheckRes
     else if (draft.from === draft.to) errors.to = "Pick a different account from the one it left.";
     return Object.keys(errors).length
       ? { ok: false, errors }
-      : { ok: true, entry: { kind: "transfer", entry: { ...head, from: draft.from, to: draft.to, cat: draft.cat, notes } } };
+      : { ok: true, entry: { kind: "transfer", entry: { ...head, from: draft.from, to: draft.to, cat: draft.cat, notes, ...owner } } };
   }
 
   if (!usable(draft.account)) errors.account = "Pick an account.";
@@ -119,7 +128,7 @@ export function checkDraft(draft: Draft, setup: YearSetup, id: string): CheckRes
     const tagIds = new Set(setup.tags.map((t) => t.id));
     if (draft.tags.some((t) => !tagIds.has(t))) errors.tags = "One of the tags no longer exists.";
     if (Object.keys(errors).length) return { ok: false, errors };
-    const entry: Expense = { ...head, account: draft.account, cat: draft.cat, tags: [...new Set(draft.tags)], notes };
+    const entry: Expense = { ...head, account: draft.account, cat: draft.cat, tags: [...new Set(draft.tags)], notes, ...owner };
     return { ok: true, entry: { kind: "expense", entry } };
   }
 
@@ -129,6 +138,7 @@ export function checkDraft(draft: Draft, setup: YearSetup, id: string): CheckRes
     if (draft.offsets && !setup.categories.expense.some((c) => c.id === draft.offsets)) errors.offsets = "Pick a spending category.";
     entry.offsets = draft.offsets || null;
   }
+  Object.assign(entry, owner);
   return Object.keys(errors).length ? { ok: false, errors } : { ok: true, entry: { kind: "earning", entry } };
 }
 

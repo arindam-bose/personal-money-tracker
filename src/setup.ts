@@ -5,25 +5,30 @@
 import type { YearData } from "./db";
 import { newId, slug } from "./entries";
 import type {
-  Account, Categories, Category, Earning, EarningRole, Expense, ExpenseRole, Tag, Transfer, TransferRole, YearSetup,
+  Account, Categories, Category, Earning, EarningRole, Expense, ExpenseRole, Member, Tag, Transfer, TransferRole, YearSetup,
 } from "./types";
 
 export class SetupError extends Error {}
 
 export type CategoryKind = "expense" | "earning" | "transfer";
 
-/** How many entries use each account, category and tag. Used to block unsafe deletes. */
+/** How many entries use each account, category, tag and member. Used to block unsafe deletes. */
 export interface Usage {
   accounts: Map<string, number>;
   categories: Map<string, number>;
   tags: Map<string, number>;
+  /** By member id; entries of the default member (no `member` set) count under "". */
+  members: Map<string, number>;
 }
 
 export function usageOf(data: Pick<YearData, "expenses" | "earnings" | "transfers">): Usage {
-  const u: Usage = { accounts: new Map(), categories: new Map(), tags: new Map() };
+  const u: Usage = { accounts: new Map(), categories: new Map(), tags: new Map(), members: new Map() };
   const add = (m: Map<string, number>, id: string | null | undefined) => {
     if (id) m.set(id, (m.get(id) ?? 0) + 1);
   };
+  for (const e of [...data.expenses, ...data.earnings, ...data.transfers]) {
+    u.members.set(e.member ?? "", (u.members.get(e.member ?? "") ?? 0) + 1);
+  }
   for (const e of data.expenses) {
     add(u.accounts, e.account);
     add(u.categories, e.cat);
@@ -215,6 +220,49 @@ export function deleteTag(
   return {
     setup: { ...data.setup, tags: data.setup.tags.filter((t) => t.id !== id) },
     expenses: data.expenses.filter((e) => e.tags.includes(id)).map((e) => ({ ...e, tags: e.tags.filter((t) => t !== id) })),
+  };
+}
+
+// --- Members (the household) ---
+
+/** Everyone starts as this one member. */
+export const DEFAULT_MEMBER: Member = { id: "m_person-a", name: "Person A" };
+
+/** The household, never empty. The first member is the default: entries without `member` are theirs. */
+export function membersOf(setup: Pick<YearSetup, "members">): Member[] {
+  return setup.members?.length ? setup.members : [DEFAULT_MEMBER];
+}
+
+/** How many entries a member has. */
+export function memberUses(setup: Pick<YearSetup, "members">, usage: Usage, id: string): number {
+  return (usage.members.get(id) ?? 0) + (id === membersOf(setup)[0]!.id ? usage.members.get("") ?? 0 : 0);
+}
+
+/** Add or rename a member. Pass id "" to add one. */
+export function saveMember(setup: YearSetup, member: Member): YearSetup {
+  const members = membersOf(setup);
+  const name = cleanName(member.name, "person");
+  const id = member.id || idFor("m", name, new Set(members.map((m) => m.id)));
+  assertUniqueName(members, name, id, "person");
+  return { ...setup, members: upsert(members, { id, name }) };
+}
+
+/**
+ * Remove a member; their entries go back to the default (first) member. The default can't
+ * be removed. Returns the new setup and the entries that changed.
+ */
+export function deleteMember(
+  data: { setup: YearSetup; expenses: Expense[]; earnings: Earning[]; transfers: Transfer[] }, id: string,
+): { setup: YearSetup; expenses: Expense[]; earnings: Earning[]; transfers: Transfer[] } {
+  const members = membersOf(data.setup);
+  if (members[0]!.id === id) throw new SetupError(`${members[0]!.name} is the default person and can't be deleted. Rename them instead.`);
+  const back = <T extends { member?: string }>(list: T[]) =>
+    list.filter((e) => e.member === id).map(({ member: _m, ...e }) => e as T);
+  return {
+    setup: { ...data.setup, members: members.filter((m) => m.id !== id) },
+    expenses: back(data.expenses),
+    earnings: back(data.earnings),
+    transfers: back(data.transfers),
   };
 }
 

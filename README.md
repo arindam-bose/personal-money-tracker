@@ -39,6 +39,10 @@ computers, import that file to get everything back.
   money paid back) lowers net spending instead.
   Deleting a category moves its entries to **Uncategorized**; deleting a tag takes
   it off its expenses.
+- **A household**: everything belongs to **Person A** until you add someone on
+  the Accounts page. Then each entry can be logged for one person, and the
+  Dashboard, Ledger and Reports can show **All people** or one person at a time.
+  Accounts and budgets stay shared by everyone.
   **Duplicate** an account to start a similar one (the copy is named "…_new").
 - **Data**: import, back up, and close a finished year. Closing a year starts the
   next one from its closing balances.

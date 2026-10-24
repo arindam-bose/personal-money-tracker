@@ -51,6 +51,14 @@ describe("validateYearFile", () => {
     expect(errorsAfter((f) => (f.categories.expense[0].net = false))).toHaveLength(1);
   });
 
+  it("checks members and who entries belong to", () => {
+    const members = [{ id: "m_person-a", name: "Person A" }, { id: "m_riya", name: "Riya" }];
+    expect(errorsAfter((f) => { f.members = members; f.expenses[0].member = "m_riya"; })).toEqual([]);
+    expect(errorsAfter((f) => { f.members = members; f.earnings[0].member = "m_gone"; }))
+      .toEqual(['Earning "i0001" belongs to unknown member "m_gone".']);
+    expect(errorsAfter((f) => (f.transfers[0].member = "m_riya"))).toHaveLength(1); // no members listed
+  });
+
   it("catches duplicate ids", () => {
     expect(errorsAfter((f) => (f.expenses[1].id = "e0001"))).toEqual(['Expense id "e0001" is used twice.']);
   });

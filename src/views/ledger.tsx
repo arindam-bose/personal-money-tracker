@@ -6,6 +6,7 @@ import { useEffect, useRef } from "preact/hooks";
 import { inMonth, monthsBefore } from "../derive";
 import { draftFrom, emptyDraft, type AnyEntry, type Draft, type Kind } from "../entries";
 import { formatCents } from "../money";
+import { membersOf } from "../setup";
 import { current, duplicate, readOnly } from "../state";
 import { EntryForm } from "./entry-form";
 
@@ -19,11 +20,13 @@ export interface Filters {
   account: string;
   cat: string;
   tag: string;
+  /** Member id, or "" for everyone. */
+  member: string;
   /** Text search in item and notes. */
   q: string;
 }
 
-const NO_FILTERS: Filters = { month: "", from: "", to: "", kind: "", account: "", cat: "", tag: "", q: "" };
+const NO_FILTERS: Filters = { month: "", from: "", to: "", kind: "", account: "", cat: "", tag: "", member: "", q: "" };
 const FILTERS_KEY = "ledger-filters";
 const SORT_KEY = "ledger-sort";
 const MONTH_NAMES = ["January", "February", "March", "April", "May", "June", "July",
@@ -97,7 +100,8 @@ function dateWindow(f: Filters, today: string): [string, string] | null {
   return null;
 }
 
-function matches(e: AnyEntry, f: Filters, today: string): boolean {
+function matches(e: AnyEntry, f: Filters, today: string, defaultMember: string): boolean {
+  if (f.member && (e.entry.member ?? defaultMember) !== f.member) return false;
   const date = e.entry.date;
   const window = dateWindow(f, today);
   if (window) {
@@ -158,7 +162,8 @@ export function LedgerView() {
 
   const rows = useComputed(() => {
     const today = localToday();
-    const out = allEntries().filter((e) => matches(e, filters.value, today));
+    const defaultMember = membersOf(current.value?.setup ?? {})[0]!.id;
+    const out = allEntries().filter((e) => matches(e, filters.value, today, defaultMember));
     return oldestFirst.value ? out.reverse() : out;
   });
   const totals = useComputed(() => {
@@ -233,6 +238,10 @@ export function LedgerView() {
     [...setup.categories.expense, ...setup.categories.earning, ...setup.categories.transfer].map((c) => [c.id, c.name]),
   );
   const tagName = new Map(setup.tags.map((t) => [t.id, t.name]));
+  const members = membersOf(setup);
+  // The person filter and column appear once there's more than one person.
+  const household = members.length > 1;
+  const memberName = (id: string | undefined) => members.find((m) => m.id === (id ?? members[0]!.id))?.name ?? "?";
   const f = filters.value;
   const setFilter = <K extends keyof Filters>(key: K, value: Filters[K]) => (filters.value = { ...filters.value, [key]: value });
   const filtered = Object.entries(f).some(([k, v]) => v !== NO_FILTERS[k as keyof Filters]);
@@ -301,6 +310,12 @@ export function LedgerView() {
           <option value="">All tags</option>
           {setup.tags.map((t) => <option value={t.id}>{t.name}</option>)}
         </select>
+        {household && (
+          <select value={f.member} onChange={(e) => setFilter("member", e.currentTarget.value)} aria-label="Person">
+            <option value="">All people</option>
+            {members.map((m) => <option value={m.id}>{m.name}</option>)}
+          </select>
+        )}
         <select value={oldestFirst.value ? "oldest" : "newest"} aria-label="Sort"
           onChange={(e) => (oldestFirst.value = e.currentTarget.value === "oldest")}>
           <option value="newest">Newest first</option>
@@ -324,6 +339,7 @@ export function LedgerView() {
             <th>Item</th>
             <th class="c-cat">Category</th>
             <th class="c-account">Account</th>
+            {household && <th class="c-person">Person</th>}
             <th class="c-tags">Tags</th>
             <th class="num c-amount">Amount</th>
           </tr>
@@ -362,6 +378,7 @@ export function LedgerView() {
                   ? `${accountName.get(e.entry.from) ?? "?"} → ${accountName.get(e.entry.to) ?? "?"}`
                   : accountName.get(e.entry.account) ?? "?"}
               </td>
+              {household && <td class="c-person">{memberName(e.entry.member)}</td>}
               <td class="c-tags">
                 {e.kind === "expense" && e.entry.tags.map((t) => <span class="chip">{tagName.get(t) ?? t}</span>)}
               </td>

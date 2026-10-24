@@ -52,6 +52,12 @@ export interface Tag {
   name: string;
 }
 
+/** Someone in the household whose entries can be shown on their own. Accounts stay shared. */
+export interface Member {
+  id: string;
+  name: string;
+}
+
 export interface Expense {
   id: string;
   date: IsoDate;
@@ -64,6 +70,8 @@ export interface Expense {
   /** Tag ids. */
   tags: string[];
   notes: string;
+  /** Member id, set only for someone other than the first (default) member. */
+  member?: string;
 }
 
 export interface Earning {
@@ -78,6 +86,8 @@ export interface Earning {
   notes: string;
   /** For role "offset": the expense category it reduces, or null for total spending only. */
   offsets?: string | null;
+  /** Member id, set only for someone other than the first (default) member. */
+  member?: string;
 }
 
 export interface Transfer {
@@ -92,6 +102,8 @@ export interface Transfer {
   /** Transfer category id. */
   cat: string;
   notes: string;
+  /** Member id, set only for someone other than the first (default) member. */
+  member?: string;
 }
 
 export interface Categories {
@@ -112,6 +124,8 @@ export interface YearFile {
   accounts: Account[];
   categories: Categories;
   tags: Tag[];
+  /** The household. Left out or empty means one default member, "Person A". */
+  members?: Member[];
   expenses: Expense[];
   earnings: Earning[];
   transfers: Transfer[];
@@ -119,7 +133,7 @@ export interface YearFile {
 }
 
 /** The parts of a YearFile that are set up once, not entered day to day. */
-export type YearSetup = Pick<YearFile, "year" | "accounts" | "categories" | "tags" | "budgets"> & {
+export type YearSetup = Pick<YearFile, "year" | "accounts" | "categories" | "tags" | "members" | "budgets"> & {
   /** Set by "Close year"; a closed year is read-only. */
   closed?: boolean;
   /** When this year was last exported to JSON (ISO timestamp), for the backup reminder. */

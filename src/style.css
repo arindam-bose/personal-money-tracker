@@ -333,6 +333,7 @@ table.entries tbody tr:hover {
 .c-cat { width: 180px; }
 .c-account { width: 320px; }
 .c-tags { width: 200px; }
+.c-person { width: 110px; }
 .c-amount { width: 120px; }
 .c-act { width: 36px; padding-left: 6px !important; padding-right: 0 !important; }
 
@@ -562,6 +563,10 @@ tr.row-transfer td {
 
 .hero {
   margin-bottom: 16px;
+}
+
+.member-note {
+  margin: 0 0 16px;
 }
 
 .tile-label {

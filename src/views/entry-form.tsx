@@ -8,6 +8,7 @@ import {
   checkDraft, earningRole, suggestTransferCategory,
   type AnyEntry, type Draft, type DraftErrors, type DraftField, type Kind,
 } from "../entries";
+import { membersOf } from "../setup";
 import { current, ensureTag, nextEntryId, removeEntry, saveEntry } from "../state";
 import type { Account, YearSetup } from "../types";
 
@@ -21,6 +22,7 @@ interface Props {
 
 export function EntryForm({ initial, onClose }: Props) {
   const setup = current.value!.setup;
+  const members = membersOf(setup);
   const draft = useSignal<Draft>(initial);
   const errors = useSignal<DraftErrors>({});
   const tried = useSignal(false); // show errors only after the first save attempt
@@ -151,6 +153,16 @@ export function EntryForm({ initial, onClose }: Props) {
             {setup.categories[d.kind].map((c) => <option value={c.id}>{c.name}</option>)}
           </select>
         </Field>
+
+        {members.length > 1 && (
+          <Field label="Person" error={err.member} class="w-account">
+            {/* The first person is the default and is stored as "". */}
+            <select value={d.member || members[0]!.id}
+              onChange={(e) => set("member", e.currentTarget.value === members[0]!.id ? "" : e.currentTarget.value)}>
+              {members.map((m) => <option value={m.id}>{m.name}</option>)}
+            </select>
+          </Field>
+        )}
       </div>
 
       {d.kind === "expense" && (

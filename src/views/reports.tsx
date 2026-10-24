@@ -1,5 +1,6 @@
 // Reports: charts for the whole year. Loaded on demand, so ECharts doesn't slow down
 // the rest of the app. Every chart has a table with the same numbers under it.
+// With more than one person, they can show one person's entries; balances stay in "All people".
 
 import type { ComponentChildren } from "preact";
 import {
@@ -7,9 +8,11 @@ import {
   type FlowGroup, type Ledger,
 } from "../derive";
 import { formatCents, formatCompact } from "../money";
+import { membersOf } from "../setup";
 import { current, ledger } from "../state";
 import { Chart, axisStyle, baseOption, seriesColors, token, type ChartOption } from "./chart";
 import { showInLedger } from "./ledger";
+import { MemberPicker, viewedLedger, viewedMember } from "./people";
 
 const MONTHS = ["Jan", "Feb", "Mar", "Apr", "May", "Jun", "Jul", "Aug", "Sep", "Oct", "Nov", "Dec"];
 
@@ -25,9 +28,11 @@ function shortDate(iso: string): string {
 const money = (v: unknown) => formatCents(Number(v));
 
 export function ReportsView() {
-  const l = ledger.value;
+  const all = ledger.value;
+  const l = viewedLedger();
+  const member = viewedMember();
   const data = current.value;
-  if (!l || !data) {
+  if (!all || !l || !data) {
     return (
       <section class="panel">
         <h2>Reports</h2>
@@ -36,18 +41,21 @@ export function ReportsView() {
     );
   }
   const year = data.setup.year;
-  const dates = [...l.expenses, ...l.earnings, ...l.transfers].map((e) => e.date);
+  // The same months and weeks for everyone, so one person's charts line up with the household's.
+  const dates = [...all.expenses, ...all.earnings, ...all.transfers].map((e) => e.date);
   const lastDate = dates.reduce((a, b) => (a > b ? a : b), `${year}-01-01`);
   // Only show months that have happened (all twelve once a year is closed).
   const months = data.setup.closed ? 12 : Number(lastDate.slice(5, 7));
 
   return (
     <div class="reports">
+      {membersOf(data.setup).length > 1 && <div class="filters"><MemberPicker /></div>}
+      {member && <p class="muted member-note">{member.name}’s entries only. Account balances are shared, so they’re under All people.</p>}
       <MoneyFlowCard ledger={l} year={year} />
       <CashFlowCard ledger={l} months={months} />
       <CategoryCard ledger={l} months={months} />
       <WeeklyCard ledger={l} year={year} lastDate={lastDate} />
-      <BalancesCard ledger={l} year={year} lastDate={lastDate} />
+      {!member && <BalancesCard ledger={l} year={year} lastDate={lastDate} />}
     </div>
   );
 }
@@ -244,7 +252,7 @@ function CategoryCard({ ledger: l, months }: { ledger: Ledger; months: number })
                   const a = v / max;
                   return (
                     <td class="num cell" style={{ background: v ? `rgba(${heat}, ${0.08 + a * 0.82})` : undefined, color: a > 0.5 ? "#fff" : undefined }}
-                      onClick={() => v && showInLedger({ cat: id, kind: "expense", month: String(m + 1) })}
+                      onClick={() => v && showInLedger({ cat: id, kind: "expense", month: String(m + 1), member: viewedMember()?.id ?? "" })}
                       title={v ? `${names.get(id)}, ${MONTHS[m]}: ${formatCents(v)}` : undefined}>
                       {v ? formatCompact(v) : ""}
                     </td>

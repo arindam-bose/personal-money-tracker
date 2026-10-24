@@ -74,6 +74,7 @@ export function validateYearFile(raw: unknown): ValidationResult {
   for (const key of ["accounts", "tags", "expenses", "earnings", "transfers"]) {
     if (!Array.isArray(data[key])) err(`"${key}" must be a list.`);
   }
+  if (data.members !== undefined && !Array.isArray(data.members)) err(`"members" must be a list.`);
   if (!isObj(data.categories)) err(`"categories" is missing.`);
   if (!isObj(data.budgets) || !isObj(data.budgets.default)) err(`"budgets.default" is missing.`);
   if (errors.length) return { ok: false, errors };
@@ -105,6 +106,7 @@ export function validateYearFile(raw: unknown): ValidationResult {
   const earningCats = ids(cats.earning as unknown[], "Earning category", true);
   const transferCats = ids(cats.transfer as unknown[], "Transfer category", true);
   const tagIds = ids(data.tags as unknown[], "Tag", true);
+  const memberIds = ids((data.members ?? []) as unknown[], "Member", true);
 
   for (const a of accounts.filter(isObj)) {
     if (!ACCOUNT_TYPES.includes(a.type as AccountType)) err(`Account "${a.id}" has unknown type "${String(a.type)}".`);
@@ -140,6 +142,7 @@ export function validateYearFile(raw: unknown): ValidationResult {
     if (!isCents(r.amount)) err(`${label} "${r.id}" amount is not whole cents.`);
     else if (r.amount < 0) err(`${label} "${r.id}" amount is negative (${r.amount / 100}). Record refunds as an earning that lowers spending.`);
     if (typeof r.notes !== "string") err(`${label} "${r.id}" notes must be text.`);
+    if (r.member !== undefined && !memberIds.has(r.member as string)) err(`${label} "${r.id}" belongs to unknown member "${String(r.member)}".`);
   }
 
   const expenses = data.expenses as unknown[];

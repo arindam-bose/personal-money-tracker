@@ -1,4 +1,4 @@
-// Accounts: set up the year's accounts, categories and tags (brief §8, view 5).
+// Accounts: set up the year's accounts, categories, tags and people (brief §8, view 5).
 // Everything is referenced by id, so renaming here never breaks an entry.
 
 import { useSignal } from "@preact/signals";
@@ -6,10 +6,10 @@ import { useEffect, useRef } from "preact/hooks";
 import { balances, countsInNetEarnings } from "../derive";
 import { formatCents, parseCents, parseSignedCents } from "../money";
 import {
-  deleteAccount, duplicateAccount, saveAccount, saveCategory, saveTag,
+  deleteAccount, duplicateAccount, memberUses, membersOf, saveAccount, saveCategory, saveMember, saveTag,
   uncategorizedId, usageOf, type CategoryKind, type Usage,
 } from "../setup";
-import { current, ledger, readOnly, removeCategory, removeTag, updateSetup } from "../state";
+import { current, ledger, readOnly, removeCategory, removeMember, removeTag, updateSetup } from "../state";
 import type { Account, AccountType, EarningRole, YearSetup } from "../types";
 
 const TYPE_LABEL: Record<AccountType, string> = {
@@ -65,6 +65,7 @@ export function AccountsView() {
         ))}
       </div>
       <TagsCard tags={data.setup.tags} uses={usage.tags} />
+      <PeopleCard setup={data.setup} usage={usage} />
     </div>
   );
 }
@@ -365,6 +366,69 @@ function TagsCard({ tags, uses }: { tags: { id: string; name: string }[]; uses: 
       {!locked && (
         <form class="add-row" onSubmit={add}>
           <input type="text" value={newName.value} placeholder="New tag" aria-label="New tag"
+            onInput={(e) => (newName.value = e.currentTarget.value)} />
+          <button type="submit">Add</button>
+        </form>
+      )}
+      {error.value && <p class="form-error" role="alert">{error.value}</p>}
+    </section>
+  );
+}
+
+// --- People ---
+
+function PeopleCard({ setup, usage }: { setup: YearSetup; usage: Usage }) {
+  const error = useSignal<string | null>(null);
+  const newName = useSignal("");
+  const locked = readOnly.value;
+  const members = membersOf(setup);
+  const first = members[0]!;
+  const setError = (m: string | null) => (error.value = m);
+
+  async function add(e: Event) {
+    e.preventDefault();
+    if (await attempt((s) => saveMember(s, { id: "", name: newName.value }), setError)) newName.value = "";
+  }
+
+  async function remove(m: { id: string; name: string }) {
+    const n = memberUses(setup, usage, m.id);
+    const moves = n ? ` ${n === 1 ? "Their 1 entry moves" : `Their ${n} entries move`} to ${first.name}.` : "";
+    if (!confirm(`Delete “${m.name}”?${moves}`)) return;
+    try {
+      await removeMember(m.id);
+      setError(null);
+    } catch (e) {
+      setError(e instanceof Error ? e.message : String(e));
+    }
+  }
+
+  return (
+    <section class="card">
+      <h3>People</h3>
+      <p class="muted small">
+        Everything belongs to {first.name} until you add someone else. Then each entry can be logged for one person,
+        and the Dashboard, Ledger and Reports can show one person at a time. Accounts and budgets stay shared.
+      </p>
+      <ul class="name-list compact">
+        {members.map((m) => (
+          <li key={m.id}>
+            <NameInput value={m.name} disabled={locked} label={`Rename ${m.name}`}
+              onCommit={(name) => attempt((s) => saveMember(s, { id: m.id, name }), setError)} />
+            <span class="uses" title="Entries for them">{memberUses(setup, usage, m.id)}</span>
+            {!locked && (m.id === first.id ? (
+              <span class="del-placeholder" title="The default person: new entries are theirs unless you pick someone else. Rename instead." />
+            ) : (
+              <button type="button" class="icon-btn danger" aria-label={`Delete ${m.name}`}
+                title={`Delete; their entries move to ${first.name}`} onClick={() => remove(m)}>
+                ×
+              </button>
+            ))}
+          </li>
+        ))}
+      </ul>
+      {!locked && (
+        <form class="add-row" onSubmit={add}>
+          <input type="text" value={newName.value} placeholder="New person" aria-label="New person"
             onInput={(e) => (newName.value = e.currentTarget.value)} />
           <button type="submit">Add</button>
         </form>

@@ -1,7 +1,7 @@
 // IndexedDB storage. Everything lives in the user's browser; the JSON export is the real backup.
 //
 // Stores:
-//   years      one YearSetup per year (accounts, categories, tags, budgets), keyed by year
+//   years      one YearSetup per year (accounts, categories, tags, members, budgets), keyed by year
 //   expenses   } one record per entry, keyed by [year, id], because ids like "e0001"
 //   earnings   } repeat every year. Each record is the entry plus its `year`.
 //   transfers  }
@@ -146,6 +146,7 @@ export async function replaceYear(file: YearFile, extra: Pick<YearSetup, "closed
     accounts: file.accounts,
     categories: file.categories,
     tags: file.tags,
+    ...(file.members ? { members: file.members } : {}),
     budgets: file.budgets,
     ...extra,
   };

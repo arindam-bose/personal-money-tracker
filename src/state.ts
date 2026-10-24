@@ -7,7 +7,7 @@ import { deleteEntry, getSetting, listYears, loadYear, putEntry, putSetup, putSe
 import type { Ledger } from "./derive";
 import { ID_PREFIX, STORE, duplicateEntry, newId, slug, type AnyEntry, type Kind } from "./entries";
 import { emptyYearFile, nextYearSetup } from "./rollover";
-import { blankSetup, deleteCategory, deleteTag, usageOf, withUncategorized, withoutPeople, type CategoryKind, type Usage } from "./setup";
+import { blankSetup, deleteCategory, deleteMember, deleteTag, usageOf, withUncategorized, withoutPeople, type CategoryKind, type Usage } from "./setup";
 import type { PersistState } from "./storage";
 import type { YearSetup } from "./types";
 
@@ -39,6 +39,29 @@ export const ledger = computed<Ledger | null>(() => {
 export const DEFAULT_IRA_LIMIT = 750000;
 
 export const iraLimit = signal<number>(DEFAULT_IRA_LIMIT);
+
+const MEMBER_VIEW_KEY = "member-view";
+
+/**
+ * Whose figures the Dashboard and Reports show: "" for everyone, or a member id.
+ * Lasts until the tab is closed, like the ledger filters.
+ */
+export const memberView = signal<string>((() => {
+  try {
+    return sessionStorage.getItem(MEMBER_VIEW_KEY) ?? "";
+  } catch {
+    return "";
+  }
+})());
+
+export function setMemberView(id: string): void {
+  memberView.value = id;
+  try {
+    sessionStorage.setItem(MEMBER_VIEW_KEY, id);
+  } catch {
+    // Not kept; the choice still applies until the page reloads.
+  }
+}
 export const pinnedTags = signal<string[]>([]);
 
 export async function loadSettings(): Promise<void> {
@@ -239,6 +262,21 @@ export function removeTag(id: string): Promise<void> {
     const r = deleteTag(data, id);
     await putSetupAndEntries(r.setup, { expenses: r.expenses, earnings: [], transfers: [] });
     current.value = { ...data, setup: r.setup, expenses: replaced(data.expenses, r.expenses) };
+  });
+}
+
+/** Remove a member; their entries go back to the default member. */
+export function removeMember(id: string): Promise<void> {
+  return inTurn(async () => {
+    const data = editable();
+    const r = deleteMember(data, id);
+    await putSetupAndEntries(r.setup, { expenses: r.expenses, earnings: r.earnings, transfers: r.transfers });
+    current.value = {
+      setup: r.setup,
+      expenses: replaced(data.expenses, r.expenses),
+      earnings: replaced(data.earnings, r.earnings),
+      transfers: replaced(data.transfers, r.transfers),
+    };
   });
 }
 

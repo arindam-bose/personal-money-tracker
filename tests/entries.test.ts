@@ -38,6 +38,21 @@ describe("checkDraft", () => {
     expect(r.ok ? null : r.errors.date).toBeTruthy();
   });
 
+  it("writes down the person only when it isn't the default", () => {
+    const household: YearSetup = { ...setup, members: [{ id: "m_person-a", name: "Person A" }, { id: "m_riya", name: "Riya" }] };
+    const base = { item: "Lunch", amount: "12", account: "a_card", cat: "ce_food" };
+    const mine = checkDraft(draft("expense", base), household, "e");
+    expect(mine.ok && mine.entry.entry).not.toHaveProperty("member");
+    const asDefault = checkDraft(draft("expense", { ...base, member: "m_person-a" }), household, "e");
+    expect(asDefault.ok && asDefault.entry.entry).not.toHaveProperty("member");
+    const hers = checkDraft(draft("transfer", { item: "Pay", amount: "5", from: "a_checking", to: "a_card", cat: "ct_cc", member: "m_riya" }), household, "x");
+    expect(hers.ok && hers.entry.entry.member).toBe("m_riya");
+    if (!hers.ok) throw new Error("expected ok");
+    expect(draftFrom(hers.entry).member).toBe("m_riya");
+    const nobody = checkDraft(draft("expense", { ...base, member: "m_gone" }), household, "e");
+    expect(nobody.ok ? null : nobody.errors.member).toBeTruthy();
+  });
+
   it("checks transfers go between two different accounts", () => {
     const r = checkDraft(draft("transfer", { item: "Move", amount: "5", from: "a_checking", to: "a_checking", cat: "ct_save" }), setup, "x");
     expect(r.ok ? null : r.errors.to).toBeTruthy();

@@ -8,7 +8,7 @@ import type { YearFile, YearSetup } from "./types";
  * - bank, cash and card accounts open at this year's closing balance;
  * - investment accounts open at 0, because only this year's contributions are tracked
  *   (market value isn't, so gains and losses are unknown);
- * - accounts, categories, tags and the usual budget targets carry over.
+ * - accounts, categories, tags, members and the usual budget targets carry over.
  *   One-month budget overrides belong to their month, so they don't.
  */
 export function nextYearSetup(setup: YearSetup, ledger: Ledger): YearSetup {
@@ -21,6 +21,7 @@ export function nextYearSetup(setup: YearSetup, ledger: Ledger): YearSetup {
     })),
     categories: setup.categories,
     tags: setup.tags,
+    ...(setup.members ? { members: setup.members } : {}),
     budgets: { default: { ...setup.budgets.default } },
   };
 }
@@ -35,6 +36,7 @@ export function emptyYearFile(setup: YearSetup, now = new Date()): YearFile {
     accounts: setup.accounts,
     categories: setup.categories,
     tags: setup.tags,
+    ...(setup.members ? { members: setup.members } : {}),
     expenses: [],
     earnings: [],
     transfers: [],
