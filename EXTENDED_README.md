@@ -135,7 +135,7 @@ Tests).
 | Spent | All expenses, split bank / card / cash by the debited account's type |
 | Surplus | Earned − spent |
 | Net earnings | Earnings in paycheck/income categories not marked `net: false` (the "Net" tick) |
-| Net spending | Spent (Uncategorized included) − every earning outside net earnings, except Uncategorized (`spendingOffsetCategories`) |
+| Net spending | Spent (Uncategorized included) − earnings in `offset` ("Lowers spending") categories (`spendingOffsetCategories`) |
 | Net savings | `savings_in` − `savings_out` transfers |
 | Investment | `invest_retirement` + `invest_taxable` transfers |
 | Savings / investment / charity rate | As a share of paycheck income |

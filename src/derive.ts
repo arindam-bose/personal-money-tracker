@@ -4,7 +4,6 @@
 // These are plain functions with no UI code, so tests can check them directly
 // against the totals Notion computed (tests/derive.test.ts, tests/real-data.test.ts).
 
-import { uncategorizedId } from "./setup";
 import type {
   Account, Budgets, Cents, EarningRole, ExpenseRole, IsoDate, TransferRole, YearFile,
 } from "./types";
@@ -196,12 +195,11 @@ export function netEarningCategories(ledger: Ledger): Set<string> {
 }
 
 /**
- * Ids of the earning categories that lower net spending: every one outside net earnings
- * (refunds, points, money paid back, unticked one-offs), except Uncategorized, which counts nowhere.
+ * Ids of the earning categories that lower net spending: those whose role is "Lowers spending"
+ * (refunds, points, money paid back). Unticking Net on pay or income only takes it out of net earnings.
  */
 export function spendingOffsetCategories(ledger: Ledger): Set<string> {
-  const uncategorized = uncategorizedId(ledger, "earning");
-  return new Set(ledger.categories.earning.filter((c) => !countsInNetEarnings(c) && c.id !== uncategorized).map((c) => c.id));
+  return new Set(ledger.categories.earning.filter((c) => c.role === "offset").map((c) => c.id));
 }
 
 /** Summaries for January to December, index 0 = January. */

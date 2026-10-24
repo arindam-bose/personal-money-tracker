@@ -104,7 +104,7 @@ describe("net earnings", () => {
 });
 
 describe("net spending", () => {
-  it("is lowered by every earning outside net earnings, except Uncategorized", () => {
+  it("is lowered only by earnings in Lowers spending categories", () => {
     expect([...spendingOffsetCategories(ledger)].sort()).toEqual(["ci_payback", "ci_refunds"]);
 
     const l = sample();
@@ -113,11 +113,11 @@ describe("net spending", () => {
       { id: "ci_uncategorized", name: "Uncategorized", role: "income", net: false },
     ];
     l.earnings.push({ id: "i9", date: "2026-03-01", item: "Mystery", amount: 7000, account: "a_checking", cat: "ci_uncategorized", notes: "" });
-    expect([...spendingOffsetCategories(l)].sort()).toEqual(["ci_interest", "ci_payback", "ci_refunds"]);
+    expect([...spendingOffsetCategories(l)].sort()).toEqual(["ci_payback", "ci_refunds"]);
     const s = summarize(l);
-    // Unticked interest now lowers spending; Uncategorized counts in neither figure.
-    expect(s.offsets).toBe(4050 + 1234);
-    expect(s.netSpent).toBe(217500 - 4050 - 1234);
+    // Unticked interest and Uncategorized count in neither figure.
+    expect(s.offsets).toBe(4050);
+    expect(s.netSpent).toBe(217500 - 4050);
     expect(s.netEarnings).toBe(800000);
   });
 });

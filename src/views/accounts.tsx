@@ -272,7 +272,7 @@ function CategoryCard({ kind, setup, usage }: { kind: CategoryKind; setup: YearS
       <h3>{KIND_TITLE[kind]}</h3>
       <p class="muted small">{{
         expense: "Rename freely: entries keep their category. Delete one and its entries move to Uncategorized. Charity shows as a share of pay on the dashboard.",
-        earning: "Tick “Net” for the earnings that make up net earnings on the dashboard. Every other earning (refunds, points, money paid back, unticked one-offs) lowers net spending instead. Uncategorized counts in neither.",
+        earning: "Tick “Net” for the earnings that make up net earnings on the dashboard; untick one-offs. “Lowers spending” is for refunds, points and money paid back: they lower net spending instead. Uncategorized counts in neither.",
         transfer: "What each one is for drives the savings, investing and card-payment figures.",
       }[kind]}</p>
       <ul class={`name-list ${kind === "earning" ? "with-net" : ""}`}>
@@ -431,7 +431,7 @@ function PeopleCard({ setup, usage }: { setup: YearSetup; usage: Usage }) {
 function NetTick(props: { cat: { name: string; role?: string; net?: boolean }; locked: boolean; onChange: (net: boolean) => void }) {
   const eligible = props.cat.role === "paycheck" || props.cat.role === "income";
   return (
-    <label class="net-tick" title={eligible ? "Ticked: counts in net earnings. Unticked: lowers net spending." : "Refunds, points and paybacks lower net spending, so they never count as earnings"}>
+    <label class="net-tick" title={eligible ? "Ticked: counts in net earnings. Unticked: counts in neither net earnings nor net spending." : "Refunds, points and paybacks lower net spending, so they never count as earnings"}>
       <input type="checkbox" checked={eligible && countsInNetEarnings(props.cat as { role?: EarningRole; net?: boolean })}
         disabled={props.locked || !eligible} aria-label={`${props.cat.name} counts in net earnings`}
         onChange={(e) => props.onChange(e.currentTarget.checked)} />

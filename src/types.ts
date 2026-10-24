@@ -42,7 +42,7 @@ export interface Category<R extends string> {
   /**
    * Earning categories with a paycheck or income role only: whether they count toward
    * "Net earnings" on the dashboard. Left out, they count. Set false for one-offs
-   * like insurance payouts; earnings outside net earnings lower net spending instead.
+   * like insurance payouts. Only "offset" categories lower net spending.
    */
   net?: boolean;
 }
