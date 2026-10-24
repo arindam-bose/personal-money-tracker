@@ -432,6 +432,14 @@ tr.row-transfer td {
   line-height: 1;
 }
 
+.more-rows {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 12px;
+  margin: 16px 0;
+}
+
 .empty {
   text-align: center;
   padding: 24px;

@@ -22,6 +22,8 @@ export interface Filters {
 
 const NO_FILTERS: Filters = { month: "", kind: "", account: "", cat: "", tag: "", q: "" };
 const FILTERS_KEY = "ledger-filters";
+/** Rows shown at a time; buttons under the table show more or fewer. */
+const PAGE = 100;
 const MONTHS = ["Jan", "Feb", "Mar", "Apr", "May", "Jun", "Jul", "Aug", "Sep", "Oct", "Nov", "Dec"];
 
 /** Filters last until the tab is closed. Storage can be unavailable (private mode), so failures are ignored. */
@@ -104,8 +106,15 @@ export function LedgerView() {
   /** Row key of a just-made copy, highlighted for a moment so you can see where it landed. */
   const flash = useSignal<string | null>(null);
   const searchRef = useRef<HTMLInputElement>(null);
+  /** How many of the matching rows are shown, newest first. */
+  const shown = useSignal(PAGE);
 
   useSignalEffect(() => saveFilters(filters.value));
+  // New filters start again from the newest PAGE rows.
+  useSignalEffect(() => {
+    filters.value;
+    shown.value = PAGE;
+  });
 
   const rows = useComputed(() => allEntries().filter((e) => matches(e, filters.value)));
   const totals = useComputed(() => {
@@ -128,6 +137,9 @@ export function LedgerView() {
     if (readOnly.value) return;
     const copy = await duplicate(e);
     const key = rowKey(copy);
+    // Make sure the copy is among the rows shown.
+    const at = rows.value.findIndex((r) => rowKey(r) === key);
+    if (at >= shown.value) shown.value = Math.ceil((at + 1) / PAGE) * PAGE;
     flash.value = key;
     setTimeout(() => flash.value === key && (flash.value = null), 2000);
     // After the table re-renders, bring the copy into view and select it, so D again copies it.
@@ -250,7 +262,7 @@ export function LedgerView() {
           </tr>
         </thead>
         <tbody>
-          {rows.value.map((e) => (
+          {rows.value.slice(0, shown.value).map((e) => (
             <tr key={rowKey(e)} data-key={rowKey(e)} class={`row-${e.kind} ${flash.value === rowKey(e) ? "flash" : ""}`}
               tabIndex={readOnly.value ? -1 : 0}
               onClick={() => openEdit(e)}
@@ -300,6 +312,19 @@ export function LedgerView() {
         </tbody>
       </table>
       {rows.value.length === 0 && <p class="muted empty">Nothing matches these filters.</p>}
+      {rows.value.length > PAGE && (
+        <div class="more-rows">
+          <span class="muted">Showing {Math.min(shown.value, rows.value.length)} of {rows.value.length}</span>
+          {shown.value > PAGE && (
+            <button type="button" onClick={() => (shown.value = Math.max(PAGE, shown.value - PAGE))}>Show {PAGE} fewer</button>
+          )}
+          {shown.value < rows.value.length && (
+            <button type="button" onClick={() => (shown.value += PAGE)}>
+              Show {Math.min(PAGE, rows.value.length - shown.value)} more
+            </button>
+          )}
+        </div>
+      )}
     </section>
   );
 }
