@@ -393,6 +393,8 @@ export interface BalancePoint {
   date: IsoDate;
   availableCash: Cents;
   cardDebt: Cents;
+  /** Available cash − card debt (AccountsOverview.netTangibleAssets). */
+  netTangibleAssets: Cents;
   /** Contributions to investment accounts so far this year. */
   invested: Cents;
   /** Net savings so far this year: moved into savings minus taken out (Summary.netSavings to date). */
@@ -413,7 +415,7 @@ export function balanceSeries(ledger: Ledger, dates: IsoDate[]): BalancePoint[] 
       if (role === "savings_in") saved += t.amount;
       if (role === "savings_out") saved -= t.amount;
     }
-    return { date, availableCash: o.availableCash, cardDebt: o.cardDebt, invested, saved };
+    return { date, availableCash: o.availableCash, cardDebt: o.cardDebt, netTangibleAssets: o.netTangibleAssets, invested, saved };
   });
 }
 

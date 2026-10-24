@@ -199,9 +199,9 @@ describe("report series", () => {
   it("account totals over time", () => {
     expect(balanceSeries(ledger, ["2026-01-31", "2026-12-31"])).toEqual([
       // Jan 31: checking 560000 + savings 1101234 + wallet 0; card −20000 − 14550 + 20000
-      { date: "2026-01-31", availableCash: 1661234, cardDebt: 14550, invested: 50000, saved: 100000 },
+      { date: "2026-01-31", availableCash: 1661234, cardDebt: 14550, netTangibleAssets: 1646684, invested: 50000, saved: 100000 },
       // 100000 in, then 25000 taken out on Feb 16
-      { date: "2026-12-31", availableCash: 2032784, cardDebt: 15000, invested: 50000, saved: 75000 },
+      { date: "2026-12-31", availableCash: 2032784, cardDebt: 15000, netTangibleAssets: 2017784, invested: 50000, saved: 75000 },
     ]);
   });
 });

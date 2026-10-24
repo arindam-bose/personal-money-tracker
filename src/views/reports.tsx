@@ -300,10 +300,11 @@ function BalancesCard({ ledger: l, year, lastDate }: { ledger: Ledger; year: num
   const points = [`${year - 1}-12-31`, ...weeklySpending(l, year).map((w) => (w.end > lastDate ? lastDate : w.end))]
     .filter((d, i, all) => all.indexOf(d) === i && d <= lastDate);
   const series = balanceSeries(l, points);
-  const [c1, c2, c3, c4] = seriesColors();
+  const [c1, c2, c3, c4, c5] = seriesColors();
   const lines = [
     { key: "availableCash", name: "Available cash", color: c1 },
     { key: "cardDebt", name: "Card debt", color: c2 },
+    { key: "netTangibleAssets", name: "Net tangible assets", color: c5 },
     { key: "invested", name: "Invested this year", color: c3 },
     { key: "saved", name: "Saved this year", color: c4 },
   ] as const;
@@ -316,17 +317,19 @@ function BalancesCard({ ledger: l, year, lastDate }: { ledger: Ledger; year: num
     series: lines.map((ln) => ({
       name: ln.name, type: "line", data: series.map((p) => p[ln.key]),
       showSymbol: false, symbolSize: 8, lineStyle: { width: 2, color: ln.color }, itemStyle: { color: ln.color },
-      // With four lines, each is named at its end as well as in the legend.
+      // With five lines, each is named at its end as well as in the legend.
       endLabel: {
         show: true, color: token("--muted"),
         formatter: (p: { seriesName: string; value: number }) => `${p.seriesName} ${formatCompact(p.value)}`,
       },
+      // Net tangible assets ends close to available cash: nudge labels apart instead of overlapping.
+      labelLayout: { moveOverlap: "shiftY" },
     })),
-    grid: { ...(baseOption().grid as object), right: 170 },
+    grid: { ...(baseOption().grid as object), right: 200 },
   };
   return (
-    <Card title="Balances over time" subtitle="At the end of each week. Investments count what you put in this year, not market value. Saved is what went into savings minus what came out.">
-      <Chart option={option} height={320} label="Available cash, card debt, investments and savings over the year" />
+    <Card title="Balances over time" subtitle="At the end of each week. Net tangible assets is available cash minus card debt. Investments count what you put in this year, not market value. Saved is what went into savings minus what came out.">
+      <Chart option={option} height={320} label="Available cash, card debt, net tangible assets, investments and savings over the year" />
       <TableView head={["Date", ...lines.map((x) => x.name)]}
         rows={series.map((p) => [label(p.date), ...lines.map((x) => formatCents(p[x.key]))])} />
     </Card>
