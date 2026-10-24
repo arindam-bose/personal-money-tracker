@@ -1,5 +1,6 @@
 import { useSignal } from "@preact/signals";
 import { useEffect } from "preact/hooks";
+import { version } from "../package.json";
 import { downloadYear } from "./backup";
 import { requestPersistence, daysSince } from "./storage";
 import { current, loadSettings, openYear, persistState, years } from "./state";
@@ -66,7 +67,7 @@ export function App() {
   return (
     <>
       <header class="topbar">
-        <h1>Money Tracker</h1>
+        <h1>Personal Money Tracker <span class="version">v{version}</span></h1>
         <nav>
           {(Object.keys(PAGES) as Page[]).map((p) => (
             <a href={`#/${p}`} class={p === page.value ? "active" : ""} aria-current={p === page.value ? "page" : undefined}>

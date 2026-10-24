@@ -81,6 +81,12 @@ a {
   margin: 0 24px 0 0;
 }
 
+.topbar .version {
+  font-size: 12px;
+  font-weight: 400;
+  color: var(--muted);
+}
+
 .topbar nav {
   display: flex;
   gap: 4px;
