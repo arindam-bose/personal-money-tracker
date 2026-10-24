@@ -334,7 +334,7 @@ table.entries tbody tr:hover {
 .c-account { width: 320px; }
 .c-tags { width: 200px; }
 .c-amount { width: 120px; }
-.c-act { width: 36px; padding-left: 0 !important; padding-right: 6px !important; }
+.c-act { width: 36px; padding-left: 6px !important; padding-right: 0 !important; }
 
 /* Row actions stay quiet until the row is hovered or selected. */
 .dup-btn {

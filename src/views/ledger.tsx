@@ -240,13 +240,13 @@ export function LedgerView() {
       <table class="entries">
         <thead>
           <tr>
+            <th class="c-act"><span class="sr-only">Actions</span></th>
             <th class="c-date">Date</th>
             <th>Item</th>
             <th class="c-cat">Category</th>
             <th class="c-account">Account</th>
             <th class="c-tags">Tags</th>
             <th class="num c-amount">Amount</th>
-            <th class="c-act"><span class="sr-only">Actions</span></th>
           </tr>
         </thead>
         <tbody>
@@ -261,6 +261,14 @@ export function LedgerView() {
                   onDuplicate(e);
                 }
               }}>
+              <td class="c-act">
+                {!readOnly.value && (
+                  <button type="button" class="dup-btn" aria-label={`Duplicate ${e.entry.item}`} title="Duplicate (D)"
+                    onClick={(ev) => { ev.stopPropagation(); onDuplicate(e); }}>
+                    ⧉
+                  </button>
+                )}
+              </td>
               <td class="c-date">{shortDate(e.entry.date)}</td>
               <td class="c-item">
                 <span class="item" title={e.entry.item}>{e.entry.item}</span>
@@ -286,14 +294,6 @@ export function LedgerView() {
               <td class={`num c-amount amt-${e.kind}`}>
                 {e.kind === "expense" ? "−" : e.kind === "earning" ? "+" : ""}
                 {formatCents(e.entry.amount)}
-              </td>
-              <td class="c-act">
-                {!readOnly.value && (
-                  <button type="button" class="dup-btn" aria-label={`Duplicate ${e.entry.item}`} title="Duplicate (D)"
-                    onClick={(ev) => { ev.stopPropagation(); onDuplicate(e); }}>
-                    ⧉
-                  </button>
-                )}
               </td>
             </tr>
           ))}
