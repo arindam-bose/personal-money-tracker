@@ -139,6 +139,16 @@ describe("IRA limit", () => {
     expect(iraLimitOf({ year: 2026, iraLimit: 0 })).toBe(0);
   });
 
+  it("is always in the backup, as the IRS limit when none is set", async () => {
+    const { iraLimit: _gone, ...older } = { ...sample(), year: 2025 };
+    older.expenses = older.expenses.map((e) => ({ ...e, date: "2025" + e.date.slice(4) }));
+    older.earnings = older.earnings.map((e) => ({ ...e, date: "2025" + e.date.slice(4) }));
+    older.transfers = older.transfers.map((e) => ({ ...e, date: "2025" + e.date.slice(4) }));
+    older.budgets = { default: {} };
+    await importYear(older);
+    expect((await exportYear(2025))!.iraLimit).toBe(700000);
+  });
+
   it("doesn't carry into the next year", async () => {
     await importYear({ ...sample(), iraLimit: 800000 });
     const data = (await loadYear(2026))!;

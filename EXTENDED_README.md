@@ -192,15 +192,16 @@ fixed order, so two backups of the same year diff cleanly.
 A backup holds everything needed to rebuild the year on a clean device:
 
 - `closed: true` for a closed year, so it comes back read-only (left out while open).
-- `iraLimit` when the year has its own IRA limit. Left out, the IRS limit for
-  that year applies (`IRA_LIMITS` in `setup.ts`; years past the list use the
+- `iraLimit`, the year's IRA limit: the one set on the Data page, or else the IRS
+  limit for that year. Every backup writes it; in older files without it, the IRS
+  limit applies (`IRA_LIMITS` in `setup.ts`; years past the list use the
   latest one). Add the new limit there when the IRS announces it. A closed
   year's limit doesn't carry into the next year.
 - `settings.pinnedTags`, the dashboard's pinned tags. They are app-wide, so
   importing applies them only when the device has none saved yet; restoring an
   old year never undoes today's pins.
 
-All three are optional, so older backups still import. What is left out on
+All three are optional on import, so older backups still import. What is left out on
 purpose: `lastBackupAt` (an import counts as a backup at `exportedAt`), the year
 last opened, and per-tab filters and periods.
 

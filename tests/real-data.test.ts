@@ -14,6 +14,7 @@ import {
 } from "../src/derive";
 import { checkDraft, draftFrom, type AnyEntry } from "../src/entries";
 import { nextYearSetup } from "../src/rollover";
+import { iraLimitOf } from "../src/setup";
 import type { YearFile } from "../src/types";
 import { validateYearFile } from "../src/validate";
 import { freshDb, loadJson } from "./helpers";
@@ -43,7 +44,8 @@ describe.skipIf(YEARS.length === 0).each(YEARS)("real %i data", (year) => {
       await importYear(file);
       const out = (await exportYear(year))!;
       expect(out.expenses).toHaveLength(file.expenses.length);
-      expect({ ...out, exportedAt: "" }).toEqual({ ...file, exportedAt: "" });
+      // Files made before the IRA limit was saved per year get the IRS limit for their year.
+      expect({ ...out, exportedAt: "" }).toEqual({ ...file, exportedAt: "", iraLimit: file.iraLimit ?? iraLimitOf(file) });
     });
 
     it("every entry opens in the form and saves back unchanged", () => {

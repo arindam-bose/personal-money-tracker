@@ -132,7 +132,10 @@ export interface YearFile {
   earnings: Earning[];
   transfers: Transfer[];
   budgets: Budgets;
-  /** This year's IRA contribution limit. Left out, the IRS limit for the year applies (see IRA_LIMITS). */
+  /**
+   * This year's IRA contribution limit. Every backup writes it; files from before v1.0.16 leave it out,
+   * and then the IRS limit for the year applies (see IRA_LIMITS).
+   */
   iraLimit?: Cents;
   /** App-wide settings at export time. Importing applies them only to a device that has none yet. */
   settings?: FileSettings;

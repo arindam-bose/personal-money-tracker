@@ -2,7 +2,7 @@
 // in the same shape the importer and tools/notion_import.py produce.
 
 import { getSetting, loadYear, putSetup, replaceYear, setSetting } from "./db";
-import { withChange, withoutPeople } from "./setup";
+import { iraLimitOf, withChange, withoutPeople } from "./setup";
 import type { YearFile } from "./types";
 import { validateYearFile, type ValidationResult } from "./validate";
 
@@ -29,7 +29,7 @@ export async function exportYear(year: number, now = new Date()): Promise<YearFi
     earnings: data.earnings,
     transfers: data.transfers,
     budgets: setup.budgets,
-    ...(setup.iraLimit !== undefined ? { iraLimit: setup.iraLimit } : {}),
+    iraLimit: iraLimitOf(setup),
     ...(pinnedTags?.length ? { settings: { pinnedTags } } : {}),
   };
 }

@@ -63,5 +63,6 @@
  "budgets": {
   "default": { "ce_food": 40000, "ce_rent": 150000 },
   "2026-02": { "ce_food": 50000 }
- }
+ },
+ "iraLimit": 750000
 }
