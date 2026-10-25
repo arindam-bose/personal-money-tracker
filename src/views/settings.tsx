@@ -11,13 +11,16 @@ import {
   closeYear, current, iraLimit, ledger, loadSettings, openYear, persistState, readOnly, reopenYear, saveIraLimit, startYear, years,
 } from "../state";
 import { IRA_LIMITS, iraLimitOf } from "../setup";
+import { checkForUpdates, offlineChanged, offlineStatus } from "../offline";
 import { daysSince, requestPersistence } from "../storage";
 import { validateYearFile } from "../validate";
 
+const MAY_CLEAR = "This browser may clear your data on its own - if the site goes unvisited for a while, or space runs low - so keep a backup.";
+
 const PERSIST_TEXT = {
-  persisted: "Your browser will keep this data even when disk space runs low.",
-  "not-persisted": "Your browser may clear this data if disk space runs low. Back up regularly. Browsers often agree to keep it once you've bookmarked or used the site for a while.",
-  unsupported: "This browser can't promise to keep this data. Back up regularly.",
+  persisted: "This browser has agreed to keep your data until you clear it yourself.",
+  "not-persisted": MAY_CLEAR,
+  unsupported: MAY_CLEAR,
 };
 
 function backupText(iso: string | undefined): string {
@@ -82,16 +85,6 @@ export function SettingsView() {
     <>
     <section class="panel">
       <h2>Your data</h2>
-      {persistState.value && (
-        <p class="muted">
-          {PERSIST_TEXT[persistState.value]}{" "}
-          {persistState.value === "not-persisted" && (
-            <button type="button" class="link" onClick={async () => (persistState.value = await requestPersistence())}>
-              Ask again
-            </button>
-          )}
-        </p>
-      )}
 
       {years.value.length === 0 ? (
         <div class="start-options">
@@ -162,7 +155,52 @@ export function SettingsView() {
       )}
     </section>
     {current.value && <YearSettings key={current.value.setup.year} />}
+    <OfflineCard />
     </>
+  );
+}
+
+/** Whether the app works without a signal, whether the browser keeps the data, and a check for a newer release. */
+function OfflineCard() {
+  const status = useSignal("Checking…");
+  const note = useSignal<string | null>(null);
+  const checking = useSignal(false);
+  // Asked again whenever the service worker says the offline copy changed.
+  const changed = offlineChanged.value;
+  useEffect(() => {
+    offlineStatus().then((s) => (status.value = s));
+  }, [changed]);
+
+  async function onCheck() {
+    checking.value = true;
+    try {
+      note.value = await checkForUpdates();
+    } finally {
+      checking.value = false;
+    }
+  }
+
+  return (
+    <section class="panel settings">
+      <h2>Offline</h2>
+      <p class="muted">{status.value}</p>
+      {persistState.value && (
+        <p class="muted">
+          {PERSIST_TEXT[persistState.value]}{" "}
+          {persistState.value === "not-persisted" && (
+            <button type="button" class="link" onClick={async () => (persistState.value = await requestPersistence())}>
+              Ask again
+            </button>
+          )}
+        </p>
+      )}
+      <div class="setting-row">
+        <button type="button" disabled={checking.value} onClick={onCheck}>
+          {checking.value ? "Checking…" : "Check for updates"}
+        </button>
+        {note.value && <span class="muted" role="status">{note.value}</span>}
+      </div>
+    </section>
   );
 }
 

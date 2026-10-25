@@ -39,6 +39,7 @@ this started). TypeScript is strict, including `noUncheckedIndexedAccess`.
 | `src/validate.ts` | Checks an imported file before anything is stored. |
 | `src/db.ts` | IndexedDB storage. |
 | `src/backup.ts` | JSON import and export. |
+| `src/offline.ts`, `src/service-worker.js` | The offline copy: registering it, its status, checking for updates. |
 | `src/derive.ts` | Every computed figure. Plain functions, no UI. |
 | `src/entries.ts` | Entry-form logic: drafts, checks, transfer-category suggestion, duplicating. |
 | `src/setup.ts` | Editing accounts, categories, tags and members; a blank year's defaults; upgrading years saved with people. |
@@ -172,6 +173,18 @@ Replacing a year on import runs in one transaction: if anything fails, the old
 data stays. The app calls `navigator.storage.persist()` on start so the browser
 doesn't clear the data under storage pressure; the Settings page shows whether it
 agreed and can ask again.
+
+### Offline copy
+
+`src/service-worker.js` is the service worker. It is plain JavaScript outside the
+bundle: the `serviceWorker` plugin in `vite.config.ts` fills in the version and
+the list of built files, and writes it as `dist/sw.js`. Built files carry content
+hashes, so all of them are cached on install and served from the cache; only the
+page itself goes to the network first. The cache is named
+`money-tracker-v<version>`, and a new build makes a new `sw.js`, so every deploy
+reaches people as an update: it downloads by itself, and the top bar offers
+**Reload**. **Check for updates** on the Settings page asks for it straight away.
+There is no service worker in development (`npm run dev`), so edits always show.
 
 ### State changes
 

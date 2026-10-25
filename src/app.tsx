@@ -2,6 +2,7 @@ import { useSignal } from "@preact/signals";
 import { useEffect } from "preact/hooks";
 import { version } from "../package.json";
 import { downloadYear } from "./backup";
+import { updateReady } from "./offline";
 import { requestPersistence, daysSince } from "./storage";
 import { current, loadSettings, openYear, persistState, years } from "./state";
 import type { ComponentType } from "preact";
@@ -79,6 +80,12 @@ export function App() {
           ))}
         </nav>
         <div class="topbar-right">
+          {updateReady.value && (
+            <button type="button" class="backup-nag" onClick={() => location.reload()}
+              title="A newer version is downloaded and ready.">
+              v{updateReady.value} is ready · Reload
+            </button>
+          )}
           {needsBackup && (
             <button type="button" class="backup-nag" onClick={backUpNow}
               title="Downloads this year as a JSON file. Your data lives only in this browser.">

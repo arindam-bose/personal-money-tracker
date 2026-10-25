@@ -15,6 +15,10 @@ That also means **you are the backup**. Download a copy of each year now and the
 (the app reminds you after a week). If you clear your browser data or switch
 computers, import that file to get everything back.
 
+Once opened, the tracker keeps a copy of itself in your browser, so it works without
+a signal too. New versions download by themselves; the top bar then offers
+**Reload**.
+
 ## Getting started
 
 1. Open the **Settings** page.
