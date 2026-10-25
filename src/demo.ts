@@ -51,7 +51,7 @@ export function demoYear(year: number, now = new Date()): YearFile {
         { id: "t_date-night", name: "Date night" },
         { id: "t_groceries", name: "Groceries" },
       ],
-      members: [{ id: "m_person-a", name: "Jane" }, { id: "m_john", name: "John" }],
+      members: [{ id: "m_jane", name: "Jane" }, { id: "m_john", name: "John" }],
       budgets: {
         default: { "ce_food-drinks": 60000, ce_housing: 180000, ce_shopping: 20000, ce_transport: 15000 },
         // December's shopping target is higher, for the holidays.
