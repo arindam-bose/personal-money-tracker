@@ -246,7 +246,7 @@ export function LedgerView() {
     return (
       <section class="panel">
         <h2>Ledger</h2>
-        <p>No data yet. Go to <a href="#/data">Data</a> to import a year.</p>
+        <p>No data yet. Go to <a href="#/settings">Settings</a> to import a year.</p>
       </section>
     );
   }

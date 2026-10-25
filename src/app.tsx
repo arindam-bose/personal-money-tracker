@@ -8,8 +8,8 @@ import type { ComponentType } from "preact";
 import { AccountsView } from "./views/accounts";
 import { BudgetView } from "./views/budget";
 import { DashboardView } from "./views/dashboard";
-import { DataView } from "./views/data";
 import { LedgerView } from "./views/ledger";
+import { SettingsView } from "./views/settings";
 
 /** Reports pull in the charting library, so their code is only downloaded when first opened. */
 function ReportsPage() {
@@ -28,13 +28,16 @@ const PAGES = {
   budget: { label: "Budget", view: BudgetView },
   reports: { label: "Reports", view: ReportsPage },
   accounts: { label: "Accounts", view: AccountsView },
-  data: { label: "Data", view: DataView },
+  settings: { label: "Settings", view: SettingsView },
 } as const;
 type Page = keyof typeof PAGES;
 
+/** Old page names, so bookmarks made before a rename still open the right page. */
+const RENAMED: Record<string, Page> = { data: "settings" };
+
 function pageFromHash(): Page {
   const name = location.hash.replace(/^#\/?/, "");
-  return name in PAGES ? (name as Page) : "dashboard";
+  return name in PAGES ? (name as Page) : RENAMED[name] ?? "dashboard";
 }
 
 /** Remind about backups after this many days. */

@@ -170,7 +170,7 @@ moves between your own accounts aren't shown.
 
 Replacing a year on import runs in one transaction: if anything fails, the old
 data stays. The app calls `navigator.storage.persist()` on start so the browser
-doesn't clear the data under storage pressure; the Data page shows whether it
+doesn't clear the data under storage pressure; the Settings page shows whether it
 agreed and can ask again.
 
 ### State changes
@@ -184,7 +184,7 @@ ledger saves) read the same old setup and the second overwrote the first;
 
 ### Backups
 
-A backup is the year's `YearFile`, downloaded from the Data page or the top-bar
+A backup is the year's `YearFile`, downloaded from the Settings page or the top-bar
 reminder (shown after 7 days without one, for years with entries). Importing a
 file counts as a backup made at its `exportedAt` time. JSON keys are written in a
 fixed order, so two backups of the same year diff cleanly.
@@ -192,7 +192,7 @@ fixed order, so two backups of the same year diff cleanly.
 A backup holds everything needed to rebuild the year on a clean device:
 
 - `closed: true` for a closed year, so it comes back read-only (left out while open).
-- `iraLimit`, the year's IRA limit: the one set on the Data page, or else the IRS
+- `iraLimit`, the year's IRA limit: the one set on the Settings page, or else the IRS
   limit for that year. Every backup writes it; in older files without it, the IRS
   limit applies (`IRA_LIMITS` in `setup.ts`; years past the list use the
   latest one). Add the new limit there when the IRS announces it. A closed
@@ -222,7 +222,7 @@ already exists, it is left alone. A closed year can be reopened.
 | Budget | `views/budget.tsx` | Enter moves down a column; saves on Enter or blur. |
 | Reports | `views/reports.tsx` | Loaded on demand (see Charts). |
 | Accounts | `views/accounts.tsx` | Accounts can be deleted only when no entry uses them. Categories always (entries move to Uncategorized), and tags always (they come off their entries). |
-| Data | `views/data.tsx` | Import, export, close/reopen, start from scratch, settings. |
+| Settings | `views/settings.tsx` | Import, export, close/reopen, start from scratch, settings. |
 
 Routing is by URL hash (`#/ledger`), which works on any static host.
 

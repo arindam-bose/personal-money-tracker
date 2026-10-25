@@ -17,7 +17,7 @@ computers, import that file to get everything back.
 
 ## Getting started
 
-1. Open the **Data** page.
+1. Open the **Settings** page.
 2. Either **import** a Money Tracker file (`.json`), or **start the year from
    scratch**: you get a standard set of categories, then add your bank accounts,
    cards and cash on the **Accounts** page.
@@ -46,8 +46,8 @@ computers, import that file to get everything back.
   Dashboard, Ledger and Reports can show **All people** or one person at a time.
   Accounts and budgets stay shared by everyone.
   **Duplicate** an account to start a similar one (the copy is named "…_new").
-- **Data**: import, back up, and close a finished year. Closing a year starts the
-  next one from its closing balances.
+- **Settings**: import, back up, and close a finished year, and set each year's
+  IRA limit. Closing a year starts the next one from its closing balances.
 
 ## Handy keys on the Ledger
 

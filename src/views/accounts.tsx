@@ -55,7 +55,7 @@ export function AccountsView() {
     return (
       <section class="panel">
         <h2>Accounts</h2>
-        <p>No year yet. Go to <a href="#/data">Data</a> to import a file or start from scratch.</p>
+        <p>No year yet. Go to <a href="#/settings">Settings</a> to import a file or start from scratch.</p>
       </section>
     );
   }

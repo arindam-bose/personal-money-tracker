@@ -35,7 +35,7 @@ export const ledger = computed<Ledger | null>(() => {
   return d && { ...d, accounts: d.setup.accounts, categories: d.setup.categories };
 });
 
-/** The open year's IRA contribution limit. Change it on the Data page. */
+/** The open year's IRA contribution limit. Change it on the Settings page. */
 export const iraLimit = computed(() => (current.value ? iraLimitOf(current.value.setup) : 0));
 
 const MEMBER_VIEW_KEY = "member-view";

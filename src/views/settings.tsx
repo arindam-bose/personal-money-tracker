@@ -1,4 +1,5 @@
-// Data view: import a year from JSON, export (back up) a stored year.
+// Settings page: import a year from JSON, export (back up) a stored year, close and reopen years,
+// and the open year's own settings.
 
 import { useSignal } from "@preact/signals";
 import { useEffect } from "preact/hooks";
@@ -26,7 +27,7 @@ function backupText(iso: string | undefined): string {
   return `Last backup ${days} day${days === 1 ? "" : "s"} ago`;
 }
 
-export function DataView() {
+export function SettingsView() {
   const message = useSignal<string | null>(null);
   const errors = useSignal<string[]>([]);
   /** The year whose "Close year" panel is open. */
@@ -160,13 +161,13 @@ export function DataView() {
         </ul>
       )}
     </section>
-    {current.value && <Settings key={current.value.setup.year} />}
+    {current.value && <YearSettings key={current.value.setup.year} />}
     </>
   );
 }
 
 /** Settings for the open year. Remounted per year (see `key` above), so the field starts at that year's limit. */
-function Settings() {
+function YearSettings() {
   const setup = current.value!.setup;
   const { year } = setup;
   const irs = iraLimitOf({ year });
@@ -192,7 +193,7 @@ function Settings() {
 
   return (
     <section class="panel settings">
-      <h2>Settings for {year}</h2>
+      <h2>{year} settings</h2>
       <form onSubmit={onSave} class="setting-row">
         <label class="field">
           <span class="field-label">IRA contribution limit for {year}</span>

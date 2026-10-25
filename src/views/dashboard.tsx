@@ -49,7 +49,7 @@ export function DashboardView() {
     return (
       <section class="panel">
         <h2>Dashboard</h2>
-        <p>No data yet. Go to <a href="#/data">Data</a> to import a year.</p>
+        <p>No data yet. Go to <a href="#/settings">Settings</a> to import a year.</p>
       </section>
     );
   }
@@ -308,7 +308,7 @@ function RetirementRoom({ left, limit }: { left: number; limit: number }) {
   return (
     <p class="note">
       Retirement room left this year: <b>{formatCents(left)}</b> of the {formatCents(limit)} limit{" "}
-      <a href="#/data" class="small">change</a>
+      <a href="#/settings" class="small">change</a>
     </p>
   );
 }
