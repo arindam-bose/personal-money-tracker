@@ -120,6 +120,12 @@ export interface YearFile {
   app: "money-tracker";
   schema: 1;
   year: number;
+  /**
+   * The day tracking began, for a year started partway through. Left out, it is January 1.
+   * Opening balances are what each account held on the morning of this day, and no entry
+   * can be dated before it.
+   */
+  start?: IsoDate;
   exportedAt: string;
   /** Set by "Close year"; a closed year is read-only. Left out while the year is open. */
   closed?: boolean;
@@ -148,7 +154,7 @@ export interface FileSettings {
 }
 
 /** The parts of a YearFile that are set up once, not entered day to day. */
-export type YearSetup = Pick<YearFile, "year" | "closed" | "accounts" | "categories" | "tags" | "members" | "budgets" | "iraLimit"> & {
+export type YearSetup = Pick<YearFile, "year" | "start" | "closed" | "accounts" | "categories" | "tags" | "members" | "budgets" | "iraLimit"> & {
   /** When this year was last exported to JSON (ISO timestamp), for the backup reminder. */
   lastBackupAt?: string;
 };

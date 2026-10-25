@@ -41,6 +41,7 @@ this started). TypeScript is strict, including `noUncheckedIndexedAccess`.
 | `src/validate.ts` | Checks an imported file before anything is stored. |
 | `src/db.ts` | IndexedDB storage. |
 | `src/backup.ts` | JSON import and export. |
+| `src/year.ts` | When a year's tracking starts: its start date, or January 1. |
 | `src/device.ts` | The browser and system, for backup file names. |
 | `src/theme.ts` | Light or dark: the Settings choice, or following the device. |
 | `src/views/about.tsx` | The About card: About and How to use dialogs, version, links to GitHub. |
@@ -209,6 +210,15 @@ through an action that writes to IndexedDB first, then updates the signal.
 turn comes. Without that, two quick changes (typing budgets down a column, rapid
 ledger saves) read the same old setup and the second overwrote the first;
 `tests/state.test.ts` guards against it.
+
+### Starting partway through a year
+
+A year can start on any day: `start` in the year file (`src/year.ts`; left out, it
+is January 1). Opening balances are what each account held on the morning of
+that day, and no entry may be dated before it: the opening already includes
+anything earlier, so it would count twice. The importer, the entry form and
+`withStart` (moving the date on the Accounts page) all hold to that. Closing the
+year starts the next one on January 1.
 
 ### Backups
 

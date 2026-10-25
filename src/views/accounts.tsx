@@ -9,8 +9,9 @@ import {
   deleteAccount, duplicateAccount, memberUses, membersOf, saveAccount, saveCategory, saveMember, saveTag,
   uncategorizedId, usageOf, type CategoryKind, type Usage,
 } from "../setup";
-import { current, ledger, readOnly, removeCategory, removeMember, removeTag, updateSetup } from "../state";
+import { current, ledger, readOnly, removeCategory, removeMember, removeTag, setStart, updateSetup } from "../state";
 import type { Account, AccountType, EarningRole, YearSetup } from "../types";
+import { shortDay, startsMidYear, yearStart } from "../year";
 
 const TYPE_LABEL: Record<AccountType, string> = {
   checking: "Checking", savings: "Savings", cash: "Cash", credit: "Credit card", investment: "Investment",
@@ -107,7 +108,20 @@ function AccountsCard({ setup, usage }: { setup: YearSetup; usage: Usage }) {
       <div class="card-head">
         <div>
           <h3>Accounts</h3>
-          <p class="muted small">Opening balances are what each account held on January 1, {setup.year}.</p>
+          <p class="muted small">
+            Opening balances are what each account held {startsMidYear(setup)
+              ? <>on the morning of {shortDay(yearStart(setup))}, when tracking began. Nothing before that day is in the ledger.</>
+              : <>on January 1, {setup.year}.</>}
+          </p>
+          <label class="start-field small">
+            <span class="muted">Tracking starts</span>
+            <input type="date" value={yearStart(setup)} min={`${setup.year}-01-01`} max={`${setup.year}-12-31`} disabled={readOnly.value}
+              onChange={async (e) => {
+                const input = e.currentTarget;
+                const ok = await tryAction(() => setStart(input.value || null), (m) => (error.value = m));
+                if (!ok) input.value = yearStart(current.value!.setup);
+              }} />
+          </label>
         </div>
         {!readOnly.value && editing.value === null && (
           <button type="button" onClick={() => (editing.value = "new")}>+ Add account</button>
@@ -167,6 +181,13 @@ function owedText(balance: number): string {
   return balance < 0 ? `${formatCents(-balance)} owed` : balance > 0 ? `${formatCents(balance)} credit` : formatCents(0);
 }
 
+/** "Balance on Jan 1", "Owed on Jul 14": what the opening field holds, on the day tracking starts. */
+function openingLabel(isCard: boolean, isInvestment: boolean, setup: YearSetup): string {
+  if (isInvestment) return "Opening (usually 0)";
+  const day = shortDay(yearStart(setup));
+  return isCard ? `Owed on ${day}` : `Balance on ${day}`;
+}
+
 function AccountForm(props: { account?: Account; first?: boolean; onDone: () => void }) {
   const a = props.account;
   const name = useSignal(a?.name ?? "");
@@ -224,7 +245,7 @@ function AccountForm(props: { account?: Account; first?: boolean; onDone: () => 
           <input type="text" value={ref.value} placeholder="**1234" onInput={(e) => (ref.value = e.currentTarget.value)} />
         </label>
         <label class="field w-account">
-          <span class="field-label">{isCard ? "Owed at start of year" : type.value === "investment" ? "Opening (usually 0)" : "Balance at start of year"}</span>
+          <span class="field-label">{openingLabel(isCard, type.value === "investment", current.value!.setup)}</span>
           <input type="text" inputMode="decimal" class="num" value={opening.value} placeholder="0.00"
             onInput={(e) => (opening.value = e.currentTarget.value)} />
         </label>

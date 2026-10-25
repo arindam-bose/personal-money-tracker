@@ -70,6 +70,10 @@ export function validateYearFile(raw: unknown): ValidationResult {
     return { ok: false, errors: ["The file has no valid year."] };
   }
   const y = year as number;
+  if (data.start !== undefined && !isDateInYear(data.start, y)) {
+    return { ok: false, errors: [`"start" must be a date in ${y}, like "${y}-07-14".`] };
+  }
+  const start = data.start as string | undefined;
 
   for (const key of ["accounts", "tags", "expenses", "earnings", "transfers"]) {
     if (!Array.isArray(data[key])) err(`"${key}" must be a list.`);
@@ -147,6 +151,9 @@ export function validateYearFile(raw: unknown): ValidationResult {
   /** Fields every entry has: id, date, item, amount, notes. */
   function checkEntry(r: Obj, label: string) {
     if (!isDateInYear(r.date, y)) err(`${label} "${r.id}" date "${String(r.date)}" is not a date in ${y}.`);
+    else if (start && (r.date as string) < start) {
+      err(`${label} "${r.id}" is dated ${String(r.date)}, before ${y}'s tracking starts (${start}). The opening balances already include it.`);
+    }
     if (typeof r.item !== "string") err(`${label} "${r.id}" has no item.`);
     if (!isCents(r.amount)) err(`${label} "${r.id}" amount is not whole cents.`);
     else if (r.amount < 0) err(`${label} "${r.id}" amount is negative (${r.amount / 100}). Record refunds as an earning that lowers spending.`);

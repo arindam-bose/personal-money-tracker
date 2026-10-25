@@ -7,7 +7,7 @@ import { deleteEntry, deleteYear, eraseAll, getSetting, listYears, loadYear, put
 import type { Ledger } from "./derive";
 import { ID_PREFIX, STORE, duplicateEntry, newId, slug, type AnyEntry, type Kind } from "./entries";
 import { emptyYearFile, nextYearSetup } from "./rollover";
-import { blankSetup, deleteCategory, iraLimitOf, deleteMember, deleteTag, usageOf, withChange, withUncategorized, withoutPeople, type YearChange, type CategoryKind, type Usage } from "./setup";
+import { blankSetup, deleteCategory, iraLimitOf, deleteMember, deleteTag, usageOf, withChange, withStart, withUncategorized, withoutPeople, type YearChange, type CategoryKind, type Usage } from "./setup";
 import type { PersistState } from "./storage";
 import type { YearSetup } from "./types";
 
@@ -265,11 +265,20 @@ export function removeMember(id: string): Promise<void> {
   });
 }
 
+/** Move the day the open year's tracking starts (null: January 1). Throws a SetupError if entries come before it. */
+export function setStart(start: string | null): Promise<void> {
+  return inTurn(async () => {
+    const data = editable();
+    await saveSetup(withStart(data, start));
+  });
+}
+
 /** Start a year from scratch, with the standard categories and no accounts. */
-export async function startYear(year: number): Promise<void> {
+export async function startYear(year: number, start: string | null = null): Promise<void> {
   await inTurn(async () => {
     if ((await listYears()).some((y) => y.year === year)) throw new Error(`${year} already exists.`);
-    await replaceYear(emptyYearFile(blankSetup(year)));
+    const setup = blankSetup(year);
+    await replaceYear(emptyYearFile(withStart({ setup, expenses: [], earnings: [], transfers: [] }, start)));
   });
   await openYear(year);
 }

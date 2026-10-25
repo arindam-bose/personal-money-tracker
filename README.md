@@ -25,6 +25,8 @@ a signal too. New versions download by themselves; the top bar then offers
 2. Either **import** a Money Tracker file (`.json`), or **start the year from
    scratch**: you get a standard set of categories, then add your bank accounts,
    cards and cash on the **Accounts** page.
+   Starting partway through the year? Pick the day you start: enter what each
+   account held that morning, and the ledger begins there.
 3. Log what happens on the **Ledger** page.
 
 ## What's in it

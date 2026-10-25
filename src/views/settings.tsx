@@ -5,7 +5,7 @@ import { useSignal } from "@preact/signals";
 import { useEffect } from "preact/hooks";
 import { downloadYear, importYear, readJsonFile } from "../backup";
 import { formatCents, parseCents } from "../money";
-import { balances } from "../derive";
+import { balances, localToday } from "../derive";
 import { nextYearSetup } from "../rollover";
 import {
   closeYear, current, type YearSummary, eraseEverything, iraLimit, ledger, loadSettings, openYear, persistState, readOnly, removeYear, reopenYear, saveIraLimit, startYear, years,
@@ -15,7 +15,7 @@ import { AboutCard } from "./about";
 import { checkForUpdates, offlineChanged, offlineStatus } from "../offline";
 import { daysSince, requestPersistence } from "../storage";
 import { setTheme, theme, themeChoice, type ThemeChoice } from "../theme";
-import { validateYearFile } from "../validate";
+import { isDateInYear, validateYearFile } from "../validate";
 import type { YearFile } from "../types";
 
 const MAY_CLEAR = "This browser may clear your data on its own - if the site goes unvisited for a while, or space runs low - so keep a backup.";
@@ -65,8 +65,8 @@ export function SettingsView() {
   /** The year whose row is asking "Delete …?". */
   const deleting = useSignal<number | null>(null);
 
-  async function onStart() {
-    await startYear(new Date().getFullYear());
+  async function onStart(start: string | null) {
+    await startYear(Number(localToday().slice(0, 4)), start);
     location.hash = "#/accounts";
   }
 
@@ -130,8 +130,7 @@ export function SettingsView() {
       {years.value.length === 0 ? (
         <div class="start-options">
           <p>No data yet. Import a Money Tracker JSON file below, or start from scratch.</p>
-          <button type="button" class="primary" onClick={onStart}>Start {new Date().getFullYear()} from scratch</button>
-          <p class="muted small">You'll get the standard categories, then add your accounts.</p>
+          <StartFromScratch onStart={onStart} />
         </div>
       ) : (
         <table class="years">
@@ -213,6 +212,32 @@ export function SettingsView() {
     <EraseCard onDone={(text) => { errors.value = []; message.value = text; }} />
     <AboutCard />
     </>
+  );
+}
+
+/** Start this year empty: from January 1, or from a later day when starting partway through. */
+function StartFromScratch(props: { onStart: (start: string | null) => void }) {
+  const today = localToday();
+  const year = Number(today.slice(0, 4));
+  const fromJan = useSignal(today.endsWith("-01-01"));
+  const day = useSignal(today);
+  const ok = fromJan.value || isDateInYear(day.value, year);
+  return (
+    <form class="start-form" onSubmit={(e) => { e.preventDefault(); if (ok) props.onStart(fromJan.value ? null : day.value); }}>
+      <label class="choice">
+        <input type="radio" name="start" checked={fromJan.value} onChange={() => (fromJan.value = true)} />
+        From January 1, {year}: you know what each account held then.
+      </label>
+      <label class="choice">
+        <input type="radio" name="start" checked={!fromJan.value} onChange={() => (fromJan.value = false)} />
+        From
+        <input type="date" value={day.value} min={`${year}-01-01`} max={`${year}-12-31`}
+          onFocus={() => (fromJan.value = false)} onInput={(e) => (day.value = e.currentTarget.value)} />
+        : starting partway through the year. The ledger begins that day.
+      </label>
+      <button type="submit" class="primary" disabled={!ok}>Start {year} from scratch</button>
+      <p class="muted small">You'll get the standard categories, then add your accounts with what each held on the day you start.</p>
+    </form>
   );
 }
 

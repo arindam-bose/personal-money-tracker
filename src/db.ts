@@ -141,6 +141,7 @@ export async function replaceYear(file: YearFile, extra: Pick<YearSetup, "lastBa
   const tx = db.transaction(["years", ...ENTRY_KINDS], "readwrite");
   const setup: YearSetup = {
     year: file.year,
+    ...(file.start ? { start: file.start } : {}),
     ...(file.closed ? { closed: true } : {}),
     accounts: file.accounts,
     categories: file.categories,

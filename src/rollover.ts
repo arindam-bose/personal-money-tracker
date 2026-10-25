@@ -11,6 +11,7 @@ import type { YearFile, YearSetup } from "./types";
  * - accounts, categories, tags, members and the usual budget targets carry over.
  *   One-month budget overrides belong to their month, so they don't, and neither does the
  *   IRA limit: it changes by year, so the new year starts at the IRS limit.
+ * - the new year starts on January 1, even if this one started partway through.
  */
 export function nextYearSetup(setup: YearSetup, ledger: Ledger): YearSetup {
   const closing = balances(ledger);
@@ -33,6 +34,7 @@ export function emptyYearFile(setup: YearSetup, now = new Date()): YearFile {
     app: "money-tracker",
     schema: 1,
     year: setup.year,
+    ...(setup.start ? { start: setup.start } : {}),
     exportedAt: now.toISOString(),
     accounts: setup.accounts,
     categories: setup.categories,

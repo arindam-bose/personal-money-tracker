@@ -5,8 +5,10 @@
 import type { YearData } from "./db";
 import { newId, slug } from "./entries";
 import { membersOf } from "./members";
+import { isDateInYear } from "./validate";
+import { shortDay } from "./year";
 import type {
-  Account, Categories, Category, Cents, Earning, EarningRole, Expense, ExpenseRole, Member, Tag, Transfer, TransferRole, YearSetup,
+  Account, Categories, Category, Cents, IsoDate, Earning, EarningRole, Expense, ExpenseRole, Member, Tag, Transfer, TransferRole, YearSetup,
 } from "./types";
 
 export { DEFAULT_MEMBER, membersOf } from "./members";
@@ -293,6 +295,25 @@ export function withoutPeople(
   const roleChanged = earning.some((c, n) => c !== setup.categories.earning[n]);
   if (people === undefined && !roleChanged && !expenses.length && !earnings.length) return null;
   return { setup: { ...setup, categories: { ...setup.categories, earning } }, expenses, earnings };
+}
+
+// --- Start date ---
+
+/**
+ * Move the day the year's tracking starts. Null (or January 1) means the whole year.
+ * It can't move past an entry that already exists: the opening balances would then
+ * include that entry, and it would count twice.
+ */
+export function withStart(data: Pick<YearData, "setup" | "expenses" | "earnings" | "transfers">, start: IsoDate | null): YearSetup {
+  const { start: _old, ...setup } = data.setup;
+  if (start === null || start === `${setup.year}-01-01`) return setup;
+  if (!isDateInYear(start, setup.year)) throw new SetupError(`Pick a day in ${setup.year}.`);
+  const first = [...data.expenses, ...data.earnings, ...data.transfers].reduce<string | null>(
+    (min, e) => (min === null || e.date < min ? e.date : min), null);
+  if (first !== null && first < start) {
+    throw new SetupError(`There are entries from ${shortDay(first)}, so tracking can't start later than that. Move or delete them first.`);
+  }
+  return { ...setup, start };
 }
 
 // --- IRA limit ---

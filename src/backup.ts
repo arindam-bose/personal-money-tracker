@@ -20,6 +20,7 @@ export async function exportYear(year: number, now = new Date()): Promise<YearFi
     app: "money-tracker",
     schema: 1,
     year,
+    ...(setup.start ? { start: setup.start } : {}),
     exportedAt: now.toISOString(),
     ...(setup.closed ? { closed: true } : {}),
     accounts: setup.accounts,

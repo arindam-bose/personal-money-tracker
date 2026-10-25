@@ -11,6 +11,7 @@ import {
 import { membersOf } from "../setup";
 import { current, ensureTag, nextEntryId, removeEntry, saveEntry } from "../state";
 import type { Account, YearSetup } from "../types";
+import { yearStart } from "../year";
 
 const KIND_LABEL: Record<Kind, string> = { expense: "Expense", earning: "Earning", transfer: "Transfer" };
 
@@ -120,7 +121,7 @@ export function EntryForm({ initial, onClose }: Props) {
 
       <div class="fields">
         <Field label="Date" error={err.date} class="w-date">
-          <input type="date" value={d.date} min={`${setup.year}-01-01`} max={`${setup.year}-12-31`}
+          <input type="date" value={d.date} min={yearStart(setup)} max={`${setup.year}-12-31`}
             onInput={(e) => set("date", e.currentTarget.value)} />
         </Field>
         <Field label="Item" error={err.item} class="w-item">

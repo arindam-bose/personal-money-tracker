@@ -7,6 +7,7 @@ import type {
   Account, Earning, EarningRole, Expense, Transfer, TransferRole, YearSetup,
 } from "./types";
 import { isDateInYear } from "./validate";
+import { shortDay, yearStart } from "./year";
 
 export type Kind = "expense" | "earning" | "transfer";
 
@@ -97,6 +98,7 @@ export function checkDraft(draft: Draft, setup: YearSetup, id: string): CheckRes
   };
 
   if (!isDateInYear(draft.date, setup.year)) errors.date = `Pick a date in ${setup.year}.`;
+  else if (draft.date < yearStart(setup)) errors.date = `Tracking starts on ${shortDay(yearStart(setup))}. Pick that day or later.`;
   const item = draft.item.trim();
   if (!item) errors.item = "Say what it was.";
   const amount = parseCents(draft.amount);

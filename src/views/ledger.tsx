@@ -9,6 +9,7 @@ import { formatCents } from "../money";
 import { membersOf } from "../setup";
 import { current, duplicate, readOnly } from "../state";
 import type { YearSetup } from "../types";
+import { yearStart } from "../year";
 import { EntryForm } from "./entry-form";
 
 export interface Filters {
@@ -140,10 +141,11 @@ function matches(e: AnyEntry, f: Filters, window: [string, string] | null, defau
 /** A row's unique key: ids are only unique within their kind. */
 const rowKey = (e: AnyEntry) => `${e.kind}:${e.entry.id}`;
 
-/** Today if it falls in the open year, otherwise January 1 of that year. */
-function defaultDate(year: number): string {
+/** Today if it falls in the open year's ledger, otherwise the day the ledger starts. */
+function defaultDate(setup: YearSetup): string {
   const today = localToday();
-  return Number(today.slice(0, 4)) === year ? today : `${year}-01-01`;
+  const start = yearStart(setup);
+  return Number(today.slice(0, 4)) === setup.year && today >= start ? today : start;
 }
 
 export function LedgerView() {
@@ -197,7 +199,7 @@ export function LedgerView() {
     if (year === undefined || readOnly.value || current.value!.setup.accounts.length === 0) return;
     // Filtered to one person: the new entry is theirs, so it stays in view once saved.
     const member = live.value.member === membersOf(current.value!.setup)[0]!.id ? "" : live.value.member;
-    form.value = { ...emptyDraft(kind, defaultDate(year)), member };
+    form.value = { ...emptyDraft(kind, defaultDate(current.value!.setup)), member };
     window.scrollTo({ top: 0 });
   }
 
