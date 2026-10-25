@@ -32,7 +32,8 @@ function DialogFact(props: { term: string; title: string; children: ComponentChi
         // A click on the backdrop lands on the dialog itself: close it, like Esc does.
         onClick={(e) => e.target === dialog.current && dialog.current?.close()}>
         <div class="guide-body">
-          <h2>{props.title}</h2>
+          {/* Focus starts on the title, so a long dialog opens at its top, not scrolled to Close. */}
+          <h2 tabIndex={-1} autofocus>{props.title}</h2>
           {props.children}
           <div class="form-actions">
             <button type="button" class="primary" onClick={() => dialog.current?.close()}>Close</button>
@@ -82,6 +83,15 @@ export function AboutCard() {
             <li>Add your bank accounts, cards and cash on the <b>Accounts</b> page.</li>
             <li>Log what happens on the <b>Ledger</b> page.</li>
           </ol>
+          <h3>For the whole family</h3>
+          <p>
+            One tracker can keep a whole household's money. Everything belongs to <b>Person A</b> until
+            you add more people under <b>People</b> on the <b>Accounts</b> page (rename Person A to
+            yourself there, too). Then each
+            earning, expense or transfer can be logged for the person it belongs to, and the
+            Dashboard, Ledger and Reports show <b>All people</b> together or one person at a time.
+            Accounts and budgets stay shared by everyone.
+          </p>
           <h3>The pages</h3>
           <ul>
             <li><b>Dashboard</b>: the month or year at a glance, with budgets, balances and card use.</li>

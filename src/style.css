@@ -904,6 +904,10 @@ dialog.guide::backdrop {
   font-size: 18px;
 }
 
+.guide-body h2:focus {
+  outline: none;
+}
+
 .guide-body h3 {
   margin: 16px 0 4px;
   font-size: 15px;
