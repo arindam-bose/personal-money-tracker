@@ -8,7 +8,7 @@ import { formatCents, parseCents } from "../money";
 import { balances } from "../derive";
 import { nextYearSetup } from "../rollover";
 import {
-  closeYear, current, eraseEverything, iraLimit, ledger, loadSettings, openYear, persistState, readOnly, removeYear, reopenYear, saveIraLimit, startYear, years,
+  closeYear, current, type YearSummary, eraseEverything, iraLimit, ledger, loadSettings, openYear, persistState, readOnly, removeYear, reopenYear, saveIraLimit, startYear, years,
 } from "../state";
 import { IRA_LIMITS, iraLimitOf } from "../setup";
 import { AboutCard } from "./about";
@@ -16,6 +16,7 @@ import { checkForUpdates, offlineChanged, offlineStatus } from "../offline";
 import { daysSince, requestPersistence } from "../storage";
 import { setTheme, theme, themeChoice, type ThemeChoice } from "../theme";
 import { validateYearFile } from "../validate";
+import type { YearFile } from "../types";
 
 const MAY_CLEAR = "This browser may clear your data on its own - if the site goes unvisited for a while, or space runs low - so keep a backup.";
 
@@ -27,6 +28,26 @@ const PERSIST_TEXT = {
 
 function entryCount(n: number): string {
   return `${n.toLocaleString()} ${n === 1 ? "entry" : "entries"}`;
+}
+
+/** "19 entries (8 expenses, 6 earnings, 5 transfers)". */
+function entryBreakdown(counts: { expenses: number; earnings: number; transfers: number }): string {
+  const { expenses, earnings, transfers } = counts;
+  const kind = (n: number, one: string) => `${n.toLocaleString()} ${one}${n === 1 ? "" : "s"}`;
+  return `${entryCount(expenses + earnings + transfers)} (${kind(expenses, "expense")}, ${kind(earnings, "earning")}, ${kind(transfers, "transfer")})`;
+}
+
+/** The question before an import replaces a stored year: what is here now, and what the file holds. */
+function replaceQuestion(fileName: string, stored: YearSummary, file: YearFile): string {
+  const exported = new Date(file.exportedAt).toLocaleDateString(undefined, { day: "numeric", month: "short", year: "numeric" });
+  return [
+    `Replace all your ${file.year} data with "${fileName}"?`,
+    "",
+    `In the tracker now: ${entryBreakdown(stored)}. ${backupText(stored.setup.lastBackupAt)}.`,
+    `In the file: ${entryBreakdown({ expenses: file.expenses.length, earnings: file.earnings.length, transfers: file.transfers.length })}, exported ${exported}.`,
+    "",
+    "This can't be undone.",
+  ].join("\n");
 }
 
 function backupText(iso: string | undefined): string {
@@ -85,9 +106,8 @@ export function SettingsView() {
         return;
       }
       const { year } = check.file;
-      if (years.value.some((y) => y.setup.year === year)) {
-        if (!confirm(`Replace all your ${year} data with "${file.name}"? This can't be undone.`)) return;
-      }
+      const stored = years.value.find((y) => y.setup.year === year);
+      if (stored && !confirm(replaceQuestion(file.name, stored, check.file))) return;
       await importYear(data);
       message.value = `Imported ${year} from "${file.name}".`;
       await Promise.all([openYear(year), loadSettings()]);
