@@ -495,9 +495,15 @@ export function monthKey(year: number, month: number): string {
   return `${year}-${String(month).padStart(2, "0")}`;
 }
 
-/** A category's target for one month: that month's override if set, else the usual target. */
-export function budgetTarget(budgets: Budgets, year: number, month: number, cat: string): Cents | undefined {
-  return budgets[monthKey(year, month)]?.[cat] ?? budgets.default[cat];
+/**
+ * A category's target for a month: that month's own target, else the usual one. `share` scales
+ * the usual target for a month only partly tracked (see monthShare); a month's own target is
+ * taken as given.
+ */
+export function budgetTarget(budgets: Budgets, year: number, month: number, cat: string, share = 1): Cents | undefined {
+  const own = budgets[monthKey(year, month)]?.[cat];
+  const usual = budgets.default[cat];
+  return own ?? (usual === undefined ? undefined : Math.round(usual * share));
 }
 
 export interface BudgetLine {
@@ -549,11 +555,7 @@ export function budgetView(ledger: Ledger, budgets: Budgets, year: number, wante
   const single = months.length === 1 ? months[0] : undefined;
   let budgeted = 0, spentBudgeted = 0, spentUnbudgeted = 0;
   const lines = ledger.categories.expense.map((c): BudgetLine => {
-    const targets = months.map((m) => {
-      const own = budgets[monthKey(year, m)]?.[c.id];
-      const usual = budgets.default[c.id];
-      return own ?? (usual === undefined ? undefined : Math.round(usual * monthShare(setup, m)));
-    });
+    const targets = months.map((m) => budgetTarget(budgets, year, m, c.id, monthShare(setup, m)));
     const target = targets.every((t) => t === undefined) ? undefined : targets.reduce<number>((a, t) => a + (t ?? 0), 0);
     const s = spent.get(c.id) ?? 0;
     if (target === undefined) spentUnbudgeted += s;

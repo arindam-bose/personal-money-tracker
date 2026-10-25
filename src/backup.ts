@@ -2,6 +2,7 @@
 // in the same shape the importer and tools/notion_import.py produce.
 
 import { getSetting, loadYear, putSetup, replaceYear, setSetting } from "./db";
+import { localToday } from "./derive";
 import { detectDevice, type Device } from "./device";
 import { iraLimitOf, withChange, withoutPeople } from "./setup";
 import type { YearFile } from "./types";
@@ -47,7 +48,9 @@ export async function importYear(data: unknown): Promise<ValidationResult> {
   const result = validateYearFile(data);
   if (!result.ok) return result;
   const { file } = result;
-  await replaceYear(file, { lastBackupAt: file.exportedAt });
+  // A file without a usable export time (hand-made, say) still imports; it just isn't a dated backup.
+  const exported = Date.parse(file.exportedAt);
+  await replaceYear(file, Number.isNaN(exported) ? {} : { lastBackupAt: new Date(exported).toISOString() });
   const pinned = file.settings?.pinnedTags;
   if (pinned && (await getSetting("pinnedTags")) === undefined) await setSetting("pinnedTags", pinned);
   return result;
@@ -68,11 +71,10 @@ export async function markBackedUp(year: number, at = new Date()): Promise<void>
  */
 export function backupFileName(year: number, at: Date, device: Device): string {
   const two = (n: number) => String(n).padStart(2, "0");
-  const date = `${at.getFullYear()}-${two(at.getMonth() + 1)}-${two(at.getDate())}`;
   const time = `${two(at.getHours())}-${two(at.getMinutes())}-${two(at.getSeconds())}`;
   const names = [device.browser, device.system].filter((x): x is string => !!x)
     .map((x) => x.toLowerCase().replace(/\s+/g, "-"));
-  return [`money-tracker-${year}`, date, time, ...names].join("_") + ".json";
+  return [`money-tracker-${year}`, localToday(at), time, ...names].join("_") + ".json";
 }
 
 // --- Browser-only helpers ---

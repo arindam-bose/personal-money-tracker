@@ -264,6 +264,9 @@ describe("budgets", () => {
     expect(budgetTarget(budgets, 2026, 2, "ce_food")).toBe(50000);
     expect(budgetTarget(budgets, 2026, 2, "ce_rent")).toBe(150000);
     expect(budgetTarget(budgets, 2026, 2, "ce_loan")).toBeUndefined();
+    // A partly tracked month scales the usual target, never the month's own.
+    expect(budgetTarget(budgets, 2026, 1, "ce_food", 0.5)).toBe(20000);
+    expect(budgetTarget(budgets, 2026, 2, "ce_food", 0.5)).toBe(50000);
   });
 
   it("compares one month, net of refunds", () => {

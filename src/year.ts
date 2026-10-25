@@ -13,11 +13,6 @@ export function startsMidYear(setup: Pick<YearSetup, "start">): boolean {
   return setup.start !== undefined && !setup.start.endsWith("-01-01");
 }
 
-/** A day as "Jul 14", for labels like "Balance on Jul 14". Read as UTC, so it never slips a day. */
-export function shortDay(iso: IsoDate): string {
-  return new Date(`${iso}T00:00:00Z`).toLocaleDateString(undefined, { month: "short", day: "numeric", timeZone: "UTC" });
-}
-
 /** The month (1 to 12) tracking starts in. */
 export function firstMonth(setup: Pick<YearSetup, "year" | "start">): number {
   return Number(yearStart(setup).slice(5, 7));

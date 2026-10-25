@@ -280,7 +280,7 @@ already exists, it is left alone. A closed year can be reopened.
 | Budget | `views/budget.tsx` | Enter moves down a column; saves on Enter or blur. |
 | Reports | `views/reports.tsx` | Loaded on demand (see Charts). |
 | Accounts | `views/accounts.tsx` | Accounts can be deleted only when no entry uses them. Categories always (entries move to Uncategorized), and tags always (they come off their entries). |
-| Settings | `views/settings.tsx` | Import, export, close/reopen, start from scratch, settings. |
+| Settings | `views/settings.tsx`, `views/about.tsx` | Import, export, close/reopen, delete a year, start from scratch, the year's IRA settings, appearance, offline, erase everything, the demo file, about. |
 
 Routing is by URL hash (`#/ledger`), which works on any static host.
 

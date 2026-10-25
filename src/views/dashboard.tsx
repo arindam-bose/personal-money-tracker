@@ -4,13 +4,13 @@
 
 import { useSignal, useSignalEffect } from "@preact/signals";
 import {
-  MONTH_NAMES, accountsOverview, budgetView, earningsByCategory, localToday, monthProgress, netEarningCategories, remainingRetirement, spendingOffsetCategories, spendByCategory, summarize, tagTotal,
+  MONTH_NAMES, accountsOverview, budgetView, earningsByCategory, localToday, monthProgress, netEarningCategories, remainingRetirement, shortDate, spendingOffsetCategories, spendByCategory, summarize, tagTotal,
 } from "../derive";
 import { formatCents, formatPercent } from "../money";
 import { current, iraLimit, ledger, pinnedTags, savePinnedTags } from "../state";
 import type { Ledger } from "../derive";
 import type { Account } from "../types";
-import { firstMonth, shortDay, yearStart } from "../year";
+import { firstMonth, yearStart } from "../year";
 import { BudgetBar } from "./budget";
 import { showInLedger } from "./ledger";
 import { MemberPicker, viewedLedger, viewedMember } from "./people";
@@ -50,7 +50,7 @@ export function DashboardView() {
     return (
       <section class="panel">
         <h2>Dashboard</h2>
-        <p>No data yet. Go to <a href="#/settings">Settings</a> to import a year.</p>
+        <p>No data yet. Go to <a href="#/settings">Settings</a> to import a year or start one from scratch.</p>
       </section>
     );
   }
@@ -175,7 +175,7 @@ function netEarningsDetail(l: Ledger): string {
 function netSpendingDetail(l: Ledger, offsets: number): string {
   const ids = spendingOffsetCategories(l);
   const names = l.categories.earning.filter((c) => ids.has(c.id)).map((c) => c.name);
-  return names.length ? `After ${formatCents(offsets)} of ${names.join(" + ")}` : "Every earning counts in net earnings, so nothing comes off.";
+  return names.length ? `After ${formatCents(offsets)} of ${names.join(" + ")}` : "No earning category lowers spending, so nothing comes off.";
 }
 
 function Tile(props: { label: string; value: string; detail?: string; tone?: "pos" | "neg"; onRemove?: () => void }) {
@@ -310,7 +310,7 @@ function RetirementRoom({ left, limit, before, start }: { left: number; limit: n
   return (
     <p class="note">
       Retirement room left this year: <b>{formatCents(left)}</b> of the {formatCents(limit)} limit
-      {before ? <>, after {formatCents(before)} put in before {shortDay(start)}</> : null}{" "}
+      {before ? <>, after {formatCents(before)} put in before {shortDate(start)}</> : null}{" "}
       <a href="#/settings" class="small">change</a>
     </p>
   );

@@ -30,7 +30,7 @@ export function ReportsView() {
     return (
       <section class="panel">
         <h2>Reports</h2>
-        <p>No data yet. Go to <a href="#/settings">Settings</a> to import a year.</p>
+        <p>No data yet. Go to <a href="#/settings">Settings</a> to import a year or start one from scratch.</p>
       </section>
     );
   }

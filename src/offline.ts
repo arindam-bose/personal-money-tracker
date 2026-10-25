@@ -7,6 +7,16 @@ import { version } from "../package.json";
 /** The service worker names its cache after the release it holds. */
 const CACHE_PREFIX = "money-tracker-v";
 
+/** True when release `a` comes after `b`: "1.0.10" after "1.0.9", compared figure by figure. */
+export function isNewer(a: string, b: string): boolean {
+  const x = a.split(".").map(Number);
+  const y = b.split(".").map(Number);
+  for (let i = 0; i < Math.max(x.length, y.length); i++) {
+    if ((x[i] ?? 0) !== (y[i] ?? 0)) return (x[i] ?? 0) > (y[i] ?? 0);
+  }
+  return false;
+}
+
 /** A newer release that is cached and shows once the page reloads, or null. */
 export const updateReady = signal<string | null>(null);
 
@@ -19,7 +29,8 @@ export function registerOffline(): void {
   navigator.serviceWorker.addEventListener("message", (event) => {
     if (event.data?.type !== "offline-ready") return;
     offlineChanged.value++;
-    if (event.data.version !== version) updateReady.value = event.data.version;
+    // Only a newer release: the page loads from the network, so it can be ahead of the cache.
+    if (isNewer(event.data.version, version)) updateReady.value = event.data.version;
   });
   // `updateViaCache: "none"`, so a check for updates looks past the HTTP cache.
   navigator.serviceWorker.register("./sw.js", { updateViaCache: "none" }).catch((err) => {
@@ -29,12 +40,12 @@ export function registerOffline(): void {
 
 /**
  * The release the offline copy holds, from its cache's name, or null. While an update
- * moves in, the old and new caches both exist for a moment; the new one is the answer.
+ * moves in, the old and new caches both exist for a moment; the newest is the answer.
  */
 async function cachedRelease(): Promise<string | null> {
   if (!("caches" in self)) return null;
   const held = (await caches.keys()).filter((n) => n.startsWith(CACHE_PREFIX)).map((n) => n.slice(CACHE_PREFIX.length));
-  return held.find((v) => v !== version) ?? held[0] ?? null;
+  return held.reduce<string | null>((best, v) => (best === null || isNewer(v, best) ? v : best), null);
 }
 
 /** One line on whether the app works without a signal. */
@@ -63,7 +74,7 @@ export async function checkForUpdates(): Promise<string> {
   if (incoming) return "Found a newer version. Downloading it now…";
   // A newer release may already have come in while this page kept running the old one.
   const cached = await cachedRelease();
-  if (cached && cached !== version) {
+  if (cached && isNewer(cached, version)) {
     updateReady.value = cached;
     return `v${cached} is ready. Reload to use it.`;
   }

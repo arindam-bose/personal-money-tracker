@@ -51,6 +51,11 @@ describe("import and export", () => {
     expect(await loadYear(2027)).toBeNull();
   });
 
+  it("imports a file without a usable export time, as not backed up", async () => {
+    expect(await importYear({ ...sample(), exportedAt: "not a date" })).toMatchObject({ ok: true });
+    expect((await loadYear(2026))!.setup).not.toHaveProperty("lastBackupAt");
+  });
+
   it("tracks the last backup time", async () => {
     await importYear(sample());
     expect((await loadYear(2026))!.setup.lastBackupAt).toBe("2026-03-01T12:00:00.000Z");

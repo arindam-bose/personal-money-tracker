@@ -1,12 +1,13 @@
-// Settings page: import a year from JSON, export (back up) a stored year, close and reopen years,
-// and the open year's own settings.
+// Settings page. Your data: import a year from JSON or start one from scratch (or download the
+// demo), export (back up), close, reopen and delete years. Then the open year's IRA settings,
+// Appearance (light or dark), Offline (the cached copy and updates), Erase everything, and About.
 
 import { useSignal } from "@preact/signals";
 import { useEffect } from "preact/hooks";
 import { downloadYear, importYear, readJsonFile, saveYearFile } from "../backup";
 import { demoFileName, demoYear } from "../demo";
 import { formatCents, parseCents } from "../money";
-import { balances, localToday } from "../derive";
+import { balances, localToday, shortDate } from "../derive";
 import { nextYearSetup } from "../rollover";
 import {
   closeYear, current, type YearSummary, eraseEverything, iraLimit, ledger, loadSettings, openYear, persistState, readOnly, removeYear, reopenYear, saveIraBeforeStart, saveIraLimit, startYear, years,
@@ -16,7 +17,7 @@ import { AboutCard } from "./about";
 import { checkForUpdates, offlineChanged, offlineStatus } from "../offline";
 import { daysSince, requestPersistence } from "../storage";
 import { setTheme, theme, themeChoice, type ThemeChoice } from "../theme";
-import { shortDay, startsMidYear, yearStart } from "../year";
+import { startsMidYear, yearStart } from "../year";
 import { isDateInYear, validateYearFile } from "../validate";
 import type { YearFile } from "../types";
 
@@ -28,25 +29,30 @@ const PERSIST_TEXT = {
   unsupported: MAY_CLEAR,
 };
 
-function entryCount(n: number): string {
-  return `${n.toLocaleString()} ${n === 1 ? "entry" : "entries"}`;
+/** "1 entry", "1,276 entries", "2 years". */
+function plural(n: number, one: string, many = `${one}s`): string {
+  return `${n.toLocaleString()} ${n === 1 ? one : many}`;
 }
+
+const entryCount = (n: number) => plural(n, "entry", "entries");
 
 /** "19 entries (8 expenses, 6 earnings, 5 transfers)". */
 function entryBreakdown(counts: { expenses: number; earnings: number; transfers: number }): string {
   const { expenses, earnings, transfers } = counts;
-  const kind = (n: number, one: string) => `${n.toLocaleString()} ${one}${n === 1 ? "" : "s"}`;
-  return `${entryCount(expenses + earnings + transfers)} (${kind(expenses, "expense")}, ${kind(earnings, "earning")}, ${kind(transfers, "transfer")})`;
+  return `${entryCount(expenses + earnings + transfers)} (${plural(expenses, "expense")}, ${plural(earnings, "earning")}, ${plural(transfers, "transfer")})`;
 }
 
 /** The question before an import replaces a stored year: what is here now, and what the file holds. */
 function replaceQuestion(fileName: string, stored: YearSummary, file: YearFile): string {
-  const exported = new Date(file.exportedAt).toLocaleDateString(undefined, { day: "numeric", month: "short", year: "numeric" });
+  const at = new Date(file.exportedAt);
+  const exported = Number.isNaN(at.getTime())
+    ? "with no export date"
+    : `exported ${at.toLocaleDateString(undefined, { day: "numeric", month: "short", year: "numeric" })}`;
   return [
     `Replace all your ${file.year} data with "${fileName}"?`,
     "",
     `In the tracker now: ${entryBreakdown(stored)}. ${backupText(stored.setup.lastBackupAt)}.`,
-    `In the file: ${entryBreakdown({ expenses: file.expenses.length, earnings: file.earnings.length, transfers: file.transfers.length })}, exported ${exported}.`,
+    `In the file: ${entryBreakdown({ expenses: file.expenses.length, earnings: file.earnings.length, transfers: file.transfers.length })}, ${exported}.`,
     "",
     "This can't be undone.",
   ].join("\n");
@@ -335,10 +341,7 @@ function EraseCard(props: { onDone: (message: string) => void }) {
   const busy = useSignal(false);
   const note = useSignal<string | null>(null);
   const entries = years.value.reduce((n, y) => n + y.expenses + y.earnings + y.transfers, 0);
-  const count = (n: number, one: string, many: string) => `${n.toLocaleString()} ${n === 1 ? one : many}`;
-  const what = years.value.length
-    ? `${count(entries, "entry", "entries")} in ${count(years.value.length, "year", "years")}`
-    : "everything";
+  const what = years.value.length ? `${entryCount(entries)} in ${plural(years.value.length, "year")}` : "everything";
 
   async function onErase() {
     busy.value = true;
@@ -430,7 +433,7 @@ function YearSettings() {
 /** For a year begun partway through: what went into IRAs earlier that year, which the ledger doesn't have. */
 function IraBeforeStart() {
   const setup = current.value!.setup;
-  const day = shortDay(yearStart(setup));
+  const day = shortDate(yearStart(setup));
   const text = useSignal(setup.iraBeforeStart ? (setup.iraBeforeStart / 100).toFixed(2) : "");
   const note = useSignal<string | null>(null);
   const locked = readOnly.value;

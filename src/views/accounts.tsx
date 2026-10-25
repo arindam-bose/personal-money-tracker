@@ -3,7 +3,7 @@
 
 import { useSignal } from "@preact/signals";
 import { useEffect, useRef } from "preact/hooks";
-import { balances, countsInNetEarnings } from "../derive";
+import { balances, countsInNetEarnings, shortDate } from "../derive";
 import { formatCents, parseCents, parseSignedCents } from "../money";
 import {
   deleteAccount, duplicateAccount, memberUses, membersOf, saveAccount, saveCategory, saveMember, saveTag,
@@ -11,7 +11,7 @@ import {
 } from "../setup";
 import { current, ledger, readOnly, removeCategory, removeMember, removeTag, setStart, updateSetup } from "../state";
 import type { Account, AccountType, EarningRole, YearSetup } from "../types";
-import { shortDay, startsMidYear, yearStart } from "../year";
+import { startsMidYear, yearStart } from "../year";
 
 const TYPE_LABEL: Record<AccountType, string> = {
   checking: "Checking", savings: "Savings", cash: "Cash", credit: "Credit card", investment: "Investment",
@@ -56,7 +56,7 @@ export function AccountsView() {
     return (
       <section class="panel">
         <h2>Accounts</h2>
-        <p>No year yet. Go to <a href="#/settings">Settings</a> to import a file or start from scratch.</p>
+        <p>No data yet. Go to <a href="#/settings">Settings</a> to import a year or start one from scratch.</p>
       </section>
     );
   }
@@ -110,18 +110,10 @@ function AccountsCard({ setup, usage }: { setup: YearSetup; usage: Usage }) {
           <h3>Accounts</h3>
           <p class="muted small">
             Opening balances are what each account held {startsMidYear(setup)
-              ? <>on the morning of {shortDay(yearStart(setup))}, when tracking began. Nothing before that day is in the ledger.</>
+              ? <>on the morning of {shortDate(yearStart(setup))}, when tracking began. Nothing before that day is in the ledger.</>
               : <>on January 1, {setup.year}.</>}
           </p>
-          <label class="start-field small">
-            <span class="muted">Tracking starts</span>
-            <input type="date" value={yearStart(setup)} min={`${setup.year}-01-01`} max={`${setup.year}-12-31`} disabled={readOnly.value}
-              onChange={async (e) => {
-                const input = e.currentTarget;
-                const ok = await tryAction(() => setStart(input.value || null), (m) => (error.value = m));
-                if (!ok) input.value = yearStart(current.value!.setup);
-              }} />
-          </label>
+          <StartField key={yearStart(setup)} setup={setup} onError={(m) => (error.value = m)} />
         </div>
         {!readOnly.value && editing.value === null && (
           <button type="button" onClick={() => (editing.value = "new")}>+ Add account</button>
@@ -181,10 +173,44 @@ function owedText(balance: number): string {
   return balance < 0 ? `${formatCents(-balance)} owed` : balance > 0 ? `${formatCents(balance)} credit` : formatCents(0);
 }
 
+/**
+ * The day the year's tracking starts. It saves on Save or Enter, not as you type: typing a
+ * date passes through other valid dates on the way (the 2nd before the 21st), and each would
+ * otherwise be saved.
+ */
+function StartField(props: { setup: YearSetup; onError: (msg: string | null) => void }) {
+  const saved = yearStart(props.setup);
+  const draft = useSignal(saved);
+  const changed = draft.value !== saved && draft.value !== "";
+
+  async function save(e: Event) {
+    e.preventDefault();
+    if (!changed) return;
+    // On success the field remounts with the new start (its key); on failure it goes back.
+    if (!(await tryAction(() => setStart(draft.value), props.onError))) draft.value = saved;
+  }
+
+  return (
+    <form class="start-field small" onSubmit={save}>
+      <label>
+        <span class="muted">Tracking starts</span>{" "}
+        <input type="date" value={draft.value} min={`${props.setup.year}-01-01`} max={`${props.setup.year}-12-31`}
+          disabled={readOnly.value} onInput={(e) => (draft.value = e.currentTarget.value)} />
+      </label>
+      {changed && (
+        <>
+          <button type="submit">Save</button>
+          <button type="button" onClick={() => (draft.value = saved)}>Cancel</button>
+        </>
+      )}
+    </form>
+  );
+}
+
 /** "Balance on Jan 1", "Owed on Jul 14": what the opening field holds, on the day tracking starts. */
 function openingLabel(isCard: boolean, isInvestment: boolean, setup: YearSetup): string {
   if (isInvestment) return "Opening (usually 0)";
-  const day = shortDay(yearStart(setup));
+  const day = shortDate(yearStart(setup));
   return isCard ? `Owed on ${day}` : `Balance on ${day}`;
 }
 

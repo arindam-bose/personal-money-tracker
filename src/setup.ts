@@ -6,7 +6,7 @@ import type { YearData } from "./db";
 import { newId, slug } from "./entries";
 import { membersOf } from "./members";
 import { isDateInYear } from "./validate";
-import { shortDay } from "./year";
+import { shortDate } from "./derive";
 import type {
   Account, Categories, Category, Cents, IsoDate, Earning, EarningRole, Expense, ExpenseRole, Member, Tag, Transfer, TransferRole, YearSetup,
 } from "./types";
@@ -300,18 +300,23 @@ export function withoutPeople(
 // --- Start date ---
 
 /**
- * Move the day the year's tracking starts. Null (or January 1) means the whole year.
+ * Move the day the year's tracking starts. Null (or January 1) means the whole year, which
+ * also drops any IRA contributions noted as made before the start.
  * It can't move past an entry that already exists: the opening balances would then
  * include that entry, and it would count twice.
  */
 export function withStart(data: Pick<YearData, "setup" | "expenses" | "earnings" | "transfers">, start: IsoDate | null): YearSetup {
   const { start: _old, ...setup } = data.setup;
-  if (start === null || start === `${setup.year}-01-01`) return setup;
+  if (start === null || start === `${setup.year}-01-01`) {
+    // From January 1 the whole year is in the ledger, so nothing came "before the start".
+    const { iraBeforeStart: _before, ...whole } = setup;
+    return whole;
+  }
   if (!isDateInYear(start, setup.year)) throw new SetupError(`Pick a day in ${setup.year}.`);
   const first = [...data.expenses, ...data.earnings, ...data.transfers].reduce<string | null>(
     (min, e) => (min === null || e.date < min ? e.date : min), null);
   if (first !== null && first < start) {
-    throw new SetupError(`There are entries from ${shortDay(first)}, so tracking can't start later than that. Move or delete them first.`);
+    throw new SetupError(`There are entries from ${shortDate(first)}, so tracking can't start later than that. Move or delete them first.`);
   }
   return { ...setup, start };
 }

@@ -83,6 +83,12 @@ describe("moving the start", () => {
     expect(withStart(year(), "2026-01-01")).not.toHaveProperty("start");
   });
 
+  it("drops IRA contributions noted as before the start when it goes back to January 1", () => {
+    const data = { ...year(), setup: { ...fromFeb(), iraBeforeStart: 200000 } };
+    expect(withStart(data, null)).not.toHaveProperty("iraBeforeStart");
+    expect(withStart(data, "2026-01-15").iraBeforeStart).toBe(200000);
+  });
+
   it("can't go past an entry that already exists", () => {
     expect(() => withStart(year(), "2026-12-01")).toThrow(SetupError);
     expect(() => withStart(year(), "2026-12-01")).toThrow("There are entries from Feb 1, so tracking can't start later than that. Move or delete them first.");

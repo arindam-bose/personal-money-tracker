@@ -15,11 +15,20 @@ import { SettingsView } from "./views/settings";
 /** Reports pull in the charting library, so their code is only downloaded when first opened. */
 function ReportsPage() {
   const view = useSignal<ComponentType | null>(null);
+  const failed = useSignal(false);
   useEffect(() => {
-    import("./views/reports").then((m) => (view.value = m.ReportsView));
+    // It can fail when a newer version replaced the files this tab was opened with,
+    // or with no signal before the offline copy was made: a reload fetches the current ones.
+    import("./views/reports").then((m) => (view.value = m.ReportsView), () => (failed.value = true));
   }, []);
   const View = view.value;
-  return View ? <View /> : <p class="muted">Loading charts…</p>;
+  if (View) return <View />;
+  return failed.value ? (
+    <p class="muted">
+      The charts couldn't load: this tab is running an older version of the tracker.{" "}
+      <button type="button" class="link" onClick={() => location.reload()}>Reload</button>
+    </p>
+  ) : <p class="muted">Loading charts…</p>;
 }
 
 /** Pages, by URL hash (#/ledger). Hash links work on any static host with no server setup. */

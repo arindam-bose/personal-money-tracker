@@ -55,12 +55,12 @@ import it: a household of two with a month of earnings, spending and transfers.
   Dashboard, Ledger and Reports can show **All people** or one person at a time.
   Accounts and budgets stay shared by everyone.
   **Duplicate** an account to start a similar one (the copy is named "…_new").
-- **Settings**: import, back up, and close a finished year, and set each year's
-  IRA limit. Closing a year starts the next one from its closing balances.
-  **Delete…** on a year's row removes just that year, to free up space; import its
-  backup to bring it back.
-  **Erase everything** empties the tracker (it asks first; download a copy before).
-  **Appearance** picks light or dark mode, or follows your device.
+- **Settings**: import a year, or start one from scratch (from January 1 or any
+  later day); back up, and close a finished year, which starts the next one from
+  its closing balances. Also each year's IRA limit; **Delete…** to remove one
+  year (import its backup to bring it back); **Erase everything**; **Appearance**
+  (light, dark, or as your device); whether the tracker is ready to use offline,
+  with **Check for updates**; a demo file to try; and **About**.
 
 ## Handy keys on the Ledger
 

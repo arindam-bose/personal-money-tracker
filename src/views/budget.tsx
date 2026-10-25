@@ -3,10 +3,10 @@
 
 import { useSignal, useSignalEffect } from "@preact/signals";
 import { useRef } from "preact/hooks";
-import { MONTH_NAMES, budgetView, localToday, monthKey, monthProgress, type BudgetLine } from "../derive";
+import { MONTH_NAMES, budgetView, localToday, monthKey, monthProgress, shortDate, type BudgetLine } from "../derive";
 import { formatCents, formatPercent, parseCents } from "../money";
 import { current, ledger, readOnly, setBudget } from "../state";
-import { firstMonth, monthShare, shortDay, startsMidYear, yearStart } from "../year";
+import { firstMonth, monthShare, startsMidYear, yearStart } from "../year";
 import { showInLedger } from "./ledger";
 
 const PERIOD_KEY = "budget-period";
@@ -45,7 +45,7 @@ export function BudgetView() {
     return (
       <section class="panel">
         <h2>Budget</h2>
-        <p>No data yet. Go to <a href="#/settings">Settings</a> to import a year.</p>
+        <p>No data yet. Go to <a href="#/settings">Settings</a> to import a year or start one from scratch.</p>
       </section>
     );
   }
@@ -171,7 +171,7 @@ export function BudgetView() {
         </table>
         {partial !== null && (
           <p class="muted small">
-            Tracking began on {shortDay(start)}, so {MONTH_NAMES[first - 1]}'s usual targets are scaled to the{" "}
+            Tracking began on {shortDate(start)}, so {MONTH_NAMES[first - 1]}'s usual targets are scaled to the{" "}
             {Math.round(partial * new Date(Date.UTC(year, first, 0)).getUTCDate())} days from then. A <b>This month only</b>{" "}
             target is used as you enter it.
           </p>
