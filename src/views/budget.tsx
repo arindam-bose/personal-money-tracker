@@ -6,27 +6,33 @@ import { useRef } from "preact/hooks";
 import { MONTH_NAMES, budgetView, localToday, monthKey, monthProgress, type BudgetLine } from "../derive";
 import { formatCents, formatPercent, parseCents } from "../money";
 import { current, ledger, readOnly, setBudget } from "../state";
+import { firstMonth, monthShare, shortDay, startsMidYear, yearStart } from "../year";
 import { showInLedger } from "./ledger";
 
 const PERIOD_KEY = "budget-period";
 
 
-/** The month to open: the one kept for this tab, else this month if it's in the year, else January. */
-function initialPeriod(year: number): string {
+/**
+ * The month to open: the one kept for this tab, else this month if it's in the year, else
+ * the first month tracked. Never a month before tracking started.
+ */
+function initialPeriod(year: number, first: number): string {
+  let kept: string | null = null;
   try {
-    const kept = sessionStorage.getItem(PERIOD_KEY);
-    if (kept !== null) return kept;
+    kept = sessionStorage.getItem(PERIOD_KEY);
   } catch {
     // Fall through to the default.
   }
-  return Number(localToday().slice(0, 4)) === year ? String(Number(localToday().slice(5, 7))) : "1";
+  if (kept === "ytd") return kept;
+  const m = kept !== null ? Number(kept) : Number(localToday().slice(0, 4)) === year ? Number(localToday().slice(5, 7)) : first;
+  return String(Math.max(first, m));
 }
 
 export function BudgetView() {
   const data = current.value;
   const l = ledger.value;
   /** "ytd" or "1".."12". */
-  const period = useSignal(initialPeriod(data?.setup.year ?? 0));
+  const period = useSignal(initialPeriod(data?.setup.year ?? 0, data ? firstMonth(data.setup) : 1));
   useSignalEffect(() => {
     try {
       sessionStorage.setItem(PERIOD_KEY, period.value);
@@ -46,27 +52,32 @@ export function BudgetView() {
 
   const { setup } = data;
   const year = setup.year;
-  const lastMonth = Math.max(1, ...l.expenses.map((e) => Number(e.date.slice(5, 7))), Number(localToday().slice(0, 4)) === year ? Number(localToday().slice(5, 7)) : 1);
-  const month = period.value === "ytd" ? undefined : Number(period.value);
-  const months = month ? [month] : Array.from({ length: lastMonth }, (_, i) => i + 1);
-  const view = budgetView(l, setup.budgets, year, months);
+  const first = firstMonth(setup);
+  const start = yearStart(setup);
+  const lastMonth = Math.max(first, ...l.expenses.map((e) => Number(e.date.slice(5, 7))), Number(localToday().slice(0, 4)) === year ? Number(localToday().slice(5, 7)) : 1);
+  // A month kept from another year can come before this year's start.
+  const month = period.value === "ytd" ? undefined : Math.max(first, Number(period.value));
+  const months = month ? [month] : Array.from({ length: lastMonth - first + 1 }, (_, i) => first + i);
+  const view = budgetView(l, setup.budgets, year, months, start);
+  // The start month of a year begun partway through: its usual targets are scaled down.
+  const partial = startsMidYear(setup) && months.includes(first) ? monthShare(setup, first) : null;
   const names = new Map(setup.categories.expense.map((c) => [c.id, c.name]));
-  const pace = month ? monthProgress(year, month, localToday()) : null;
+  const pace = month ? monthProgress(year, month, localToday(), start) : null;
   const left = view.budgeted - view.spentBudgeted;
   const editable = month !== undefined && !readOnly.value;
 
   const step = (by: number) => {
     const m = (month ?? 1) + by;
-    if (m >= 1 && m <= 12) period.value = String(m);
+    if (m >= first && m <= 12) period.value = String(m);
   };
 
   return (
     <div class="budget">
       <div class="filters">
-        <button type="button" onClick={() => step(-1)} disabled={!month || month === 1} aria-label="Previous month">‹</button>
-        <select value={period.value} onChange={(e) => (period.value = e.currentTarget.value)} aria-label="Month">
-          {MONTH_NAMES.map((m, i) => <option value={String(i + 1)}>{m} {year}</option>)}
-          <option value="ytd">Year to date (Jan–{MONTH_NAMES[lastMonth - 1]!.slice(0, 3)})</option>
+        <button type="button" onClick={() => step(-1)} disabled={!month || month === first} aria-label="Previous month">‹</button>
+        <select value={month === undefined ? "ytd" : String(month)} onChange={(e) => (period.value = e.currentTarget.value)} aria-label="Month">
+          {MONTH_NAMES.map((m, i) => i + 1 >= first && <option value={String(i + 1)}>{m} {year}</option>)}
+          <option value="ytd">Year to date ({MONTH_NAMES[first - 1]!.slice(0, 3)}–{MONTH_NAMES[lastMonth - 1]!.slice(0, 3)})</option>
         </select>
         <button type="button" onClick={() => step(1)} disabled={!month || month === 12} aria-label="Next month">›</button>
       </div>
@@ -158,6 +169,13 @@ export function BudgetView() {
             </tr>
           </tfoot>
         </table>
+        {partial !== null && (
+          <p class="muted small">
+            Tracking began on {shortDay(start)}, so {MONTH_NAMES[first - 1]}'s usual targets are scaled to the{" "}
+            {Math.round(partial * new Date(Date.UTC(year, first, 0)).getUTCDate())} days from then. A <b>This month only</b>{" "}
+            target is used as you enter it.
+          </p>
+        )}
         {!month && <p class="muted small">Year to date adds up each month's target, including months that were overridden. Pick a month to change targets.</p>}
         {readOnly.value && <p class="muted small">{year} is closed, so its budget can't be changed.</p>}
       </section>

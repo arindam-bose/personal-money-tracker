@@ -7,6 +7,7 @@
 import type {
   Account, Budgets, Cents, EarningRole, ExpenseRole, IsoDate, TransferRole, YearFile,
 } from "./types";
+import { monthShare } from "./year";
 
 /** The parts of a year the calculations read. A YearFile, or YearData flattened, fits. */
 export type Ledger = Pick<YearFile, "accounts" | "categories" | "expenses" | "earnings" | "transfers">;
@@ -523,8 +524,15 @@ export interface BudgetView {
   netSpent: Cents;
 }
 
-/** Budgeted against spent for the given months (one month, or January up to some month). */
-export function budgetView(ledger: Ledger, budgets: Budgets, year: number, months: number[]): BudgetView {
+/**
+ * Budgeted against spent for the given months (one month, or January up to some month).
+ * For a year that starts partway through (`start`), months before it are left out, and the
+ * start month's usual targets are scaled to the days it covers. A target set for that month
+ * only is taken as given: it was set for the part of the month there is.
+ */
+export function budgetView(ledger: Ledger, budgets: Budgets, year: number, wanted: number[], start?: IsoDate): BudgetView {
+  const setup = { year, start };
+  const months = wanted.filter((m) => monthShare(setup, m) > 0);
   const lowering = spendingOffsetCategories(ledger);
   const spent = new Map<string, Cents>();
   let untargetedOffsets = 0;
@@ -538,7 +546,11 @@ export function budgetView(ledger: Ledger, budgets: Budgets, year: number, month
   const single = months.length === 1 ? months[0] : undefined;
   let budgeted = 0, spentBudgeted = 0, spentUnbudgeted = 0;
   const lines = ledger.categories.expense.map((c): BudgetLine => {
-    const targets = months.map((m) => budgetTarget(budgets, year, m, c.id));
+    const targets = months.map((m) => {
+      const own = budgets[monthKey(year, m)]?.[c.id];
+      const usual = budgets.default[c.id];
+      return own ?? (usual === undefined ? undefined : Math.round(usual * monthShare(setup, m)));
+    });
     const target = targets.every((t) => t === undefined) ? undefined : targets.reduce<number>((a, t) => a + (t ?? 0), 0);
     const s = spent.get(c.id) ?? 0;
     if (target === undefined) spentUnbudgeted += s;
@@ -562,10 +574,13 @@ export function budgetView(ledger: Ledger, budgets: Budgets, year: number, month
 
 /**
  * How far through a month a day is, for the "where you should be by now" mark:
- * 0.5 on the 15th of a 30-day month. Null if the day isn't in that month.
+ * 0.5 on the 15th of a 30-day month. Null if the day isn't in that month. In the month a
+ * year's tracking starts, it counts from the start day.
  */
-export function monthProgress(year: number, month: number, today: IsoDate): number | null {
+export function monthProgress(year: number, month: number, today: IsoDate, start?: IsoDate): number | null {
   if (today.slice(0, 7) !== monthKey(year, month)) return null;
   const days = new Date(Date.UTC(year, month, 0)).getUTCDate();
-  return Number(today.slice(8, 10)) / days;
+  // In the month tracking starts, the month begins on the start day.
+  const from = start && start.slice(0, 7) === today.slice(0, 7) ? Number(start.slice(8, 10)) : 1;
+  return Math.max(0, Number(today.slice(8, 10)) - from + 1) / (days - from + 1);
 }

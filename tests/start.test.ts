@@ -1,14 +1,14 @@
 import { beforeEach, describe, expect, it } from "vitest";
 import { exportYear, importYear } from "../src/backup";
 import { loadYear } from "../src/db";
-import { balances } from "../src/derive";
+import { balances, budgetView, monthProgress } from "../src/derive";
 import { checkDraft, emptyDraft } from "../src/entries";
 import { nextYearSetup } from "../src/rollover";
 import { SetupError, withStart } from "../src/setup";
 import { current, openYear, setStart, startYear } from "../src/state";
 import type { YearFile } from "../src/types";
 import { validateYearFile } from "../src/validate";
-import { yearStart } from "../src/year";
+import { dayBefore, firstMonth, monthShare, yearStart } from "../src/year";
 import { freshDb, sample } from "./helpers";
 
 /** The sample, started on February 1: only its entries from then on, as someone starting that day would have. */
@@ -104,5 +104,43 @@ describe("moving the start", () => {
     await freshDb();
     await startYear(2026);
     expect(current.value!.setup).not.toHaveProperty("start");
+  });
+});
+
+describe("budgets and charts from the start month", () => {
+  const july14 = { year: 2026, start: "2026-07-14" };
+
+  it("knows how much of each month is tracked", () => {
+    expect(firstMonth(july14)).toBe(7);
+    expect(monthShare(july14, 6)).toBe(0);
+    expect(monthShare(july14, 7)).toBeCloseTo(18 / 31);
+    expect(monthShare(july14, 8)).toBe(1);
+    expect(monthShare({ year: 2026 }, 1)).toBe(1);
+    expect(dayBefore("2026-07-14")).toBe("2026-07-13");
+    expect(dayBefore("2026-01-01")).toBe("2025-12-31");
+  });
+
+  it("leaves out months before the start and scales the first one", () => {
+    const l = { ...sample(), expenses: [], earnings: [], transfers: [] };
+    const budgets = { default: { ce_food: 31000 } };
+    const ytd = budgetView(l, budgets, 2026, [1, 2, 3, 4, 5, 6, 7, 8], "2026-07-14");
+    // July 14-31 is 18 of 31 days: 18,000; August is whole: 31,000.
+    expect(ytd.lines.find((x) => x.cat === "ce_food")!.target).toBe(18000 + 31000);
+    expect(budgetView(l, budgets, 2026, [6], "2026-07-14").lines.find((x) => x.cat === "ce_food")!.target).toBeUndefined();
+    // Without a start, every month counts in full.
+    expect(budgetView(l, budgets, 2026, [7]).lines.find((x) => x.cat === "ce_food")!.target).toBe(31000);
+  });
+
+  it("takes a this-month-only target in the start month as given", () => {
+    const l = { ...sample(), expenses: [], earnings: [], transfers: [] };
+    const budgets = { default: { ce_food: 31000 }, "2026-07": { ce_food: 20000 } };
+    expect(budgetView(l, budgets, 2026, [7], "2026-07-14").lines.find((x) => x.cat === "ce_food")!.target).toBe(20000);
+  });
+
+  it("measures the first month's pace from the start day", () => {
+    // July 14 to 31 is 18 days; on the 22nd, 9 of them have begun.
+    expect(monthProgress(2026, 7, "2026-07-22", "2026-07-14")).toBeCloseTo(9 / 18);
+    expect(monthProgress(2026, 7, "2026-07-22")).toBeCloseTo(22 / 31);
+    expect(monthProgress(2026, 8, "2026-08-10", "2026-07-14")).toBeCloseTo(10 / 31);
   });
 });

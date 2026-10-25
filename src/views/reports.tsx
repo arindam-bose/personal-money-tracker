@@ -13,6 +13,7 @@ import { current, ledger } from "../state";
 import { Chart, axisStyle, baseOption, seriesColors, token, type ChartOption } from "./chart";
 import { showInLedger } from "./ledger";
 import { MemberPicker, viewedLedger, viewedMember } from "./people";
+import { dayBefore, firstMonth, yearStart } from "../year";
 
 /** How many categories get their own colour in the stacked chart; the rest fold into "Other". */
 const TOP_CATEGORIES = 6;
@@ -34,11 +35,13 @@ export function ReportsView() {
     );
   }
   const year = data.setup.year;
+  const start = yearStart(data.setup);
   // The same months and weeks for everyone, so one person's charts line up with the household's.
   const dates = [...all.expenses, ...all.earnings, ...all.transfers].map((e) => e.date);
-  const lastDate = dates.reduce((a, b) => (a > b ? a : b), `${year}-01-01`);
-  // Only show months that have happened (all twelve once a year is closed).
-  const months = data.setup.closed ? 12 : Number(lastDate.slice(5, 7));
+  const lastDate = dates.reduce((a, b) => (a > b ? a : b), start);
+  // Only show months that have been tracked: from the start month (January, unless the year
+  // began partway through) to the last month with entries, or December once a year is closed.
+  const months = { first: firstMonth(data.setup), last: data.setup.closed ? 12 : Number(lastDate.slice(5, 7)) };
 
   return (
     <div class="reports">
@@ -47,8 +50,8 @@ export function ReportsView() {
       <MoneyFlowCard ledger={l} year={year} />
       <CashFlowCard ledger={l} months={months} />
       <CategoryCard ledger={l} months={months} />
-      <WeeklyCard ledger={l} year={year} lastDate={lastDate} />
-      {!member && <BalancesCard ledger={l} year={year} lastDate={lastDate} />}
+      <WeeklyCard ledger={l} year={year} start={start} lastDate={lastDate} />
+      {!member && <BalancesCard ledger={l} year={year} start={start} lastDate={lastDate} />}
     </div>
   );
 }
@@ -62,6 +65,15 @@ function Card(props: { title: string; subtitle: string; children: ComponentChild
     </section>
   );
 }
+
+/** The months a report shows, 1 to 12: from the first tracked month to the last one with entries. */
+interface MonthRange {
+  first: number;
+  last: number;
+}
+
+/** One value per month in the range, from a January-to-December list. */
+const inRange = <T,>(list: T[], r: MonthRange) => list.slice(r.first - 1, r.last);
 
 /** The numbers behind a chart, folded away under it. */
 function TableView(props: { head: string[]; rows: (string | number)[][]; foot?: (string | number)[] }) {
@@ -167,13 +179,14 @@ function MoneyFlowCard({ ledger: l, year }: { ledger: Ledger; year: number }) {
 
 // --- Monthly cash flow ---
 
-function CashFlowCard({ ledger: l, months }: { ledger: Ledger; months: number }) {
-  const sums = monthlySummaries(l).slice(0, months);
+function CashFlowCard({ ledger: l, months }: { ledger: Ledger; months: MonthRange }) {
+  const sums = inRange(monthlySummaries(l), months);
+  const labels = inRange(MONTH_SHORT, months);
   const [c1, c2] = seriesColors();
   const option: ChartOption = {
     ...baseOption(),
     tooltip: { ...(baseOption().tooltip as object), trigger: "axis", axisPointer: { type: "shadow" }, valueFormatter: money },
-    xAxis: { type: "category", data: MONTH_SHORT.slice(0, months), ...axisStyle(), splitLine: { show: false } },
+    xAxis: { type: "category", data: labels, ...axisStyle(), splitLine: { show: false } },
     yAxis: { type: "value", ...axisStyle(), axisLine: { show: false }, axisLabel: { color: token("--muted"), formatter: formatCompact } },
     series: [
       { name: "Earned", type: "bar", data: sums.map((s) => s.earned), itemStyle: { color: c1, borderRadius: [4, 4, 0, 0] }, barMaxWidth: 24, barGap: "15%" },
@@ -184,7 +197,7 @@ function CashFlowCard({ ledger: l, months }: { ledger: Ledger; months: number })
     <Card title="Monthly cash flow" subtitle="Everything earned and spent each month (refunds count as earnings, as in Notion).">
       <Chart option={option} height={300} label="Earned and spent per month" />
       <TableView head={["Month", "Earned", "Spent", "Surplus"]}
-        rows={sums.map((s, i) => [MONTH_SHORT[i]!, formatCents(s.earned), formatCents(s.spent), formatCents(s.surplus)])}
+        rows={sums.map((s, i) => [labels[i]!, formatCents(s.earned), formatCents(s.spent), formatCents(s.surplus)])}
         foot={["Total", ...(["earned", "spent", "surplus"] as const).map((k) => formatCents(sums.reduce((a, s) => a + s[k], 0)))]} />
     </Card>
   );
@@ -192,10 +205,12 @@ function CashFlowCard({ ledger: l, months }: { ledger: Ledger; months: number })
 
 // --- Spending by category: stacked chart + heatmap table ---
 
-function CategoryCard({ ledger: l, months }: { ledger: Ledger; months: number }) {
-  const byMonth = spendingByMonth(l);
+function CategoryCard({ ledger: l, months }: { ledger: Ledger; months: MonthRange }) {
+  // Each category's spending for the months shown only.
+  const byMonth = new Map([...spendingByMonth(l)].map(([id, list]) => [id, inRange(list, months)]));
+  const labels = inRange(MONTH_SHORT, months);
   const names = new Map(l.categories.expense.map((c) => [c.id, c.name]));
-  const yearTotal = (id: string) => byMonth.get(id)!.slice(0, months).reduce((a, b) => a + b, 0);
+  const yearTotal = (id: string) => byMonth.get(id)!.reduce((a, b) => a + b, 0);
   const ranked = [...byMonth.keys()].filter((id) => yearTotal(id) > 0).sort((a, b) => yearTotal(b) - yearTotal(a));
   // Colours follow the category's rank for the whole year, so they never change with the view.
   const top = ranked.slice(0, TOP_CATEGORIES);
@@ -204,16 +219,16 @@ function CategoryCard({ ledger: l, months }: { ledger: Ledger; months: number })
   const surface = token("--surface");
 
   const stacks = [
-    ...top.map((id, i) => ({ name: names.get(id) ?? id, color: colors[i]!, data: byMonth.get(id)!.slice(0, months) })),
+    ...top.map((id, i) => ({ name: names.get(id) ?? id, color: colors[i]!, data: byMonth.get(id)! })),
     ...(rest.length ? [{
       name: "Other", color: token("--series-other"),
-      data: Array.from({ length: months }, (_, m) => rest.reduce((a, id) => a + byMonth.get(id)![m]!, 0)),
+      data: labels.map((_, m) => rest.reduce((a, id) => a + byMonth.get(id)![m]!, 0)),
     }] : []),
   ];
   const option: ChartOption = {
     ...baseOption(),
     tooltip: { ...(baseOption().tooltip as object), trigger: "axis", axisPointer: { type: "shadow" }, valueFormatter: money },
-    xAxis: { type: "category", data: MONTH_SHORT.slice(0, months), ...axisStyle(), splitLine: { show: false } },
+    xAxis: { type: "category", data: labels, ...axisStyle(), splitLine: { show: false } },
     yAxis: { type: "value", ...axisStyle(), axisLine: { show: false }, axisLabel: { color: token("--muted"), formatter: formatCompact } },
     series: stacks.map((st, i) => ({
       name: st.name, type: "bar", stack: "spend", data: st.data, barMaxWidth: 24,
@@ -223,7 +238,7 @@ function CategoryCard({ ledger: l, months }: { ledger: Ledger; months: number })
   };
 
   // Heatmap: one hue, darker = more. Shading is relative to the biggest cell.
-  const max = Math.max(1, ...ranked.flatMap((id) => byMonth.get(id)!.slice(0, months)));
+  const max = Math.max(1, ...ranked.flatMap((id) => byMonth.get(id)!));
   const heat = token("--heat");
   return (
     <Card title="Spending by category" subtitle={`The ${top.length} biggest categories of the year, plus everything else. Click a cell in the table to see its entries.`}>
@@ -233,7 +248,7 @@ function CategoryCard({ ledger: l, months }: { ledger: Ledger; months: number })
           <thead>
             <tr>
               <th>Category</th>
-              {MONTH_SHORT.slice(0, months).map((m) => <th class="num">{m}</th>)}
+              {labels.map((m) => <th class="num">{m}</th>)}
               <th class="num">Total</th>
             </tr>
           </thead>
@@ -241,12 +256,13 @@ function CategoryCard({ ledger: l, months }: { ledger: Ledger; months: number })
             {ranked.map((id) => (
               <tr>
                 <td>{names.get(id) ?? id}</td>
-                {byMonth.get(id)!.slice(0, months).map((v, m) => {
+                {byMonth.get(id)!.map((v, i) => {
+                  const m = months.first - 1 + i; // 0 = January
                   const a = v / max;
                   return (
                     <td class="num cell" style={{ background: v ? `rgba(${heat}, ${0.08 + a * 0.82})` : undefined, color: a > 0.5 ? "#fff" : undefined }}
                       onClick={() => v && showInLedger({ cat: id, kind: "expense", month: String(m + 1), member: viewedMember()?.id ?? "" })}
-                      title={v ? `${names.get(id)}, ${MONTH_SHORT[m]}: ${formatCents(v)}` : undefined}>
+                      title={v ? `${names.get(id)}, ${labels[i]}: ${formatCents(v)}` : undefined}>
                       {v ? formatCompact(v) : ""}
                     </td>
                   );
@@ -263,11 +279,12 @@ function CategoryCard({ ledger: l, months }: { ledger: Ledger; months: number })
 
 // --- Weekly spending by source ---
 
-function WeeklyCard({ ledger: l, year, lastDate }: { ledger: Ledger; year: number; lastDate: string }) {
-  const weeks = weeklySpending(l, year).filter((w) => w.start <= lastDate);
+function WeeklyCard({ ledger: l, year, start, lastDate }: { ledger: Ledger; year: number; start: string; lastDate: string }) {
+  // Weeks from the one tracking starts in; the first is labelled with the start day.
+  const weeks = weeklySpending(l, year).filter((w) => w.end >= start && w.start <= lastDate);
   const [c1, c2, c3] = seriesColors();
   const surface = token("--surface");
-  const label = (start: string) => shortDate(start < `${year}-01-01` ? `${year}-01-01` : start);
+  const label = (from: string) => shortDate(from < start ? start : from);
   const sources = [
     { key: "bank", name: "Bank", color: c1 },
     { key: "card", name: "Card", color: c2 },
@@ -296,9 +313,10 @@ function WeeklyCard({ ledger: l, year, lastDate }: { ledger: Ledger; year: numbe
 
 // --- Balances over time ---
 
-function BalancesCard({ ledger: l, year, lastDate }: { ledger: Ledger; year: number; lastDate: string }) {
-  // Start of year, then the end of every week up to the last entry.
-  const points = [`${year - 1}-12-31`, ...weeklySpending(l, year).map((w) => (w.end > lastDate ? lastDate : w.end))]
+function BalancesCard({ ledger: l, year, start, lastDate }: { ledger: Ledger; year: number; start: string; lastDate: string }) {
+  // The opening balances (the day before tracking starts), then the end of every week up to the last entry.
+  const opening = dayBefore(start);
+  const points = [opening, ...weeklySpending(l, year).map((w) => (w.end > lastDate ? lastDate : w.end)).filter((d) => d >= start)]
     .filter((d, i, all) => all.indexOf(d) === i && d <= lastDate);
   const series = balanceSeries(l, points);
   const [c1, c2, c3, c4, c5] = seriesColors();
@@ -309,7 +327,7 @@ function BalancesCard({ ledger: l, year, lastDate }: { ledger: Ledger; year: num
     { key: "invested", name: "Invested this year", color: c3 },
     { key: "saved", name: "Saved this year", color: c4 },
   ] as const;
-  const label = (d: string) => (d < `${year}-01-01` ? "Start" : shortDate(d));
+  const label = (d: string) => (d === opening ? "Start" : shortDate(d));
   const option: ChartOption = {
     ...baseOption(),
     tooltip: { ...(baseOption().tooltip as object), trigger: "axis", valueFormatter: money },

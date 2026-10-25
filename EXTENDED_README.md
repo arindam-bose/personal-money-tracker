@@ -220,6 +220,14 @@ anything earlier, so it would count twice. The importer, the entry form and
 `withStart` (moving the date on the Accounts page) all hold to that. Closing the
 year starts the next one on January 1.
 
+Budgets, the dashboard and reports count from the start month (`firstMonth`,
+`monthShare` in `year.ts`; `budgetView` takes the start). Months before it have
+no targets, and the start month's usual targets are scaled to the days covered:
+from July 14 that is 18 of 31 days. A "This month only" target is used as entered,
+since it was set for the part of the month there is. The pace tick in that month
+counts from the start day. Reports begin at the start month, weekly charts at its
+week, and the balances line at the opening balances.
+
 ### Backups
 
 A backup is the year's `YearFile`, downloaded from the Settings page or the top-bar

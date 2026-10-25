@@ -10,6 +10,7 @@ import { formatCents, formatPercent } from "../money";
 import { current, iraLimit, ledger, pinnedTags, savePinnedTags } from "../state";
 import type { Ledger } from "../derive";
 import type { Account } from "../types";
+import { firstMonth, yearStart } from "../year";
 import { BudgetBar } from "./budget";
 import { showInLedger } from "./ledger";
 import { MemberPicker, viewedLedger, viewedMember } from "./people";
@@ -91,7 +92,7 @@ export function DashboardView() {
       <div class="filters">
         <select value={period.value} onChange={(e) => (period.value = e.currentTarget.value)} aria-label="Period">
           <option value="">{pastYear ? "Whole year" : "Year to date"}</option>
-          {MONTH_NAMES.slice(0, Math.max(lastMonth, month ?? 0)).map((m, i) => <option value={String(i + 1)}>{m}</option>)}
+          {MONTH_NAMES.slice(0, Math.max(lastMonth, month ?? 0)).map((m, i) => i + 1 >= firstMonth(setup) && <option value={String(i + 1)}>{m}</option>)}
         </select>
         <MemberPicker />
       </div>
@@ -317,10 +318,11 @@ function RetirementRoom({ left, limit }: { left: number; limit: number }) {
 function BudgetCard({ month, lastMonth }: { month: number | undefined; lastMonth: number }) {
   const l = ledger.value!;
   const { setup } = current.value!;
+  // budgetView leaves out months before tracking started, and scales the first one.
   const months = month ? [month] : Array.from({ length: lastMonth }, (_, i) => i + 1);
-  const view = budgetView(l, setup.budgets, setup.year, months);
+  const view = budgetView(l, setup.budgets, setup.year, months, yearStart(setup));
   const lines = view.lines.filter((x) => x.target !== undefined);
-  const pace = month ? monthProgress(setup.year, month, localToday()) : null;
+  const pace = month ? monthProgress(setup.year, month, localToday(), yearStart(setup)) : null;
   const names = new Map(setup.categories.expense.map((c) => [c.id, c.name]));
   const left = view.budgeted - view.spentBudgeted;
 
