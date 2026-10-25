@@ -2,6 +2,7 @@
 // in the same shape the importer and tools/notion_import.py produce.
 
 import { getSetting, loadYear, putSetup, replaceYear, setSetting } from "./db";
+import { detectDevice, type Device } from "./device";
 import { iraLimitOf, withChange, withoutPeople } from "./setup";
 import type { YearFile } from "./types";
 import { validateYearFile, type ValidationResult } from "./validate";
@@ -56,6 +57,22 @@ export async function markBackedUp(year: number, at = new Date()): Promise<void>
   if (data) await putSetup({ ...data.setup, lastBackupAt: at.toISOString() });
 }
 
+/**
+ * "money-tracker-2026_2026-10-25_21-30-05_chrome_linux.json": the year, then when the backup
+ * was taken on the reader's own clock (UTC would date an evening's backup tomorrow in the
+ * Americas), then the browser and system. The time is hyphenated because Windows won't have
+ * a colon in a file name, and to the second so two backups on one day never overwrite each other.
+ * A browser or system that can't be made out is left out.
+ */
+export function backupFileName(year: number, at: Date, device: Device): string {
+  const two = (n: number) => String(n).padStart(2, "0");
+  const date = `${at.getFullYear()}-${two(at.getMonth() + 1)}-${two(at.getDate())}`;
+  const time = `${two(at.getHours())}-${two(at.getMinutes())}-${two(at.getSeconds())}`;
+  const names = [device.browser, device.system].filter((x): x is string => !!x)
+    .map((x) => x.toLowerCase().replace(/\s+/g, "-"));
+  return [`money-tracker-${year}`, date, time, ...names].join("_") + ".json";
+}
+
 // --- Browser-only helpers ---
 
 /** Read a user-picked file as JSON. Throws a readable message if it isn't JSON. */
@@ -69,15 +86,16 @@ export async function readJsonFile(file: File): Promise<unknown> {
 
 /** Save a year file through the browser's download, then mark the year as backed up. */
 export async function downloadYear(year: number): Promise<void> {
-  const file = await exportYear(year);
+  const now = new Date();
+  const file = await exportYear(year, now);
   if (!file) throw new Error(`There is no data for ${year}.`);
   const blob = new Blob([JSON.stringify(file, null, 1)], { type: "application/json" });
   const url = URL.createObjectURL(blob);
   const a = document.createElement("a");
   a.href = url;
-  a.download = `money-tracker-${year}.json`;
+  a.download = backupFileName(year, now, detectDevice());
   a.click();
   // Give the browser a moment to start the download before freeing the blob.
   setTimeout(() => URL.revokeObjectURL(url), 1000);
-  await markBackedUp(year);
+  await markBackedUp(year, now);
 }

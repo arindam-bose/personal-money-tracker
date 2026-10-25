@@ -41,6 +41,7 @@ this started). TypeScript is strict, including `noUncheckedIndexedAccess`.
 | `src/validate.ts` | Checks an imported file before anything is stored. |
 | `src/db.ts` | IndexedDB storage. |
 | `src/backup.ts` | JSON import and export. |
+| `src/device.ts` | The browser and system, for backup file names. |
 | `src/theme.ts` | Light or dark: the Settings choice, or following the device. |
 | `src/views/about.tsx` | The About card: About and How to use dialogs, version, links to GitHub. |
 | `src/offline.ts`, `src/service-worker.js` | The offline copy: registering it, its status, checking for updates. |
@@ -215,6 +216,10 @@ A backup is the year's `YearFile`, downloaded from the Settings page or the top-
 reminder (shown after 7 days without one, for years with entries). Importing a
 file counts as a backup made at its `exportedAt` time. JSON keys are written in a
 fixed order, so two backups of the same year diff cleanly.
+Backups are named `money-tracker-<year>_<date>_<time>_<browser>_<system>.json`
+(`backupFileName` in `backup.ts`, `src/device.ts`), e.g.
+`money-tracker-2026_2026-10-25_21-05-09_chrome_linux.json`: local time, to the
+second, so backups from different days and devices sit side by side.
 
 A backup holds everything needed to rebuild the year on a clean device:
 
