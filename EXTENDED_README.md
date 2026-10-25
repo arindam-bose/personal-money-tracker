@@ -25,7 +25,9 @@ website.
 
 The app's version is `version` in `package.json`, shown in the header after the
 name. It reads `vX.0.Y`: X is the major release, Y counts the updates in between.
-Bump Y with every committed change, and keep `package-lock.json` in step.
+Bump Y with every committed change, and keep `package-lock.json` in step. Set
+`released` in `package.json` to that day ("YYYY-MM-DD") too: the About card on the
+Settings page shows "Tool version vX.0.Y, updated <date>" from the two.
 
 Versions: Preact is held on 10.x (11 was too new for `@preact/preset-vite` when
 this started). TypeScript is strict, including `noUncheckedIndexedAccess`.
@@ -39,6 +41,7 @@ this started). TypeScript is strict, including `noUncheckedIndexedAccess`.
 | `src/validate.ts` | Checks an imported file before anything is stored. |
 | `src/db.ts` | IndexedDB storage. |
 | `src/backup.ts` | JSON import and export. |
+| `src/views/about.tsx` | The About card: About and How to use dialogs, version, links to GitHub. |
 | `src/offline.ts`, `src/service-worker.js` | The offline copy: registering it, its status, checking for updates. |
 | `src/derive.ts` | Every computed figure. Plain functions, no UI. |
 | `src/entries.ts` | Entry-form logic: drafts, checks, transfer-category suggestion, duplicating. |

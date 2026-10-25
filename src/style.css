@@ -840,6 +840,84 @@ tr.row-transfer td {
   gap: 10px;
 }
 
+/* The About card: a term on the left, its value on the right. */
+.facts {
+  margin: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  max-width: 560px;
+}
+
+.facts > div {
+  display: flex;
+  align-items: baseline;
+  gap: 10px;
+}
+
+.facts dt {
+  flex: 1;
+  color: var(--muted);
+}
+
+.facts dd {
+  margin: 0;
+  text-align: right;
+  font-variant-numeric: tabular-nums;
+}
+
+.facts dd a {
+  color: var(--accent);
+  text-decoration: none;
+}
+
+.facts dd a:hover {
+  text-decoration: underline;
+}
+
+button.fact-open {
+  padding: 0;
+  font: inherit;
+}
+
+dialog.guide {
+  width: min(640px, calc(100vw - 32px));
+  max-height: calc(100vh - 48px);
+  padding: 0;
+  border: 1px solid var(--border);
+  border-radius: 8px;
+  background: var(--surface);
+  color: var(--text);
+}
+
+dialog.guide::backdrop {
+  background: rgb(0 0 0 / 0.4);
+}
+
+.guide-body {
+  padding: 20px 24px;
+  line-height: 1.5;
+}
+
+.guide-body h2 {
+  margin: 0 0 8px;
+  font-size: 18px;
+}
+
+.guide-body h3 {
+  margin: 16px 0 4px;
+  font-size: 15px;
+}
+
+.guide-body ol,
+.guide-body ul {
+  padding-left: 20px;
+}
+
+.guide-body .data-table td {
+  white-space: normal;
+}
+
 .danger-zone {
   border-left: 4px solid var(--danger);
 }

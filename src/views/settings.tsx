@@ -11,6 +11,7 @@ import {
   closeYear, current, eraseEverything, iraLimit, ledger, loadSettings, openYear, persistState, readOnly, reopenYear, saveIraLimit, startYear, years,
 } from "../state";
 import { IRA_LIMITS, iraLimitOf } from "../setup";
+import { AboutCard } from "./about";
 import { checkForUpdates, offlineChanged, offlineStatus } from "../offline";
 import { daysSince, requestPersistence } from "../storage";
 import { validateYearFile } from "../validate";
@@ -157,6 +158,7 @@ export function SettingsView() {
     {current.value && <YearSettings key={current.value.setup.year} />}
     <OfflineCard />
     <EraseCard onDone={(text) => { errors.value = []; message.value = text; }} />
+    <AboutCard />
     </>
   );
 }
