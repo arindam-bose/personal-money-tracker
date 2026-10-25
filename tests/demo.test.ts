@@ -24,7 +24,7 @@ describe("the demo file", () => {
     const f = demoYear(2026);
     expect(new Set(f.accounts.map((a) => a.type))).toEqual(new Set(["checking", "savings", "credit", "cash", "investment"]));
     expect(f.members!.length).toBe(2);
-    expect([...f.expenses, ...f.earnings, ...f.transfers].some((e) => e.member === "m_sam")).toBe(true);
+    expect([...f.expenses, ...f.earnings, ...f.transfers].some((e) => e.member === "m_john")).toBe(true);
     expect(f.expenses.some((e) => e.tags.length > 0)).toBe(true);
     expect(f.earnings.some((e) => e.offsets === "ce_shopping")).toBe(true);
     const cats = f.categories.earning;
