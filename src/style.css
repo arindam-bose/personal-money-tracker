@@ -1296,6 +1296,9 @@ button.danger-solid {
 .demo-download button.link {
   padding: 0;
   font: inherit;
+  /* Underlined, so it reads as a link inside the sentence. */
+  text-decoration: underline;
+  text-underline-offset: 2px;
 }
 
 .start-form {
