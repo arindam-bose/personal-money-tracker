@@ -3,7 +3,8 @@
 
 import { useSignal } from "@preact/signals";
 import { useEffect } from "preact/hooks";
-import { downloadYear, importYear, readJsonFile } from "../backup";
+import { downloadYear, importYear, readJsonFile, saveYearFile } from "../backup";
+import { demoFileName, demoYear } from "../demo";
 import { formatCents, parseCents } from "../money";
 import { balances, localToday } from "../derive";
 import { nextYearSetup } from "../rollover";
@@ -196,6 +197,7 @@ export function SettingsView() {
         Import JSON…
         <input type="file" accept=".json,application/json" onChange={onImport} hidden />
       </label>
+      <DemoDownload />
 
       {message.value && <p role="status">{message.value}</p>}
       {errors.value.length > 0 && (
@@ -213,6 +215,22 @@ export function SettingsView() {
     <EraseCard onDone={(text) => { errors.value = []; message.value = text; }} />
     <AboutCard />
     </>
+  );
+}
+
+/** A ready-made year to import and look around in, before entering your own money. */
+function DemoDownload() {
+  const year = Number(localToday().slice(0, 4));
+  const have = years.value.some((y) => y.setup.year === year);
+  return (
+    <p class="muted small demo-download">
+      New here?{" "}
+      <button type="button" class="link" onClick={() => saveYearFile(demoYear(year), demoFileName(year))}>
+        Download a demo file
+      </button>{" "}
+      and import it to look around: a household of two with a month of earnings, spending and transfers.
+      {have && <> It is a {year} file, so importing it would replace your own {year} (you'll be asked first).</>}
+    </p>
   );
 }
 

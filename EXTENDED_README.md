@@ -41,6 +41,7 @@ this started). TypeScript is strict, including `noUncheckedIndexedAccess`.
 | `src/validate.ts` | Checks an imported file before anything is stored. |
 | `src/db.ts` | IndexedDB storage. |
 | `src/backup.ts` | JSON import and export. |
+| `src/demo.ts` | The demo file on the Settings page, built from the standard setup. |
 | `src/year.ts` | When a year's tracking starts: its start date, or January 1. |
 | `src/device.ts` | The browser and system, for backup file names. |
 | `src/theme.ts` | Light or dark: the Settings choice, or following the device. |

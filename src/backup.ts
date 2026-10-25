@@ -86,18 +86,23 @@ export async function readJsonFile(file: File): Promise<unknown> {
   }
 }
 
+/** Hand a year file to the browser to download under `name`. */
+export function saveYearFile(file: YearFile, name: string): void {
+  const blob = new Blob([JSON.stringify(file, null, 1)], { type: "application/json" });
+  const url = URL.createObjectURL(blob);
+  const a = document.createElement("a");
+  a.href = url;
+  a.download = name;
+  a.click();
+  // Give the browser a moment to start the download before freeing the blob.
+  setTimeout(() => URL.revokeObjectURL(url), 1000);
+}
+
 /** Save a year file through the browser's download, then mark the year as backed up. */
 export async function downloadYear(year: number): Promise<void> {
   const now = new Date();
   const file = await exportYear(year, now);
   if (!file) throw new Error(`There is no data for ${year}.`);
-  const blob = new Blob([JSON.stringify(file, null, 1)], { type: "application/json" });
-  const url = URL.createObjectURL(blob);
-  const a = document.createElement("a");
-  a.href = url;
-  a.download = backupFileName(year, now, detectDevice());
-  a.click();
-  // Give the browser a moment to start the download before freeing the blob.
-  setTimeout(() => URL.revokeObjectURL(url), 1000);
+  saveYearFile(file, backupFileName(year, now, detectDevice()));
   await markBackedUp(year, now);
 }

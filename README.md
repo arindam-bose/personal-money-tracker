@@ -29,6 +29,9 @@ a signal too. New versions download by themselves; the top bar then offers
    account held that morning, and the ledger begins there.
 3. Log what happens on the **Ledger** page.
 
+Want to look around first? On the **Settings** page, **Download a demo file** and
+import it: a household of two with a month of earnings, spending and transfers.
+
 ## What's in it
 
 - **Dashboard**: the month or year at a glance: what you have after card debt,
