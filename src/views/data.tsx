@@ -7,8 +7,9 @@ import { formatCents, parseCents } from "../money";
 import { balances } from "../derive";
 import { nextYearSetup } from "../rollover";
 import {
-  closeYear, current, iraLimit, ledger, openYear, persistState, reopenYear, saveIraLimit, startYear, years,
+  closeYear, current, iraLimit, ledger, loadSettings, openYear, persistState, readOnly, reopenYear, saveIraLimit, startYear, years,
 } from "../state";
+import { IRA_LIMITS, iraLimitOf } from "../setup";
 import { daysSince, requestPersistence } from "../storage";
 import { validateYearFile } from "../validate";
 
@@ -64,7 +65,7 @@ export function DataView() {
       }
       await importYear(data);
       message.value = `Imported ${year} from "${file.name}".`;
-      await openYear(year);
+      await Promise.all([openYear(year), loadSettings()]);
     } catch (err) {
       message.value = err instanceof Error ? err.message : String(err);
     }
@@ -159,39 +160,55 @@ export function DataView() {
         </ul>
       )}
     </section>
-    <Settings />
+    {current.value && <Settings key={current.value.setup.year} />}
     </>
   );
 }
 
+/** Settings for the open year. Remounted per year (see `key` above), so the field starts at that year's limit. */
 function Settings() {
-  const text = useSignal(formatCents(iraLimit.value).replace(/[$,]/g, ""));
+  const setup = current.value!.setup;
+  const { year } = setup;
+  const irs = iraLimitOf({ year });
+  const plain = (cents: number) => formatCents(cents).replace(/[$,]/g, "");
+  const text = useSignal(plain(iraLimit.value));
   const note = useSignal<string | null>(null);
+  const locked = readOnly.value;
 
   async function onSave(e: Event) {
     e.preventDefault();
-    const cents = parseCents(text.value);
+    // Empty goes back to the IRS limit.
+    const empty = text.value.trim() === "";
+    const cents = empty ? irs : parseCents(text.value);
     if (cents === null) {
       note.value = "Enter an amount like 7500.";
       return;
     }
-    await saveIraLimit(cents);
-    note.value = `Saved: ${formatCents(cents)} a year.`;
+    // The IRS limit isn't stored, so the file keeps following the table.
+    await saveIraLimit(cents === irs ? null : cents);
+    text.value = plain(iraLimit.value);
+    note.value = `Saved: ${formatCents(iraLimit.value)} for ${year}.`;
   }
 
   return (
     <section class="panel settings">
-      <h2>Settings</h2>
+      <h2>Settings for {year}</h2>
       <form onSubmit={onSave} class="setting-row">
         <label class="field">
-          <span class="field-label">Annual IRA contribution limit</span>
-          <input type="text" inputMode="decimal" class="num" value={text.value}
+          <span class="field-label">IRA contribution limit for {year}</span>
+          <input type="text" inputMode="decimal" class="num" value={text.value} disabled={locked}
             onInput={(e) => { text.value = e.currentTarget.value; note.value = null; }} />
         </label>
-        <button type="submit">Save</button>
+        {!locked && <button type="submit">Save</button>}
         {note.value && <span class="muted" role="status">{note.value}</span>}
       </form>
-      <p class="muted small">The dashboard shows how much of this is left after this year's retirement transfers.</p>
+      <p class="muted small">
+        The dashboard shows how much of this is left after {year}'s retirement transfers.{" "}
+        {year in IRA_LIMITS
+          ? <>The IRS limit for {year} is {formatCents(irs)}; leave the field empty to use it.</>
+          : <>No IRS limit is listed for {year} yet, so it starts at {formatCents(irs)}.</>}
+        {locked && <> {year} is closed, so this can't be changed.</>}
+      </p>
     </section>
   );
 }

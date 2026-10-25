@@ -6,7 +6,7 @@ import type { YearData } from "./db";
 import { newId, slug } from "./entries";
 import { membersOf } from "./members";
 import type {
-  Account, Categories, Category, Earning, EarningRole, Expense, ExpenseRole, Member, Tag, Transfer, TransferRole, YearSetup,
+  Account, Categories, Category, Cents, Earning, EarningRole, Expense, ExpenseRole, Member, Tag, Transfer, TransferRole, YearSetup,
 } from "./types";
 
 export { DEFAULT_MEMBER, membersOf } from "./members";
@@ -293,6 +293,19 @@ export function withoutPeople(
   const roleChanged = earning.some((c, n) => c !== setup.categories.earning[n]);
   if (people === undefined && !roleChanged && !expenses.length && !earnings.length) return null;
   return { setup: { ...setup, categories: { ...setup.categories, earning } }, expenses, earnings };
+}
+
+// --- IRA limit ---
+
+/** The IRS annual IRA contribution limit (under 50), by year. Update it when the IRS announces a new one. */
+export const IRA_LIMITS: Record<number, Cents> = { 2024: 700000, 2025: 700000, 2026: 750000 };
+
+/** The year's IRA limit: the one set for it, or else the IRS limit for that year (the nearest listed one). */
+export function iraLimitOf(setup: Pick<YearSetup, "year" | "iraLimit">): Cents {
+  if (setup.iraLimit !== undefined) return setup.iraLimit;
+  const listed = Object.keys(IRA_LIMITS).map(Number).sort((a, b) => a - b);
+  const year = listed.filter((y) => y <= setup.year).pop() ?? listed[0]!;
+  return IRA_LIMITS[year]!;
 }
 
 // --- A year from scratch ---

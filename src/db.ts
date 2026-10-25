@@ -5,7 +5,7 @@
 //   expenses   } one record per entry, keyed by [year, id], because ids like "e0001"
 //   earnings   } repeat every year. Each record is the entry plus its `year`.
 //   transfers  }
-//   settings   app-wide values (e.g. IRA limit), keyed by name
+//   settings   app-wide values (e.g. pinned tags), keyed by name
 
 import type { Earning, Expense, Transfer, YearFile, YearSetup } from "./types";
 
@@ -34,8 +34,6 @@ export interface YearData {
 
 /** App-wide settings and their types. */
 export interface Settings {
-  /** Annual IRA contribution limit, in cents. */
-  iraLimit: number;
   /** The year the app opens to. */
   activeYear: number;
   /** Tag ids whose totals show on the dashboard (e.g. "t_india"). */
@@ -138,16 +136,18 @@ export async function loadYear(year: number): Promise<YearData | null> {
  * Store a whole year from an imported file, replacing anything already stored for it.
  * Runs in one transaction: if anything fails, the old data is left untouched.
  */
-export async function replaceYear(file: YearFile, extra: Pick<YearSetup, "closed" | "lastBackupAt"> = {}): Promise<void> {
+export async function replaceYear(file: YearFile, extra: Pick<YearSetup, "lastBackupAt"> = {}): Promise<void> {
   const db = await openDb();
   const tx = db.transaction(["years", ...ENTRY_KINDS], "readwrite");
   const setup: YearSetup = {
     year: file.year,
+    ...(file.closed ? { closed: true } : {}),
     accounts: file.accounts,
     categories: file.categories,
     tags: file.tags,
     ...(file.members ? { members: file.members } : {}),
     budgets: file.budgets,
+    ...(file.iraLimit !== undefined ? { iraLimit: file.iraLimit } : {}),
     ...extra,
   };
   tx.objectStore("years").put(setup);

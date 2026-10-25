@@ -77,6 +77,15 @@ export function validateYearFile(raw: unknown): ValidationResult {
   if (data.members !== undefined && !Array.isArray(data.members)) err(`"members" must be a list.`);
   if (!isObj(data.categories)) err(`"categories" is missing.`);
   if (!isObj(data.budgets) || !isObj(data.budgets.default)) err(`"budgets.default" is missing.`);
+  if (data.closed !== undefined && typeof data.closed !== "boolean") err(`"closed" must be true or false.`);
+  if (data.iraLimit !== undefined && !(isCents(data.iraLimit) && data.iraLimit >= 0)) err(`"iraLimit" is not whole cents.`);
+  if (data.settings !== undefined) {
+    const pinned = isObj(data.settings) ? data.settings.pinnedTags : undefined;
+    if (!isObj(data.settings)) err(`"settings" must be an object.`);
+    else if (pinned !== undefined && !(Array.isArray(pinned) && pinned.every((t) => typeof t === "string"))) {
+      err(`"settings.pinnedTags" must be a list of tag ids.`);
+    }
+  }
   if (errors.length) return { ok: false, errors };
 
   const cats = data.categories as Obj;

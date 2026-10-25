@@ -7,7 +7,7 @@ import { deleteEntry, getSetting, listYears, loadYear, putEntry, putSetup, putSe
 import type { Ledger } from "./derive";
 import { ID_PREFIX, STORE, duplicateEntry, newId, slug, type AnyEntry, type Kind } from "./entries";
 import { emptyYearFile, nextYearSetup } from "./rollover";
-import { blankSetup, deleteCategory, deleteMember, deleteTag, usageOf, withChange, withUncategorized, withoutPeople, type YearChange, type CategoryKind, type Usage } from "./setup";
+import { blankSetup, deleteCategory, iraLimitOf, deleteMember, deleteTag, usageOf, withChange, withUncategorized, withoutPeople, type YearChange, type CategoryKind, type Usage } from "./setup";
 import type { PersistState } from "./storage";
 import type { YearSetup } from "./types";
 
@@ -35,10 +35,8 @@ export const ledger = computed<Ledger | null>(() => {
   return d && { ...d, accounts: d.setup.accounts, categories: d.setup.categories };
 });
 
-/** Default annual IRA contribution limit: $7,500. Change it on the Data page. */
-export const DEFAULT_IRA_LIMIT = 750000;
-
-export const iraLimit = signal<number>(DEFAULT_IRA_LIMIT);
+/** The open year's IRA contribution limit. Change it on the Data page. */
+export const iraLimit = computed(() => (current.value ? iraLimitOf(current.value.setup) : 0));
 
 const MEMBER_VIEW_KEY = "member-view";
 
@@ -65,13 +63,15 @@ export function setMemberView(id: string): void {
 export const pinnedTags = signal<string[]>([]);
 
 export async function loadSettings(): Promise<void> {
-  iraLimit.value = (await getSetting("iraLimit")) ?? DEFAULT_IRA_LIMIT;
   pinnedTags.value = (await getSetting("pinnedTags")) ?? [];
 }
 
-export async function saveIraLimit(cents: number): Promise<void> {
-  await setSetting("iraLimit", cents);
-  iraLimit.value = cents;
+/** Set the open year's IRA limit. Null goes back to the IRS limit for the year. */
+export function saveIraLimit(cents: number | null): Promise<void> {
+  return inTurn(async () => {
+    const { iraLimit: _old, ...setup } = editable().setup;
+    await saveSetup(cents === null ? setup : { ...setup, iraLimit: cents });
+  });
 }
 
 export async function savePinnedTags(ids: string[]): Promise<void> {

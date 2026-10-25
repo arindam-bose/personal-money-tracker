@@ -9,7 +9,8 @@ import type { YearFile, YearSetup } from "./types";
  * - investment accounts open at 0, because only this year's contributions are tracked
  *   (market value isn't, so gains and losses are unknown);
  * - accounts, categories, tags, members and the usual budget targets carry over.
- *   One-month budget overrides belong to their month, so they don't.
+ *   One-month budget overrides belong to their month, so they don't, and neither does the
+ *   IRA limit: it changes by year, so the new year starts at the IRS limit.
  */
 export function nextYearSetup(setup: YearSetup, ledger: Ledger): YearSetup {
   const closing = balances(ledger);
@@ -41,5 +42,6 @@ export function emptyYearFile(setup: YearSetup, now = new Date()): YearFile {
     earnings: [],
     transfers: [],
     budgets: setup.budgets,
+    ...(setup.iraLimit !== undefined ? { iraLimit: setup.iraLimit } : {}),
   };
 }

@@ -121,6 +121,8 @@ export interface YearFile {
   schema: 1;
   year: number;
   exportedAt: string;
+  /** Set by "Close year"; a closed year is read-only. Left out while the year is open. */
+  closed?: boolean;
   accounts: Account[];
   categories: Categories;
   tags: Tag[];
@@ -130,12 +132,20 @@ export interface YearFile {
   earnings: Earning[];
   transfers: Transfer[];
   budgets: Budgets;
+  /** This year's IRA contribution limit. Left out, the IRS limit for the year applies (see IRA_LIMITS). */
+  iraLimit?: Cents;
+  /** App-wide settings at export time. Importing applies them only to a device that has none yet. */
+  settings?: FileSettings;
+}
+
+/** The app-wide settings a backup carries, so a new device can be set up from it. */
+export interface FileSettings {
+  /** Tag ids whose totals show on the dashboard. */
+  pinnedTags?: string[];
 }
 
 /** The parts of a YearFile that are set up once, not entered day to day. */
-export type YearSetup = Pick<YearFile, "year" | "accounts" | "categories" | "tags" | "members" | "budgets"> & {
-  /** Set by "Close year"; a closed year is read-only. */
-  closed?: boolean;
+export type YearSetup = Pick<YearFile, "year" | "closed" | "accounts" | "categories" | "tags" | "members" | "budgets" | "iraLimit"> & {
   /** When this year was last exported to JSON (ISO timestamp), for the backup reminder. */
   lastBackupAt?: string;
 };

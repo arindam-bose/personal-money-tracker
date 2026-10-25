@@ -162,11 +162,11 @@ moves between your own accounts aren't shown.
 
 `src/db.ts`. One IndexedDB database, `money-tracker`, with five stores:
 
-- `years`: one setup per year (accounts, categories, tags, budgets, plus
-  `closed` and `lastBackupAt`), keyed by year.
+- `years`: one setup per year (accounts, categories, tags, members, budgets,
+  the IRA limit if one is set, plus `closed` and `lastBackupAt`), keyed by year.
 - `expenses`, `earnings`, `transfers`: one record per entry, keyed by
   `[year, id]`, because ids like `e0001` repeat every year.
-- `settings`: app-wide values (IRA limit, pinned tags, the year last opened).
+- `settings`: app-wide values (pinned tags, the year last opened).
 
 Replacing a year on import runs in one transaction: if anything fails, the old
 data stays. The app calls `navigator.storage.persist()` on start so the browser
@@ -188,6 +188,21 @@ A backup is the year's `YearFile`, downloaded from the Data page or the top-bar
 reminder (shown after 7 days without one, for years with entries). Importing a
 file counts as a backup made at its `exportedAt` time. JSON keys are written in a
 fixed order, so two backups of the same year diff cleanly.
+
+A backup holds everything needed to rebuild the year on a clean device:
+
+- `closed: true` for a closed year, so it comes back read-only (left out while open).
+- `iraLimit` when the year has its own IRA limit. Left out, the IRS limit for
+  that year applies (`IRA_LIMITS` in `setup.ts`; years past the list use the
+  latest one). Add the new limit there when the IRS announces it. A closed
+  year's limit doesn't carry into the next year.
+- `settings.pinnedTags`, the dashboard's pinned tags. They are app-wide, so
+  importing applies them only when the device has none saved yet; restoring an
+  old year never undoes today's pins.
+
+All three are optional, so older backups still import. What is left out on
+purpose: `lastBackupAt` (an import counts as a backup at `exportedAt`), the year
+last opened, and per-tab filters and periods.
 
 ### Closing a year
 

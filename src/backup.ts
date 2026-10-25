@@ -1,7 +1,7 @@
 // JSON import and export. The exported file is the real backup: it holds one whole year,
 // in the same shape the importer and tools/notion_import.py produce.
 
-import { loadYear, putSetup, replaceYear } from "./db";
+import { getSetting, loadYear, putSetup, replaceYear, setSetting } from "./db";
 import { withChange, withoutPeople } from "./setup";
 import type { YearFile } from "./types";
 import { validateYearFile, type ValidationResult } from "./validate";
@@ -14,11 +14,13 @@ export async function exportYear(year: number, now = new Date()): Promise<YearFi
   const cleaned = withoutPeople(stored);
   const data = cleaned ? withChange(stored, cleaned) : stored;
   const { setup } = data;
+  const pinnedTags = await getSetting("pinnedTags");
   return {
     app: "money-tracker",
     schema: 1,
     year,
     exportedAt: now.toISOString(),
+    ...(setup.closed ? { closed: true } : {}),
     accounts: setup.accounts,
     categories: setup.categories,
     tags: setup.tags,
@@ -27,16 +29,24 @@ export async function exportYear(year: number, now = new Date()): Promise<YearFi
     earnings: data.earnings,
     transfers: data.transfers,
     budgets: setup.budgets,
+    ...(setup.iraLimit !== undefined ? { iraLimit: setup.iraLimit } : {}),
+    ...(pinnedTags?.length ? { settings: { pinnedTags } } : {}),
   };
 }
 
 /**
  * Validate parsed JSON and, if it is a valid year file, store it, replacing that year.
  * The file being imported is itself a backup, so it counts as the last backup.
+ * Its app-wide settings are used only where this device has none yet, so restoring an old
+ * year never undoes today's choices.
  */
 export async function importYear(data: unknown): Promise<ValidationResult> {
   const result = validateYearFile(data);
-  if (result.ok) await replaceYear(result.file, { lastBackupAt: result.file.exportedAt });
+  if (!result.ok) return result;
+  const { file } = result;
+  await replaceYear(file, { lastBackupAt: file.exportedAt });
+  const pinned = file.settings?.pinnedTags;
+  if (pinned && (await getSetting("pinnedTags")) === undefined) await setSetting("pinnedTags", pinned);
   return result;
 }
 

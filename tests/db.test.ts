@@ -1,6 +1,8 @@
 import { beforeEach, describe, expect, it } from "vitest";
 import { exportYear, importYear, markBackedUp } from "../src/backup";
-import { deleteEntry, deleteYear, getSetting, listYears, loadYear, putEntry, setSetting } from "../src/db";
+import { deleteEntry, deleteYear, getSetting, listYears, loadYear, putEntry, putSetup, setSetting } from "../src/db";
+import { nextYearSetup } from "../src/rollover";
+import { iraLimitOf } from "../src/setup";
 import type { YearFile } from "../src/types";
 import { freshDb, sample } from "./helpers";
 
@@ -78,8 +80,70 @@ describe("single entries", () => {
 
 describe("settings", () => {
   it("stores and reads values", async () => {
-    expect(await getSetting("iraLimit")).toBeUndefined();
-    await setSetting("iraLimit", 750000);
-    expect(await getSetting("iraLimit")).toBe(750000);
+    expect(await getSetting("pinnedTags")).toBeUndefined();
+    await setSetting("pinnedTags", ["t_india"]);
+    expect(await getSetting("pinnedTags")).toEqual(["t_india"]);
+  });
+});
+
+describe("a backup restores everything on a clean device", () => {
+  it("keeps a closed year closed", async () => {
+    await importYear(sample());
+    await putSetup({ ...(await loadYear(2026))!.setup, closed: true });
+    const backup = (await exportYear(2026))!;
+    expect(backup.closed).toBe(true);
+
+    await freshDb();
+    await importYear(backup);
+    expect((await loadYear(2026))!.setup.closed).toBe(true);
+    expect(content((await exportYear(2026))!)).toEqual(content(backup));
+  });
+
+  it("leaves `closed` out of an open year's file", async () => {
+    await importYear(sample());
+    expect(await exportYear(2026)).not.toHaveProperty("closed");
+  });
+
+  it("keeps the year's own IRA limit", async () => {
+    await importYear({ ...sample(), iraLimit: 800000 });
+    const backup = (await exportYear(2026))!;
+    expect(backup.iraLimit).toBe(800000);
+    await freshDb();
+    await importYear(backup);
+    expect(iraLimitOf((await loadYear(2026))!.setup)).toBe(800000);
+  });
+
+  it("carries the pinned tags, without overwriting a device's own", async () => {
+    await importYear(sample());
+    await setSetting("pinnedTags", ["t_india"]);
+    const backup = (await exportYear(2026))!;
+    expect(backup.settings).toEqual({ pinnedTags: ["t_india"] });
+
+    await freshDb();
+    await importYear(backup);
+    expect(await getSetting("pinnedTags")).toEqual(["t_india"]);
+
+    await setSetting("pinnedTags", []);
+    await importYear(backup);
+    expect(await getSetting("pinnedTags")).toEqual([]);
+  });
+});
+
+describe("IRA limit", () => {
+  it("is the IRS limit for the year unless one is set", () => {
+    expect(iraLimitOf({ year: 2024 })).toBe(700000);
+    expect(iraLimitOf({ year: 2025 })).toBe(700000);
+    expect(iraLimitOf({ year: 2026 })).toBe(750000);
+    expect(iraLimitOf({ year: 2030 })).toBe(750000); // not listed yet: the latest one
+    expect(iraLimitOf({ year: 2020 })).toBe(700000); // before the list: the earliest one
+    expect(iraLimitOf({ year: 2026, iraLimit: 0 })).toBe(0);
+  });
+
+  it("doesn't carry into the next year", async () => {
+    await importYear({ ...sample(), iraLimit: 800000 });
+    const data = (await loadYear(2026))!;
+    const next = nextYearSetup(data.setup, { ...data, accounts: data.setup.accounts, categories: data.setup.categories });
+    expect(next).not.toHaveProperty("iraLimit");
+    expect(next).not.toHaveProperty("closed");
   });
 });
