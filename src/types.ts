@@ -143,6 +143,11 @@ export interface YearFile {
    * and then the IRS limit for the year applies (see IRA_LIMITS).
    */
   iraLimit?: Cents;
+  /**
+   * A year begun partway through: IRA contributions made earlier that year, before tracking
+   * started. They aren't in the ledger, but they count against the IRA limit.
+   */
+  iraBeforeStart?: Cents;
   /** App-wide settings at export time. Importing applies them only to a device that has none yet. */
   settings?: FileSettings;
 }
@@ -154,7 +159,7 @@ export interface FileSettings {
 }
 
 /** The parts of a YearFile that are set up once, not entered day to day. */
-export type YearSetup = Pick<YearFile, "year" | "start" | "closed" | "accounts" | "categories" | "tags" | "members" | "budgets" | "iraLimit"> & {
+export type YearSetup = Pick<YearFile, "year" | "start" | "closed" | "accounts" | "categories" | "tags" | "members" | "budgets" | "iraLimit" | "iraBeforeStart"> & {
   /** When this year was last exported to JSON (ISO timestamp), for the backup reminder. */
   lastBackupAt?: string;
 };

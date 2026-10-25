@@ -149,6 +149,7 @@ export async function replaceYear(file: YearFile, extra: Pick<YearSetup, "lastBa
     ...(file.members ? { members: file.members } : {}),
     budgets: file.budgets,
     ...(file.iraLimit !== undefined ? { iraLimit: file.iraLimit } : {}),
+    ...(file.iraBeforeStart !== undefined ? { iraBeforeStart: file.iraBeforeStart } : {}),
     ...extra,
   };
   tx.objectStore("years").put(setup);

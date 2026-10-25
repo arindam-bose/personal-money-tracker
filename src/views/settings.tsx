@@ -8,13 +8,14 @@ import { formatCents, parseCents } from "../money";
 import { balances, localToday } from "../derive";
 import { nextYearSetup } from "../rollover";
 import {
-  closeYear, current, type YearSummary, eraseEverything, iraLimit, ledger, loadSettings, openYear, persistState, readOnly, removeYear, reopenYear, saveIraLimit, startYear, years,
+  closeYear, current, type YearSummary, eraseEverything, iraLimit, ledger, loadSettings, openYear, persistState, readOnly, removeYear, reopenYear, saveIraBeforeStart, saveIraLimit, startYear, years,
 } from "../state";
 import { IRA_LIMITS, iraLimitOf } from "../setup";
 import { AboutCard } from "./about";
 import { checkForUpdates, offlineChanged, offlineStatus } from "../offline";
 import { daysSince, requestPersistence } from "../storage";
 import { setTheme, theme, themeChoice, type ThemeChoice } from "../theme";
+import { shortDay, startsMidYear, yearStart } from "../year";
 import { isDateInYear, validateYearFile } from "../validate";
 import type { YearFile } from "../types";
 
@@ -403,7 +404,46 @@ function YearSettings() {
           : <>No IRS limit is listed for {year} yet, so it starts at {formatCents(irs)}.</>}
         {locked && <> {year} is closed, so this can't be changed.</>}
       </p>
+      {(startsMidYear(setup) || setup.iraBeforeStart !== undefined) && <IraBeforeStart />}
     </section>
+  );
+}
+
+/** For a year begun partway through: what went into IRAs earlier that year, which the ledger doesn't have. */
+function IraBeforeStart() {
+  const setup = current.value!.setup;
+  const day = shortDay(yearStart(setup));
+  const text = useSignal(setup.iraBeforeStart ? (setup.iraBeforeStart / 100).toFixed(2) : "");
+  const note = useSignal<string | null>(null);
+  const locked = readOnly.value;
+
+  async function onSave(e: Event) {
+    e.preventDefault();
+    const cents = text.value.trim() === "" ? 0 : parseCents(text.value);
+    if (cents === null) {
+      note.value = "Enter an amount like 2000.";
+      return;
+    }
+    await saveIraBeforeStart(cents);
+    note.value = `Saved: ${formatCents(cents)} before ${day}.`;
+  }
+
+  return (
+    <>
+      <form onSubmit={onSave} class="setting-row">
+        <label class="field">
+          <span class="field-label">IRA contributions before {day}</span>
+          <input type="text" inputMode="decimal" class="num" value={text.value} placeholder="0.00" disabled={locked}
+            onInput={(e) => { text.value = e.currentTarget.value; note.value = null; }} />
+        </label>
+        {!locked && <button type="submit">Save</button>}
+        {note.value && <span class="muted" role="status">{note.value}</span>}
+      </form>
+      <p class="muted small">
+        Tracking began on {day}, so anything you put into an IRA earlier in {setup.year} isn't in the ledger.
+        Enter it here and it counts against the limit.
+      </p>
+    </>
   );
 }
 

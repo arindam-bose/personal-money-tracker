@@ -10,7 +10,7 @@ import { formatCents, formatPercent } from "../money";
 import { current, iraLimit, ledger, pinnedTags, savePinnedTags } from "../state";
 import type { Ledger } from "../derive";
 import type { Account } from "../types";
-import { firstMonth, yearStart } from "../year";
+import { firstMonth, shortDay, yearStart } from "../year";
 import { BudgetBar } from "./budget";
 import { showInLedger } from "./ledger";
 import { MemberPicker, viewedLedger, viewedMember } from "./people";
@@ -155,7 +155,8 @@ export function DashboardView() {
             <h3>Accounts</h3>
             <p class="muted small">{asOf}</p>
             <AccountsTable overview={accounts} accounts={setup.accounts} />
-            <RetirementRoom left={remainingRetirement(all, iraLimit.value)} limit={iraLimit.value} />
+            <RetirementRoom left={remainingRetirement(all, iraLimit.value, setup.iraBeforeStart)} limit={iraLimit.value}
+              before={setup.iraBeforeStart} start={yearStart(setup)} />
           </section>
         </div>
       )}
@@ -305,10 +306,11 @@ function Meter({ fraction }: { fraction: number | null }) {
   );
 }
 
-function RetirementRoom({ left, limit }: { left: number; limit: number }) {
+function RetirementRoom({ left, limit, before, start }: { left: number; limit: number; before?: number; start: string }) {
   return (
     <p class="note">
-      Retirement room left this year: <b>{formatCents(left)}</b> of the {formatCents(limit)} limit{" "}
+      Retirement room left this year: <b>{formatCents(left)}</b> of the {formatCents(limit)} limit
+      {before ? <>, after {formatCents(before)} put in before {shortDay(start)}</> : null}{" "}
       <a href="#/settings" class="small">change</a>
     </p>
   );

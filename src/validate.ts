@@ -83,6 +83,9 @@ export function validateYearFile(raw: unknown): ValidationResult {
   if (!isObj(data.budgets) || !isObj(data.budgets.default)) err(`"budgets.default" is missing.`);
   if (data.closed !== undefined && typeof data.closed !== "boolean") err(`"closed" must be true or false.`);
   if (data.iraLimit !== undefined && !(isCents(data.iraLimit) && data.iraLimit >= 0)) err(`"iraLimit" is not whole cents.`);
+  if (data.iraBeforeStart !== undefined && !(isCents(data.iraBeforeStart) && data.iraBeforeStart >= 0)) {
+    err(`"iraBeforeStart" is not whole cents.`);
+  }
   if (data.settings !== undefined) {
     const pinned = isObj(data.settings) ? data.settings.pinnedTags : undefined;
     if (!isObj(data.settings)) err(`"settings" must be an object.`);

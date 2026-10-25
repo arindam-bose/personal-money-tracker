@@ -1,11 +1,11 @@
 import { beforeEach, describe, expect, it } from "vitest";
 import { exportYear, importYear } from "../src/backup";
 import { loadYear } from "../src/db";
-import { balances, budgetView, monthProgress } from "../src/derive";
+import { balances, budgetView, monthProgress, remainingRetirement, summarize } from "../src/derive";
 import { checkDraft, emptyDraft } from "../src/entries";
 import { nextYearSetup } from "../src/rollover";
 import { SetupError, withStart } from "../src/setup";
-import { current, openYear, setStart, startYear } from "../src/state";
+import { current, openYear, saveIraBeforeStart, setStart, startYear } from "../src/state";
 import type { YearFile } from "../src/types";
 import { validateYearFile } from "../src/validate";
 import { dayBefore, firstMonth, monthShare, yearStart } from "../src/year";
@@ -142,5 +142,40 @@ describe("budgets and charts from the start month", () => {
     expect(monthProgress(2026, 7, "2026-07-22", "2026-07-14")).toBeCloseTo(9 / 18);
     expect(monthProgress(2026, 7, "2026-07-22")).toBeCloseTo(22 / 31);
     expect(monthProgress(2026, 8, "2026-08-10", "2026-07-14")).toBeCloseTo(10 / 31);
+  });
+});
+
+describe("IRA contributions before the start", () => {
+  it("count against the limit", () => {
+    const l = fromFeb();
+    const tracked = summarize(l).investRetirement;
+    expect(remainingRetirement(l, 750000, 200000)).toBe(750000 - 200000 - tracked);
+    expect(remainingRetirement(l, 750000)).toBe(750000 - tracked);
+    expect(remainingRetirement(l, 750000, 900000)).toBe(0);
+  });
+
+  it("are saved with the year and kept by its backup, but not carried into the next year", async () => {
+    await importYear(fromFeb());
+    await openYear(2026);
+    await saveIraBeforeStart(200000);
+    const backup = (await exportYear(2026))!;
+    expect(backup.iraBeforeStart).toBe(200000);
+    await freshDb();
+    await importYear(backup);
+    const data = (await loadYear(2026))!;
+    expect(data.setup.iraBeforeStart).toBe(200000);
+    const next = nextYearSetup(data.setup, { ...data, accounts: data.setup.accounts, categories: data.setup.categories });
+    expect(next).not.toHaveProperty("iraBeforeStart");
+  });
+
+  it("are cleared by saving nothing", async () => {
+    await importYear({ ...fromFeb(), iraBeforeStart: 5000 });
+    await openYear(2026);
+    await saveIraBeforeStart(0);
+    expect(current.value!.setup).not.toHaveProperty("iraBeforeStart");
+  });
+
+  it("must be whole cents in a file", () => {
+    expect(validateYearFile({ ...fromFeb(), iraBeforeStart: -1 })).toEqual({ ok: false, errors: ['"iraBeforeStart" is not whole cents.'] });
   });
 });

@@ -79,7 +79,9 @@ export function AboutCard() {
         <DialogFact term="How to use this tool" title="How to use Money Tracker">
           <h3>Getting started</h3>
           <ol>
-            <li>On this <b>Settings</b> page, import a Money Tracker backup, or start the year from scratch.</li>
+            <li>On this <b>Settings</b> page, import a Money Tracker backup, or start the year from scratch.
+              Starting partway through the year? Pick the day you start: the ledger begins there, and
+              budgets and reports count from that month.</li>
             <li>Add your bank accounts, cards and cash on the <b>Accounts</b> page.</li>
             <li>Log what happens on the <b>Ledger</b> page.</li>
           </ol>

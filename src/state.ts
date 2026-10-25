@@ -66,6 +66,14 @@ export async function loadSettings(): Promise<void> {
   pinnedTags.value = (await getSetting("pinnedTags")) ?? [];
 }
 
+/** Set what went into IRAs before the open year's tracking started. Null clears it. */
+export function saveIraBeforeStart(cents: number | null): Promise<void> {
+  return inTurn(async () => {
+    const { iraBeforeStart: _old, ...setup } = editable().setup;
+    await saveSetup(cents === null || cents === 0 ? setup : { ...setup, iraBeforeStart: cents });
+  });
+}
+
 /** Set the open year's IRA limit. Null goes back to the IRS limit for the year. */
 export function saveIraLimit(cents: number | null): Promise<void> {
   return inTurn(async () => {

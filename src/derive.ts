@@ -337,9 +337,12 @@ export function accountsOverview(ledger: Ledger, through?: IsoDate): AccountsOve
   };
 }
 
-/** How much more can go into retirement accounts this year. Never below 0. */
-export function remainingRetirement(ledger: Ledger, annualLimit: Cents): Cents {
-  return Math.max(0, annualLimit - summarize(ledger).investRetirement);
+/**
+ * How much more can go into retirement accounts this year. Never below 0. `before` is what
+ * went in earlier in a year whose tracking started partway through.
+ */
+export function remainingRetirement(ledger: Ledger, annualLimit: Cents, before: Cents = 0): Cents {
+  return Math.max(0, annualLimit - before - summarize(ledger).investRetirement);
 }
 
 // --- Report series ---

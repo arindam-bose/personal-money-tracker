@@ -228,6 +228,11 @@ since it was set for the part of the month there is. The pace tick in that month
 counts from the start day. Reports begin at the start month, weekly charts at its
 week, and the balances line at the opening balances.
 
+IRA contributions made earlier that year aren't in the ledger, so the year can
+hold them as `iraBeforeStart` (entered on the Settings page, under the IRA
+limit). `remainingRetirement` counts them against the limit; they aren't carried
+into the next year.
+
 ### Backups
 
 A backup is the year's `YearFile`, downloaded from the Settings page or the top-bar

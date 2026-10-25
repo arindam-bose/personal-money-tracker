@@ -45,5 +45,6 @@ export function emptyYearFile(setup: YearSetup, now = new Date()): YearFile {
     transfers: [],
     budgets: setup.budgets,
     ...(setup.iraLimit !== undefined ? { iraLimit: setup.iraLimit } : {}),
+    ...(setup.iraBeforeStart !== undefined ? { iraBeforeStart: setup.iraBeforeStart } : {}),
   };
 }

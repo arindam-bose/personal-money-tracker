@@ -32,6 +32,7 @@ export async function exportYear(year: number, now = new Date()): Promise<YearFi
     transfers: data.transfers,
     budgets: setup.budgets,
     iraLimit: iraLimitOf(setup),
+    ...(setup.iraBeforeStart !== undefined ? { iraBeforeStart: setup.iraBeforeStart } : {}),
     ...(pinnedTags?.length ? { settings: { pinnedTags } } : {}),
   };
 }
