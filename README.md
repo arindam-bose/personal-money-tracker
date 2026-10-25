@@ -53,6 +53,7 @@ a signal too. New versions download by themselves; the top bar then offers
 - **Settings**: import, back up, and close a finished year, and set each year's
   IRA limit. Closing a year starts the next one from its closing balances.
   **Erase everything** empties the tracker (it asks first; download a copy before).
+  **Appearance** picks light or dark mode, or follows your device.
 
 ## Handy keys on the Ledger
 

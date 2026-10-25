@@ -14,6 +14,7 @@ import { IRA_LIMITS, iraLimitOf } from "../setup";
 import { AboutCard } from "./about";
 import { checkForUpdates, offlineChanged, offlineStatus } from "../offline";
 import { daysSince, requestPersistence } from "../storage";
+import { setTheme, theme, themeChoice, type ThemeChoice } from "../theme";
 import { validateYearFile } from "../validate";
 
 const MAY_CLEAR = "This browser may clear your data on its own - if the site goes unvisited for a while, or space runs low - so keep a backup.";
@@ -156,10 +157,36 @@ export function SettingsView() {
       )}
     </section>
     {current.value && <YearSettings key={current.value.setup.year} />}
+    <AppearanceCard />
     <OfflineCard />
     <EraseCard onDone={(text) => { errors.value = []; message.value = text; }} />
     <AboutCard />
     </>
+  );
+}
+
+const THEMES: [ThemeChoice, string][] = [["system", "System"], ["light", "Light"], ["dark", "Dark"]];
+
+/** Light or dark mode, for this device. */
+function AppearanceCard() {
+  return (
+    <section class="panel settings">
+      <h2>Appearance</h2>
+      <div class="segmented" role="radiogroup" aria-label="Theme">
+        {THEMES.map(([value, label]) => (
+          <button type="button" role="radio" aria-checked={themeChoice.value === value}
+            class={themeChoice.value === value ? "active" : ""} onClick={() => setTheme(value)}>
+            {label}
+          </button>
+        ))}
+      </div>
+      <p class="muted small">
+        {themeChoice.value === "system"
+          ? `Follows this device, which is in ${theme.value} mode now.`
+          : `Always ${theme.value}, whatever this device is set to.`}{" "}
+        Kept on this device only; backups leave it out.
+      </p>
+    </section>
   );
 }
 

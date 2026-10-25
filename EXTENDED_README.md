@@ -41,6 +41,7 @@ this started). TypeScript is strict, including `noUncheckedIndexedAccess`.
 | `src/validate.ts` | Checks an imported file before anything is stored. |
 | `src/db.ts` | IndexedDB storage. |
 | `src/backup.ts` | JSON import and export. |
+| `src/theme.ts` | Light or dark: the Settings choice, or following the device. |
 | `src/views/about.tsx` | The About card: About and How to use dialogs, version, links to GitHub. |
 | `src/offline.ts`, `src/service-worker.js` | The offline copy: registering it, its status, checking for updates. |
 | `src/derive.ts` | Every computed figure. Plain functions, no UI. |
@@ -188,6 +189,16 @@ page itself goes to the network first. The cache is named
 reaches people as an update: it downloads by itself, and the top bar offers
 **Reload**. **Check for updates** on the Settings page asks for it straight away.
 There is no service worker in development (`npm run dev`), so edits always show.
+
+### Light and dark
+
+`src/theme.ts` holds the choice from the Settings page: System (the default),
+Light or Dark. It lives in `localStorage` under `money-tracker-theme`, on this
+device only, so backups and Erase everything leave it alone. The page shows the
+result as `data-theme="light" | "dark"` on `<html>`, and `style.css` swaps every
+colour token under `:root[data-theme="dark"]`. A small inline script in
+`index.html` sets it before the first paint, so there is no flash of the wrong
+theme. Charts read the tokens and redraw when `theme` changes.
 
 ### State changes
 

@@ -1,37 +1,32 @@
 // A thin Preact wrapper around ECharts. Only the chart types we use are bundled.
 // Colours come from the CSS tokens in style.css, so charts follow light/dark mode.
 
-import { signal } from "@preact/signals";
 import { BarChart, LineChart, SankeyChart } from "echarts/charts";
 import { GridComponent, LegendComponent, TooltipComponent } from "echarts/components";
 import * as echarts from "echarts/core";
 import { SVGRenderer } from "echarts/renderers";
 import { useEffect, useRef } from "preact/hooks";
+import { theme } from "../theme";
 
 echarts.use([BarChart, LineChart, SankeyChart, GridComponent, LegendComponent, TooltipComponent, SVGRenderer]);
 
 export type ChartOption = echarts.EChartsCoreOption;
 
-/** Changes when the system switches between light and dark, so charts re-read their colours. */
-export const colorScheme = signal(matchMedia("(prefers-color-scheme: dark)").matches ? "dark" : "light");
-matchMedia("(prefers-color-scheme: dark)").addEventListener("change", (e) => {
-  colorScheme.value = e.matches ? "dark" : "light";
-});
 
 /** The current value of a CSS colour token, e.g. token("--series-1"). */
 export function token(name: string): string {
   return getComputedStyle(document.documentElement).getPropertyValue(name).trim();
 }
 
-/** Series colours in their fixed order. Reading colorScheme makes callers re-render on a theme switch. */
+/** Series colours in their fixed order. Reading theme makes callers re-render on a theme switch. */
 export function seriesColors(): string[] {
-  void colorScheme.value;
+  void theme.value;
   return [1, 2, 3, 4, 5, 6].map((i) => token(`--series-${i}`));
 }
 
 /** Shared look: system font, muted axes, hairline grid, tooltip in the page colours. */
 export function baseOption(): ChartOption {
-  void colorScheme.value;
+  void theme.value;
   const text = token("--text");
   const muted = token("--muted");
   return {

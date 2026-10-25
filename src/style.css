@@ -27,35 +27,35 @@
   font-size: 15px;
   color: var(--text);
   background: var(--bg);
-  color-scheme: light dark;
+  color-scheme: light;
 }
 
-@media (prefers-color-scheme: dark) {
-  :root {
-    --bg: #161617;
-    --surface: #1f1f21;
-    --text: #ececec;
-    --muted: #9a9aa0;
-    --border: #333336;
-    --accent: #5fae86;
-    --accent-text: #0d1f16;
-    --danger: #f2827a;
-    --expense: #f2827a;
-    --earning: #6fcf97;
-    --transfer: #93a3b8;
-    --row-hover: #26262a;
-    --focus: #5fae8666;
-    --series-1: #3987e5;
-    --series-2: #d95926;
-    --series-3: #199e70;
-    --series-4: #c98500;
-    --series-5: #d55181;
-    --series-6: #008300;
-    --series-other: #6b6a66;
-    --chart-grid: #2c2c2e;
-    --chart-axis: #3a3a3d;
-    --heat: 57, 135, 229;
-  }
+/* Dark mode: src/theme.ts sets data-theme from the Settings choice, or from the device. */
+:root[data-theme="dark"] {
+  color-scheme: dark;
+  --bg: #161617;
+  --surface: #1f1f21;
+  --text: #ececec;
+  --muted: #9a9aa0;
+  --border: #333336;
+  --accent: #5fae86;
+  --accent-text: #0d1f16;
+  --danger: #f2827a;
+  --expense: #f2827a;
+  --earning: #6fcf97;
+  --transfer: #93a3b8;
+  --row-hover: #26262a;
+  --focus: #5fae8666;
+  --series-1: #3987e5;
+  --series-2: #d95926;
+  --series-3: #199e70;
+  --series-4: #c98500;
+  --series-5: #d55181;
+  --series-6: #008300;
+  --series-other: #6b6a66;
+  --chart-grid: #2c2c2e;
+  --chart-axis: #3a3a3d;
+  --heat: 57, 135, 229;
 }
 
 body {
@@ -838,6 +838,28 @@ tr.row-transfer td {
   display: flex;
   align-items: flex-end;
   gap: 10px;
+}
+
+/* A row of buttons where one is chosen, e.g. System / Light / Dark. */
+.segmented {
+  display: inline-flex;
+  border: 1px solid var(--border);
+  border-radius: 6px;
+  overflow: hidden;
+}
+
+.segmented button {
+  border: none;
+  border-radius: 0;
+}
+
+.segmented button + button {
+  border-left: 1px solid var(--border);
+}
+
+.segmented button.active {
+  background: var(--accent);
+  color: var(--accent-text);
 }
 
 /* The About card: a term on the left, its value on the right. */
