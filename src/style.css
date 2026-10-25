@@ -1115,6 +1115,15 @@ button.danger-solid {
   justify-content: flex-end;
 }
 
+.row-actions.asking {
+  align-items: center;
+  flex-wrap: wrap;
+}
+
+.row-actions.asking span {
+  font-size: 14px;
+}
+
 .close-panel {
   border: 1px solid var(--border);
   border-left: 4px solid var(--accent);

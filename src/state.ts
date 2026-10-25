@@ -3,7 +3,7 @@
 // update the signal, so what you see is always what is stored.
 
 import { computed, signal } from "@preact/signals";
-import { deleteEntry, eraseAll, getSetting, listYears, loadYear, putEntry, putSetup, putSetupAndEntries, replaceYear, setSetting, type YearData } from "./db";
+import { deleteEntry, deleteYear, eraseAll, getSetting, listYears, loadYear, putEntry, putSetup, putSetupAndEntries, replaceYear, setSetting, type YearData } from "./db";
 import type { Ledger } from "./derive";
 import { ID_PREFIX, STORE, duplicateEntry, newId, slug, type AnyEntry, type Kind } from "./entries";
 import { emptyYearFile, nextYearSetup } from "./rollover";
@@ -306,6 +306,17 @@ export async function reopenYear(year: number): Promise<void> {
     if (data) await putSetup({ ...data.setup, closed: false });
   });
   await openYear(year);
+}
+
+/**
+ * Delete one year: its setup and every entry. Other years stay as they are; the next
+ * year keeps the opening balances it started with. If it was the open year, the newest
+ * remaining year opens instead.
+ */
+export async function removeYear(year: number): Promise<void> {
+  await inTurn(() => deleteYear(year));
+  const open = current.value?.setup.year;
+  await openYear(open !== year ? open : undefined);
 }
 
 /** Erase everything stored: every year, its entries and setup, and the app settings. The app starts empty. */

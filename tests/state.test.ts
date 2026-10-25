@@ -1,7 +1,7 @@
 import { beforeEach, describe, expect, it } from "vitest";
 import { exportYear, importYear } from "../src/backup";
 import { getSetting, listYears, loadYear, putEntry, putSetup, setSetting } from "../src/db";
-import { current, ensureTag, eraseEverything, openYear, pinnedTags, setBudget, years } from "../src/state";
+import { current, ensureTag, eraseEverything, openYear, pinnedTags, removeYear, setBudget, years } from "../src/state";
 import { freshDb, sample } from "./helpers";
 
 beforeEach(async () => {
@@ -93,6 +93,39 @@ describe("erase everything", () => {
     // And a backup restores it all again.
     await importYear(sample());
     await openYear();
+    expect(current.value!.expenses).toHaveLength(sample().expenses.length);
+  });
+});
+
+describe("delete a year", () => {
+  /** 2025 beside the sample's 2026: same setup, no entries. */
+  const year2025 = () => ({ ...sample(), year: 2025, expenses: [], earnings: [], transfers: [], budgets: { default: {} } });
+
+  it("removes only that year, and keeps the open one open", async () => {
+    await importYear(year2025());
+    await openYear(2026);
+    await removeYear(2025);
+    expect((await listYears()).map((y) => y.year)).toEqual([2026]);
+    expect(current.value!.setup.year).toBe(2026);
+    expect(current.value!.expenses).toHaveLength(sample().expenses.length);
+    expect(years.value.map((y) => y.setup.year)).toEqual([2026]);
+  });
+
+  it("opens another year when the open one is deleted", async () => {
+    await importYear(year2025());
+    await openYear(2026);
+    await removeYear(2026);
+    expect(await loadYear(2026)).toBeNull();
+    expect(current.value!.setup.year).toBe(2025);
+  });
+
+  it("leaves nothing open when the last year goes, and its backup brings it back", async () => {
+    const backup = (await exportYear(2026))!;
+    await removeYear(2026);
+    expect(current.value).toBeNull();
+    expect(years.value).toEqual([]);
+    await importYear(backup);
+    await openYear(2026);
     expect(current.value!.expenses).toHaveLength(sample().expenses.length);
   });
 });

@@ -8,7 +8,7 @@ import { formatCents, parseCents } from "../money";
 import { balances } from "../derive";
 import { nextYearSetup } from "../rollover";
 import {
-  closeYear, current, eraseEverything, iraLimit, ledger, loadSettings, openYear, persistState, readOnly, reopenYear, saveIraLimit, startYear, years,
+  closeYear, current, eraseEverything, iraLimit, ledger, loadSettings, openYear, persistState, readOnly, removeYear, reopenYear, saveIraLimit, startYear, years,
 } from "../state";
 import { IRA_LIMITS, iraLimitOf } from "../setup";
 import { AboutCard } from "./about";
@@ -25,6 +25,10 @@ const PERSIST_TEXT = {
   unsupported: MAY_CLEAR,
 };
 
+function entryCount(n: number): string {
+  return `${n.toLocaleString()} ${n === 1 ? "entry" : "entries"}`;
+}
+
 function backupText(iso: string | undefined): string {
   const days = daysSince(iso);
   if (days === null) return "Never backed up";
@@ -37,10 +41,25 @@ export function SettingsView() {
   const errors = useSignal<string[]>([]);
   /** The year whose "Close year" panel is open. */
   const closing = useSignal<number | null>(null);
+  /** The year whose row is asking "Delete …?". */
+  const deleting = useSignal<number | null>(null);
 
   async function onStart() {
     await startYear(new Date().getFullYear());
     location.hash = "#/accounts";
+  }
+
+  async function onDelete(year: number) {
+    deleting.value = null;
+    if (closing.value === year) closing.value = null;
+    errors.value = [];
+    try {
+      await removeYear(year);
+      message.value = `Deleted ${year}. Import its backup to bring it back.`;
+    } catch (err) {
+      console.error(err);
+      message.value = `Couldn't delete ${year}. Nothing was changed. Try again.`;
+    }
   }
 
   async function onReopen(year: number) {
@@ -118,16 +137,28 @@ export function SettingsView() {
                 <td class="num">{transfers}</td>
                 <td>{backupText(setup.lastBackupAt)}</td>
                 <td>
-                  <div class="row-actions">
-                    <button type="button" onClick={() => onExport(setup.year)}>
-                      Export JSON
-                    </button>
-                    {setup.closed ? (
-                      <button type="button" onClick={() => onReopen(setup.year)}>Reopen</button>
-                    ) : (
-                      <button type="button" onClick={() => (closing.value = setup.year)}>Close year…</button>
-                    )}
-                  </div>
+                  {deleting.value === setup.year ? (
+                    <div class="row-actions asking">
+                      <span>
+                        Delete {setup.year} and its {entryCount(expenses + earnings + transfers)}? {backupText(setup.lastBackupAt)}.
+                      </span>
+                      <button type="button" onClick={() => onExport(setup.year)}>Export JSON</button>
+                      <button type="button" onClick={() => (deleting.value = null)}>Keep it</button>
+                      <button type="button" class="danger-solid" onClick={() => onDelete(setup.year)}>Delete</button>
+                    </div>
+                  ) : (
+                    <div class="row-actions">
+                      <button type="button" onClick={() => onExport(setup.year)}>
+                        Export JSON
+                      </button>
+                      {setup.closed ? (
+                        <button type="button" onClick={() => onReopen(setup.year)}>Reopen</button>
+                      ) : (
+                        <button type="button" onClick={() => (closing.value = setup.year)}>Close year…</button>
+                      )}
+                      <button type="button" class="danger" onClick={() => (deleting.value = setup.year)}>Delete…</button>
+                    </div>
+                  )}
                 </td>
               </tr>
             ))}
