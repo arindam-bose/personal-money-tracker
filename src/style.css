@@ -840,6 +840,20 @@ tr.row-transfer td {
   gap: 10px;
 }
 
+.danger-zone {
+  border-left: 4px solid var(--danger);
+}
+
+.danger-zone .setting-row {
+  align-items: center;
+}
+
+button.danger-solid {
+  background: var(--danger);
+  border-color: var(--danger);
+  color: var(--surface);
+}
+
 /* --- Budget --- */
 
 .stack {

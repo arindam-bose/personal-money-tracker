@@ -8,7 +8,7 @@ import { formatCents, parseCents } from "../money";
 import { balances } from "../derive";
 import { nextYearSetup } from "../rollover";
 import {
-  closeYear, current, iraLimit, ledger, loadSettings, openYear, persistState, readOnly, reopenYear, saveIraLimit, startYear, years,
+  closeYear, current, eraseEverything, iraLimit, ledger, loadSettings, openYear, persistState, readOnly, reopenYear, saveIraLimit, startYear, years,
 } from "../state";
 import { IRA_LIMITS, iraLimitOf } from "../setup";
 import { checkForUpdates, offlineChanged, offlineStatus } from "../offline";
@@ -156,6 +156,7 @@ export function SettingsView() {
     </section>
     {current.value && <YearSettings key={current.value.setup.year} />}
     <OfflineCard />
+    <EraseCard onDone={(text) => { errors.value = []; message.value = text; }} />
     </>
   );
 }
@@ -199,6 +200,55 @@ function OfflineCard() {
           {checking.value ? "Checking…" : "Check for updates"}
         </button>
         {note.value && <span class="muted" role="status">{note.value}</span>}
+      </div>
+    </section>
+  );
+}
+
+/** Erase everything, asking twice, in place. */
+function EraseCard(props: { onDone: (message: string) => void }) {
+  const asking = useSignal(false);
+  const busy = useSignal(false);
+  const note = useSignal<string | null>(null);
+  const entries = years.value.reduce((n, y) => n + y.expenses + y.earnings + y.transfers, 0);
+  const count = (n: number, one: string, many: string) => `${n.toLocaleString()} ${n === 1 ? one : many}`;
+  const what = years.value.length
+    ? `${count(entries, "entry", "entries")} in ${count(years.value.length, "year", "years")}`
+    : "everything";
+
+  async function onErase() {
+    busy.value = true;
+    try {
+      await eraseEverything();
+      asking.value = false;
+      note.value = null;
+      props.onDone("Erased. The tracker is empty again.");
+    } catch (err) {
+      console.error(err);
+      note.value = "Couldn't erase. Nothing was changed. Try again.";
+    } finally {
+      busy.value = false;
+    }
+  }
+
+  return (
+    <section class="panel settings danger-zone">
+      <h2>Erase everything</h2>
+      <p class="muted">
+        Removes every ledger entry you have, with every year's accounts, categories, tags,
+        budgets and settings. This cannot be undone - download a copy first.
+      </p>
+      <div class="setting-row">
+        {asking.value ? (
+          <>
+            <span>Erase {what}?</span>
+            <button type="button" disabled={busy.value} onClick={() => (asking.value = false)}>Keep it</button>
+            <button type="button" class="danger-solid" disabled={busy.value} onClick={onErase}>Erase</button>
+          </>
+        ) : (
+          <button type="button" class="danger" onClick={() => (asking.value = true)}>Erase my data</button>
+        )}
+        {note.value && <span class="warn" role="status">{note.value}</span>}
       </div>
     </section>
   );

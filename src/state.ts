@@ -3,7 +3,7 @@
 // update the signal, so what you see is always what is stored.
 
 import { computed, signal } from "@preact/signals";
-import { deleteEntry, getSetting, listYears, loadYear, putEntry, putSetup, putSetupAndEntries, replaceYear, setSetting, type YearData } from "./db";
+import { deleteEntry, eraseAll, getSetting, listYears, loadYear, putEntry, putSetup, putSetupAndEntries, replaceYear, setSetting, type YearData } from "./db";
 import type { Ledger } from "./derive";
 import { ID_PREFIX, STORE, duplicateEntry, newId, slug, type AnyEntry, type Kind } from "./entries";
 import { emptyYearFile, nextYearSetup } from "./rollover";
@@ -306,6 +306,16 @@ export async function reopenYear(year: number): Promise<void> {
     if (data) await putSetup({ ...data.setup, closed: false });
   });
   await openYear(year);
+}
+
+/** Erase everything stored: every year, its entries and setup, and the app settings. The app starts empty. */
+export async function eraseEverything(): Promise<void> {
+  await inTurn(async () => {
+    await eraseAll();
+    current.value = null;
+    pinnedTags.value = [];
+  });
+  await refreshYears();
 }
 
 /** Find a tag by name (ignoring case), or create it. Returns its id. */

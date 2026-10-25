@@ -1,7 +1,7 @@
 import { beforeEach, describe, expect, it } from "vitest";
 import { exportYear, importYear } from "../src/backup";
-import { loadYear, putEntry, putSetup } from "../src/db";
-import { current, ensureTag, openYear, setBudget } from "../src/state";
+import { getSetting, listYears, loadYear, putEntry, putSetup, setSetting } from "../src/db";
+import { current, ensureTag, eraseEverything, openYear, pinnedTags, setBudget, years } from "../src/state";
 import { freshDb, sample } from "./helpers";
 
 beforeEach(async () => {
@@ -71,5 +71,28 @@ describe("years saved before people were dropped", () => {
     expect(backup).not.toHaveProperty("people");
     expect(backup.expenses[2]).not.toHaveProperty("owed");
     expect(backup.categories.earning.find((c) => c.id === "ci_payback")!.role).toBe("offset");
+  });
+});
+
+describe("erase everything", () => {
+  it("leaves nothing stored, so the app starts empty", async () => {
+    const next = { ...sample(), year: 2027, expenses: [], earnings: [], transfers: [], budgets: { default: {} } };
+    await importYear(next);
+    await setSetting("pinnedTags", ["t_x"]);
+    pinnedTags.value = ["t_x"];
+
+    await eraseEverything();
+    expect(await listYears()).toEqual([]);
+    expect(await loadYear(2026)).toBeNull();
+    expect(await getSetting("pinnedTags")).toBeUndefined();
+    expect(await getSetting("activeYear")).toBeUndefined();
+    expect(current.value).toBeNull();
+    expect(years.value).toEqual([]);
+    expect(pinnedTags.value).toEqual([]);
+
+    // And a backup restores it all again.
+    await importYear(sample());
+    await openYear();
+    expect(current.value!.expenses).toHaveLength(sample().expenses.length);
   });
 });

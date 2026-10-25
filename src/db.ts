@@ -167,6 +167,15 @@ export async function deleteYear(year: number): Promise<void> {
   await committed(tx);
 }
 
+/** Erase every year, every entry and every setting, in one transaction. */
+export async function eraseAll(): Promise<void> {
+  const db = await openDb();
+  const stores = ["years", ...ENTRY_KINDS, "settings"];
+  const tx = db.transaction(stores, "readwrite");
+  for (const name of stores) tx.objectStore(name).clear();
+  await committed(tx);
+}
+
 export async function putSetup(setup: YearSetup): Promise<void> {
   const db = await openDb();
   const tx = db.transaction("years", "readwrite");
