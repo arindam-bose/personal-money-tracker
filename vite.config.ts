@@ -1,7 +1,7 @@
 import { readFileSync } from "node:fs";
 import { defineConfig, type Plugin } from "vitest/config";
 import preact from "@preact/preset-vite";
-import { version } from "./package.json";
+import pkg from "./package.json" with { type: "json" };
 
 /**
  * Writes the offline copy's service worker (src/service-worker.js) as sw.js, with this
@@ -16,7 +16,7 @@ function serviceWorker(): Plugin {
     generateBundle(_options, bundle) {
       const files = ["./", ...Object.keys(bundle).filter((f) => !f.endsWith(".map"))];
       const source = readFileSync(new URL("./src/service-worker.js", import.meta.url), "utf-8")
-        .replace('"__VERSION__"', JSON.stringify(version))
+        .replace('"__VERSION__"', JSON.stringify(pkg.version))
         .replace("__FILES__", JSON.stringify(files));
       this.emitFile({ type: "asset", fileName: "sw.js", source });
     },

@@ -256,7 +256,9 @@ A backup holds everything needed to rebuild the year on a clean device:
   importing applies them only when the device has none saved yet; restoring an
   old year never undoes today's pins.
 
-All three are optional on import, so older backups still import. What is left out on
+All three are optional on import, so older backups still import. `tests/transfer.test.ts`
+moves a year that uses every optional field to a clean device and back; its file
+is typed `Required<YearFile>`, so a field added later must be added there too. What is left out on
 purpose: `lastBackupAt` (an import counts as a backup at `exportedAt`), the year
 last opened, and per-tab filters and periods.
 
