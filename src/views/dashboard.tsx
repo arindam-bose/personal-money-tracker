@@ -8,6 +8,16 @@ import {
 } from "../derive";
 import { formatCents, formatPercent } from "../money";
 import { current, iraLimit, ledger, ntaWithoutLoans, pinnedTags, saveNtaWithoutLoans, savePinnedTags } from "../state";
+
+/** The switch for whether net tangible assets counts loans. One setting, shared by the Dashboard and Reports. */
+export function IncludeLoans() {
+  return (
+    <label class="hero-toggle" title="Untick to see net tangible assets without what loans and mortgages owe">
+      <input type="checkbox" checked={!ntaWithoutLoans.value} onChange={(e) => saveNtaWithoutLoans(!e.currentTarget.checked)} />
+      <span>Include loans</span>
+    </label>
+  );
+}
 import type { Ledger } from "../derive";
 import type { Account } from "../types";
 import { firstMonth, yearStart } from "../year";
@@ -109,12 +119,7 @@ export function DashboardView() {
         <section class="hero card">
           <div class="tile-label">
             <span>Net tangible assets · {asOf}</span>
-            {hasLoans && (
-              <label class="hero-toggle" title="Untick to see net tangible assets without what loans and mortgages owe">
-                <input type="checkbox" checked={!withoutLoans} onChange={(e) => saveNtaWithoutLoans(!e.currentTarget.checked)} />
-                <span>Include loans</span>
-              </label>
-            )}
+            {hasLoans && <IncludeLoans />}
           </div>
           <div class={`hero-value ${nta < 0 ? "neg" : ""}`}>{formatCents(nta)}</div>
           <div class="muted">

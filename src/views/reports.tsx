@@ -9,7 +9,8 @@ import {
 } from "../derive";
 import { formatCents, formatCompact } from "../money";
 import { membersOf } from "../setup";
-import { current, ledger } from "../state";
+import { current, ledger, ntaWithoutLoans } from "../state";
+import { IncludeLoans } from "./dashboard";
 import { Chart, axisStyle, baseOption, seriesColors, token, type ChartOption } from "./chart";
 import { showInLedger } from "./ledger";
 import { MemberPicker, viewedLedger, viewedMember } from "./people";
@@ -56,10 +57,15 @@ export function ReportsView() {
   );
 }
 
-function Card(props: { title: string; subtitle: string; children: ComponentChildren }) {
+function Card(props: { title: string; subtitle: string; action?: ComponentChildren; children: ComponentChildren }) {
   return (
     <section class="card report">
-      <h3>{props.title}</h3>
+      {props.action ? (
+        <div class="card-head">
+          <h3>{props.title}</h3>
+          {props.action}
+        </div>
+      ) : <h3>{props.title}</h3>}
       <p class="muted small">{props.subtitle}</p>
       {props.children}
     </section>
@@ -318,9 +324,11 @@ function BalancesCard({ ledger: l, year, start, lastDate }: { ledger: Ledger; ye
   const opening = dayBefore(start);
   const points = [opening, ...weeklySpending(l, year).map((w) => (w.end > lastDate ? lastDate : w.end)).filter((d) => d >= start)]
     .filter((d, i, all) => all.indexOf(d) === i && d <= lastDate);
-  const series = balanceSeries(l, points);
-  const [c1, c2, c3, c4, c5, c6] = seriesColors();
   const hasLoans = l.accounts.some((a) => a.type === "loan");
+  // The Include loans switch (shared with the Dashboard) can leave loans out of net tangible assets.
+  const withoutLoans = hasLoans && ntaWithoutLoans.value;
+  const series = balanceSeries(l, points).map((p) => (withoutLoans ? { ...p, netTangibleAssets: p.netTangibleAssets + p.loanDebt } : p));
+  const [c1, c2, c3, c4, c5, c6] = seriesColors();
   const lines = [
     { key: "availableCash", name: "Available cash", color: c1 },
     { key: "cardDebt", name: "Card debt", color: c2 },
@@ -349,7 +357,8 @@ function BalancesCard({ ledger: l, year, start, lastDate }: { ledger: Ledger; ye
     grid: { ...(baseOption().grid as object), right: 200 },
   };
   return (
-    <Card title="Balances over time" subtitle={`At the end of each week. Net tangible assets is available cash minus card debt${hasLoans ? " and what loans still owe" : ""}. Investments count what you put in this year, not market value. Saved is what went into savings minus what came out.`}>
+    <Card title="Balances over time" action={hasLoans && <IncludeLoans />}
+      subtitle={`At the end of each week. Net tangible assets is available cash minus card debt${hasLoans ? (withoutLoans ? ", with loans left out" : " and what loans still owe") : ""}. Investments count what you put in this year, not market value. Saved is what went into savings minus what came out.`}>
       <Chart option={option} height={320} label={`Available cash, card debt, ${hasLoans ? "loans owed, " : ""}net tangible assets, investments and savings over the year`} />
       <TableView head={["Date", ...lines.map((x) => x.name)]}
         rows={series.map((p) => [label(p.date), ...lines.map((x) => formatCents(p[x.key]))])} />

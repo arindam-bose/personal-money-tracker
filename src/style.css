@@ -1332,6 +1332,9 @@ button.danger-solid {
   display: flex;
   align-items: center;
   gap: 6px;
+  font-size: 13px;
+  color: var(--muted);
+  white-space: nowrap;
   cursor: pointer;
 }
 
