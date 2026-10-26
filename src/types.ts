@@ -33,7 +33,7 @@ export interface Account {
 
 // Roles are hidden tags on categories, so users can rename categories
 // and the reports still know what each one means.
-export type ExpenseRole = "charity" | "loan";
+export type ExpenseRole = "charity";
 export type EarningRole = "paycheck" | "income" | "offset";
 export type TransferRole =
   | "cc_payment"
@@ -42,6 +42,7 @@ export type TransferRole =
   | "invest_retirement"
   | "invest_taxable"
   | "cash_withdrawal"
+  | "loan_payment"
   | "general";
 
 export interface Category<R extends string> {

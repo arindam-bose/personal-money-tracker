@@ -150,7 +150,8 @@ export function checkDraft(draft: Draft, setup: YearSetup, id: string): CheckRes
 /**
  * Suggest a transfer category from the two accounts' types (brief §3):
  * checking → savings is Savings, savings → checking is Savings Takeout,
- * bank → card is Payment to CC, bank → cash is Cash Withdraw, → investment is an investment.
+ * bank → card is Payment to CC, bank → cash is Cash Withdraw, → investment is an investment,
+ * → loan is a loan payment.
  * Returns a category id, or null if nothing fits.
  */
 export function suggestTransferCategory(from: Account | undefined, to: Account | undefined, setup: YearSetup): string | null {
@@ -158,6 +159,7 @@ export function suggestTransferCategory(from: Account | undefined, to: Account |
   const bank = (a: Account) => a.type === "checking" || a.type === "savings";
   let want: TransferRole[] = [];
   if (to.type === "investment") want = ["invest_retirement", "invest_taxable"];
+  else if (to.type === "loan") want = ["loan_payment"];
   else if (from.type === "checking" && to.type === "savings") want = ["savings_in"];
   else if (from.type === "savings" && to.type === "checking") want = ["savings_out"];
   else if (bank(from) && to.type === "credit") want = ["cc_payment"];

@@ -7,11 +7,11 @@ import type { AccountType, YearFile } from "./types";
 export type ValidationResult = { ok: true; file: YearFile } | { ok: false; errors: string[] };
 
 const ACCOUNT_TYPES: AccountType[] = ["checking", "savings", "cash", "credit", "investment", "loan"];
-const EXPENSE_ROLES = ["charity", "loan"];
+const EXPENSE_ROLES = ["charity"];
 const EARNING_ROLES = ["paycheck", "income", "offset"];
 const TRANSFER_ROLES = [
   "cc_payment", "savings_in", "savings_out", "invest_retirement",
-  "invest_taxable", "cash_withdrawal", "general",
+  "invest_taxable", "cash_withdrawal", "loan_payment", "general",
 ];
 
 // The checks below read fields off objects whose shape isn't known yet.
@@ -42,6 +42,15 @@ export function isRate(v: unknown): v is number {
   return typeof v === "number" && v >= 0 && v <= 100 && Math.abs(v * 1000 - Math.round(v * 1000)) < 1e-6;
 }
 
+/** A copy of the list with `key` removed from the objects where it holds `value`. Anything else passes through. */
+function withoutKeyWhere(list: unknown[], key: string, value: unknown): unknown[] {
+  return list.map((r) => {
+    if (!isObj(r) || r[key] !== value) return r;
+    const { [key]: _gone, ...keep } = r;
+    return keep;
+  });
+}
+
 /** A copy of the list with `key` removed from every object in it. Anything else passes through. */
 function withoutKey(list: unknown, key: string): unknown {
   if (!Array.isArray(list)) return list;
@@ -55,14 +64,18 @@ function withoutKey(list: unknown, key: string): unknown {
 /**
  * Files saved before people were dropped can hold `people`, expense `owed` shares, earning
  * `person`s and a "reimbursement" earning role. Strip them, and make reimbursement "offset"
- * (money paid back now lowers spending), so those files still import.
+ * (money paid back now lowers spending), so those files still import. Files from before loan
+ * payments were transfers can have a "loan" expense role: those categories become regular.
  */
 function withoutLegacyPeople(data: Obj): Obj {
   const { people: _people, ...rest } = data;
   const cats = rest.categories;
-  const categories = isObj(cats) && Array.isArray(cats.earning)
+  let categories = isObj(cats) && Array.isArray(cats.earning)
     ? { ...cats, earning: cats.earning.map((c) => (isObj(c) && c.role === "reimbursement" ? { ...c, role: "offset" } : c)) }
     : cats;
+  if (isObj(categories) && Array.isArray(categories.expense)) {
+    categories = { ...categories, expense: withoutKeyWhere(categories.expense, "role", "loan") };
+  }
   return { ...rest, categories, expenses: withoutKey(rest.expenses, "owed"), earnings: withoutKey(rest.earnings, "person") };
 }
 

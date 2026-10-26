@@ -53,10 +53,10 @@ export function usageOf(data: Pick<YearData, "expenses" | "earnings" | "transfer
   return u;
 }
 
-const EXPENSE_ROLES: (ExpenseRole | undefined)[] = [undefined, "charity", "loan"];
+const EXPENSE_ROLES: (ExpenseRole | undefined)[] = [undefined, "charity"];
 const EARNING_ROLES: EarningRole[] = ["paycheck", "income", "offset"];
 const TRANSFER_ROLES: TransferRole[] = [
-  "cc_payment", "savings_in", "savings_out", "invest_retirement", "invest_taxable", "cash_withdrawal", "general",
+  "cc_payment", "savings_in", "savings_out", "invest_retirement", "invest_taxable", "cash_withdrawal", "loan_payment", "general",
 ];
 
 /** A new id for a named thing, like "a_chase-checking", made unique if needed. */
@@ -107,7 +107,24 @@ export function saveAccount(setup: YearSetup, account: Account): YearSetup {
     Object.assign(clean, { loanStart, loanAmount, rate });
   }
   if (account.archived) clean.archived = true;
-  return { ...setup, accounts: upsert(setup.accounts, clean) };
+  const saved = { ...setup, accounts: upsert(setup.accounts, clean) };
+  // The first loan brings a category for its payments, if the year has none (years from before loans).
+  return clean.type === "loan" && !account.id ? withLoanPayments(saved) : saved;
+}
+
+/** The transfer category new loans' payments are suggested into. */
+export const LOAN_PAYMENTS: Category<TransferRole> = { id: "ct_loan-payments", name: "Loan Payments", role: "loan_payment" };
+
+/** The setup with a loan-payment transfer category. The same object if it already has one. */
+export function withLoanPayments(setup: YearSetup): YearSetup {
+  const list = setup.categories.transfer;
+  if (list.some((c) => c.role === "loan_payment")) return setup;
+  const all = new Set([...setup.categories.expense, ...setup.categories.earning, ...list].map((c) => c.id));
+  const taken = new Set(list.map((c) => c.name.toLowerCase()));
+  let name = LOAN_PAYMENTS.name;
+  for (let n = 2; taken.has(name.toLowerCase()); n++) name = `${LOAN_PAYMENTS.name} ${n}`;
+  const cat = { ...LOAN_PAYMENTS, id: all.has(LOAN_PAYMENTS.id) ? idFor("ct", name, all) : LOAN_PAYMENTS.id, name };
+  return { ...setup, categories: { ...setup.categories, transfer: [...list, cat] } };
 }
 
 /**
@@ -286,12 +303,14 @@ export function deleteMember(
   };
 }
 
-// --- Years saved before people were dropped ---
+// --- Years saved by earlier versions ---
 
 /**
  * Older years could hold people, shares of expenses they owed, who paid back, and a
  * "Paid back" (reimbursement) earning role. Drop the people and those fields; a reimbursement
  * category becomes "Lowers spending", which is how money paid back now counts.
+ * They could also have a "Loan payment" expense role, from before loan payments were transfers:
+ * those categories become regular spending.
  * Returns the cleaned setup and the entries that changed, or null if there was nothing to do.
  */
 export function withoutPeople(
@@ -300,11 +319,17 @@ export function withoutPeople(
   const { people, ...setup } = data.setup as YearSetup & { people?: unknown };
   const earning = setup.categories.earning.map((c) =>
     (c.role as string) === "reimbursement" ? { ...c, role: "offset" as const } : c);
+  const expense = setup.categories.expense.map((c) => {
+    if ((c.role as string) !== "loan") return c;
+    const { role: _loan, ...regular } = c;
+    return regular;
+  });
   const expenses = data.expenses.filter((e) => "owed" in e).map(({ owed: _o, ...e }: Expense & { owed?: unknown }) => e);
   const earnings = data.earnings.filter((i) => "person" in i).map(({ person: _p, ...i }: Earning & { person?: unknown }) => i);
-  const roleChanged = earning.some((c, n) => c !== setup.categories.earning[n]);
+  const roleChanged = earning.some((c, n) => c !== setup.categories.earning[n])
+    || expense.some((c, n) => c !== setup.categories.expense[n]);
   if (people === undefined && !roleChanged && !expenses.length && !earnings.length) return null;
-  return { setup: { ...setup, categories: { ...setup.categories, earning } }, expenses, earnings };
+  return { setup: { ...setup, categories: { ...setup.categories, expense, earning } }, expenses, earnings };
 }
 
 // --- Start date ---
@@ -375,7 +400,7 @@ export function blankSetup(year: number): YearSetup {
     accounts: [],
     categories: {
       expense: cats<ExpenseRole>("ce", [
-        ["Bills"], ["Charity", "charity"], ["Food & Drinks"], ["Health & Wellness"], ["Housing"], ["Loan", "loan"],
+        ["Bills"], ["Charity", "charity"], ["Food & Drinks"], ["Health & Wellness"], ["Housing"],
         ["Personal Care & Activities"], ["Shopping"], ["Transfer to external account"], ["Transport"],
       ]),
       earning: cats<EarningRole>("ci", [
@@ -385,7 +410,7 @@ export function blankSetup(year: number): YearSetup {
       transfer: cats<TransferRole>("ct", [
         ["Payment to CC", "cc_payment"], ["Savings", "savings_in"], ["Savings Takeout", "savings_out"],
         ["Investment - IRA", "invest_retirement"], ["Investment - Stocks & Cryptos", "invest_taxable"],
-        ["Cash Withdraw", "cash_withdrawal"], ["General Transfer", "general"],
+        ["Cash Withdraw", "cash_withdrawal"], ["Loan Payments", "loan_payment"], ["General Transfer", "general"],
       ]),
     },
     tags: [],

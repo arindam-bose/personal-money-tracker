@@ -61,7 +61,6 @@ def metrics(d, month=None):
         m["spent"] += r["amount"]
         m["spent_" + {"credit": "card", "cash": "cash"}.get(acct[r["account"]]["type"], "bank")] += r["amount"]
         if role.get(r["cat"]) == "charity": m["charity"] += r["amount"]
-        if role.get(r["cat"]) == "loan": m["loan"] += r["amount"]
         if "t_india" in r["tags"]: m["india"] += r["amount"]
     for r in I:
         m["earned"] += r["amount"]

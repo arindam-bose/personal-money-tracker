@@ -35,7 +35,7 @@ export function demoYear(year: number, now = new Date()): YearFile {
     { id: "x0003", date: d("10"), item: "ATM withdrawal", amount: 10000, from: "a_checking", to: "a_wallet", cat: "ct_cash-withdraw", notes: "" },
     { id: "x0004", date: d("25"), item: "Pay Rewards Card", amount: 45000, from: "a_checking", to: "a_card", cat: "ct_payment-to-cc", notes: "Last month's statement" },
     { id: "x0005", date: d("28"), item: "Index fund purchase", amount: 25000, from: "a_savings", to: "a_brokerage", cat: "ct_investment-stocks-cryptos", notes: "", member: "m_john" },
-    { id: "x0006", date: d("14"), item: "Car loan payment", amount: 45000, from: "a_checking", to: "a_car-loan", cat: "ct_general-transfer", notes: "" },
+    { id: "x0006", date: d("14"), item: "Car loan payment", amount: 45000, from: "a_checking", to: "a_car-loan", cat: "ct_loan-payments", notes: "" },
   ];
   return {
     ...emptyYearFile({

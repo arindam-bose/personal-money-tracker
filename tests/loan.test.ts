@@ -2,10 +2,10 @@
 // shrinks with each transfer into them, and it comes off net tangible assets.
 
 import { describe, expect, it } from "vitest";
-import { accountsOverview, balanceSeries, loanStatus, type Ledger } from "../src/derive";
-import { checkDraft, emptyDraft } from "../src/entries";
+import { accountsOverview, balanceSeries, loanStatus, moneyFlow, summarize, type Ledger } from "../src/derive";
+import { checkDraft, emptyDraft, suggestTransferCategory } from "../src/entries";
 import { emptyYearFile, nextYearSetup } from "../src/rollover";
-import { blankSetup, saveAccount, SetupError, withStart } from "../src/setup";
+import { blankSetup, saveAccount, SetupError, withoutPeople, withStart } from "../src/setup";
 import type { Account, Transfer, YearSetup } from "../src/types";
 import { validateYearFile } from "../src/validate";
 
@@ -15,7 +15,7 @@ const mortgage: Account = {
   id: "a_mortgage", name: "Mortgage", type: "loan", ref: "", opening: 0, loanStart: "2026-03-15", loanAmount: 30000000, rate: 6,
 };
 const pay = (id: string, date: string, amount: number, to = "a_mortgage"): Transfer => ({
-  id, date, item: "Mortgage payment", amount, from: "a_checking", to, cat: "ct_general-transfer", notes: "",
+  id, date, item: "Mortgage payment", amount, from: "a_checking", to, cat: "ct_loan-payments", notes: "",
 });
 
 function year(accounts: Account[], transfers: Transfer[] = [], start?: string): Ledger {
@@ -64,6 +64,25 @@ describe("a loan taken out this year", () => {
   });
 });
 
+describe("loan payments", () => {
+  const l = year([checking, mortgage], [pay("x1", "2026-04-15", 200000), pay("x2", "2026-05-15", 200000)]);
+
+  it("are suggested into Loan Payments for a transfer into a loan", () => {
+    expect(suggestTransferCategory(checking, mortgage, blankSetup(2026))).toBe("ct_loan-payments");
+  });
+
+  it("add up on the Loan payments tile, and not in spending", () => {
+    expect(summarize(l)).toMatchObject({ loanPayments: 400000, spent: 0 });
+    expect(summarize(l, 5).loanPayments).toBe(200000);
+  });
+
+  it("flow out of income on their own, not as money left over", () => {
+    const l2 = { ...l, earnings: [{ id: "i1", date: "2026-04-01", item: "Pay", amount: 500000, account: "a_checking", cat: "ci_paycheck", notes: "" }] };
+    const out = moneyFlow(l2).links.filter((x) => x.source === "hub");
+    expect(out).toEqual([{ source: "hub", target: "to-loans", value: 400000 }, { source: "hub", target: "left-over", value: 100000 }]);
+  });
+});
+
 describe("a loan that began before this year", () => {
   /** $10,000 owed on January 1, at 12% (1% a month), taken out on a 31st. */
   const car: Account = { id: "a_car", name: "Car", type: "loan", ref: "", opening: -1000000, loanStart: "2020-01-31", loanAmount: 2500000, rate: 12 };
@@ -107,6 +126,15 @@ describe("setting up a loan", () => {
     expect(s.accounts[1]).toEqual({ ...checking, id: "a_second", name: "Second" });
   });
 
+  it("adds a Loan Payments category with the first loan, if the year has none", () => {
+    const old = setup();
+    const noLoanCat = { ...old, categories: { ...old.categories, transfer: old.categories.transfer.filter((c) => c.role !== "loan_payment") } };
+    const s = saveAccount(noLoanCat, loan());
+    expect(s.categories.transfer.filter((c) => c.role === "loan_payment")).toEqual([{ id: "ct_loan-payments", name: "Loan Payments", role: "loan_payment" }]);
+    // One is enough: a second loan, or saving the first again, adds nothing.
+    expect(saveAccount(s, loan({ name: "Car" })).categories).toBe(s.categories);
+  });
+
   it("takes transfers only", () => {
     const s = { ...setup(), accounts: [checking, mortgage] };
     const expense = { ...emptyDraft("expense", "2026-04-01"), item: "x", amount: "10", account: "a_mortgage", cat: "ce_bills" };
@@ -122,6 +150,17 @@ describe("setting up a loan", () => {
     expect(may.accounts[1]!.opening).toBe(-30150000);
     // And back to January 1: taken out since, so 0 again.
     expect(withStart({ ...data, setup: may }, null).accounts[1]!.opening).toBe(0);
+  });
+});
+
+describe("years from before loan payments were transfers", () => {
+  it("make a Loan payment expense category regular, on import and when opened", () => {
+    const old = blankSetup(2026);
+    const withRole = { ...old, categories: { ...old.categories, expense: [...old.categories.expense, { id: "ce_loan", name: "Loan", role: "loan" as never }] } };
+    const r = validateYearFile(emptyYearFile(withRole));
+    expect(r.ok && r.file.categories.expense.find((c) => c.id === "ce_loan")).toEqual({ id: "ce_loan", name: "Loan" });
+    const opened = withoutPeople({ setup: withRole, expenses: [], earnings: [] });
+    expect(opened!.setup.categories.expense.find((c) => c.id === "ce_loan")).toEqual({ id: "ce_loan", name: "Loan" });
   });
 });
 

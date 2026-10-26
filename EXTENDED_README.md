@@ -85,7 +85,9 @@ tracking started; a loan taken out since then opens at 0, and its amount is
 added on `loanStart`. On each monthly anniversary of `loanStart` (the 31st falls
 on a shorter month's last day), `rate ÷ 12` of what's still owed is added,
 rounded to the cent, before that day's entries. A payment is a transfer into
-the loan. Loans take transfers only, not expenses or earnings.
+the loan; the entry form suggests the **Loan Payments** category (role
+`loan_payment`), which a new year has and an older one gets with its first loan.
+Loans take transfers only, not expenses or earnings.
 
 All of this is in `loanStatus` (`derive.ts`). Without a `through` day, interest
 runs to today, or to December 31 once the year is over. Moving the year's start
@@ -98,14 +100,20 @@ know what each one means:
 
 | Kind | Roles |
 |---|---|
-| Expense | none (regular), `charity`, `loan` |
+| Expense | none (regular), `charity` |
 | Earning | `paycheck`, `income`, `offset` (refunds, points, money paid back: lowers spending) |
-| Transfer | `cc_payment`, `savings_in`, `savings_out`, `invest_retirement`, `invest_taxable`, `cash_withdrawal`, `general` |
+| Transfer | `cc_payment`, `savings_in`, `savings_out`, `invest_retirement`, `invest_taxable`, `cash_withdrawal`, `loan_payment`, `general` |
 
 Earning and transfer categories must have a role; the validator refuses a file
 without one. Earning categories with a `paycheck` or `income` role may also carry
 `net: false` to leave them out of **net earnings** (for one-offs such as an
 insurance payout). Left out, they count.
+
+Loan payments used to be an expense role, `loan`. They are now transfers into a
+loan account, in a `loan_payment` category; an older `loan` expense category
+becomes regular spending when its file is imported or its year opened
+(`withoutLegacyPeople` in `validate.ts`, `withoutPeople` in `setup.ts`). To keep
+counting loan payments as spending, use an expense category and a pinned tag.
 
 ### Uncategorized
 
@@ -161,6 +169,7 @@ Tests).
 | Net spending | Spent (Uncategorized included) − earnings in `offset` ("Lowers spending") categories (`spendingOffsetCategories`) |
 | Net savings | `savings_in` − `savings_out` transfers |
 | Investment | `invest_retirement` + `invest_taxable` transfers |
+| Loan payments | `loan_payment` transfers (not spending) |
 | Savings / investment / charity rate | As a share of paycheck income |
 | Available cash | Checking + savings + cash balances |
 | Card debt, utilization | −(card balances); debt ÷ total limits |
@@ -177,7 +186,8 @@ the earning). Refunds aimed at no category lower the
 total only, shown as their own line so the bottom line equals net spending.
 
 **Money flow** (the Sankey, `moneyFlow`): earnings by category flow into one
-"Income" hub, which flows out to spending categories, savings and investing.
+"Income" hub, which flows out to spending categories, savings, investing and
+loan payments.
 Money taken out of savings, or drawn from balances when outflows beat income,
 joins on the income side, so both sides always balance. Card payments and other
 moves between your own accounts aren't shown.

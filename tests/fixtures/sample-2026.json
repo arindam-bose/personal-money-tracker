@@ -15,7 +15,7 @@
    { "id": "ce_food", "name": "Food" },
    { "id": "ce_rent", "name": "Rent" },
    { "id": "ce_charity", "name": "Charity", "role": "charity" },
-   { "id": "ce_loan", "name": "Loan", "role": "loan" }
+   { "id": "ce_loan", "name": "Loan" }
   ],
   "earning": [
    { "id": "ci_paycheck", "name": "Paycheck", "role": "paycheck" },

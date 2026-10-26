@@ -34,7 +34,7 @@ describe("the demo file", () => {
       return c.role === "income" && !countsInNetEarnings(c);
     })).toBe(true);
     const roles = new Set(f.transfers.map((t) => f.categories.transfer.find((c) => c.id === t.cat)!.role));
-    expect(roles).toEqual(new Set(["savings_in", "invest_retirement", "cash_withdrawal", "cc_payment", "invest_taxable", "general"]));
+    expect(roles).toEqual(new Set(["savings_in", "invest_retirement", "cash_withdrawal", "cc_payment", "invest_taxable", "loan_payment"]));
   });
 
   it("adds up to sensible balances: nothing overdrawn, the card and the loan owe less than they did", () => {

@@ -113,7 +113,7 @@ export async function openYear(year?: number): Promise<void> {
   const saved = await getSetting("activeYear");
   const pick = [year, saved, stored[0]].find((y) => y !== undefined && stored.includes(y));
   let data = pick === undefined ? null : await loadYear(pick);
-  // Bring older years up to date: drop people and owed shares, and give open years Uncategorized.
+  // Bring older years up to date: drop people, owed shares and the old loan expense role, and give open years Uncategorized.
   // An open year is saved that way the first time; a closed one is only cleaned in memory, never rewritten.
   if (data) {
     const cleaned = withoutPeople(data);

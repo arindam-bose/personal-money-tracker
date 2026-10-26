@@ -116,7 +116,8 @@ export interface Summary {
   investment: Cents;
 
   charity: Cents;
-  loan: Cents;
+  /** Transfers in a loan-payment category: paying down a loan, so not spending. */
+  loanPayments: Cents;
 
   /** Earnings that lower spending instead of counting as income: see spendingOffsetCategories. */
   offsets: Cents;
@@ -136,15 +137,13 @@ export function summarize(ledger: Ledger, month?: number): Summary {
   const roles = rolesOf(ledger);
   const accountType = new Map(ledger.accounts.map((a) => [a.id, a.type]));
 
-  let spent = 0, charity = 0, loan = 0;
+  let spent = 0, charity = 0;
   const spentBySource: Record<SpendSource, Cents> = { bank: 0, card: 0, cash: 0 };
   for (const e of ledger.expenses) {
     if (!inMonth(e.date, month)) continue;
     spent += e.amount;
     spentBySource[spendSource(accountType.get(e.account) ?? "checking")] += e.amount;
-    const role = roles.expense.get(e.cat);
-    if (role === "charity") charity += e.amount;
-    if (role === "loan") loan += e.amount;
+    if (roles.expense.get(e.cat) === "charity") charity += e.amount;
   }
 
   let earned = 0, paycheck = 0, offsets = 0, netEarnings = 0;
@@ -158,7 +157,7 @@ export function summarize(ledger: Ledger, month?: number): Summary {
     if (roles.earning.get(i.cat) === "paycheck") paycheck += i.amount;
   }
 
-  let ccPayments = 0, netSavings = 0, investRetirement = 0, investTaxable = 0;
+  let ccPayments = 0, netSavings = 0, investRetirement = 0, investTaxable = 0, loanPayments = 0;
   for (const t of ledger.transfers) {
     if (!inMonth(t.date, month)) continue;
     switch (roles.transfer.get(t.cat)) {
@@ -167,6 +166,7 @@ export function summarize(ledger: Ledger, month?: number): Summary {
       case "savings_out": netSavings -= t.amount; break;
       case "invest_retirement": investRetirement += t.amount; break;
       case "invest_taxable": investTaxable += t.amount; break;
+      case "loan_payment": loanPayments += t.amount; break;
     }
   }
 
@@ -176,7 +176,7 @@ export function summarize(ledger: Ledger, month?: number): Summary {
     spent, spentBySource,
     surplus: earned - spent,
     ccPayments, netSavings, investRetirement, investTaxable, investment,
-    charity, loan,
+    charity, loanPayments,
     offsets,
     netSpent: spent - offsets,
     netEarnings,
@@ -514,7 +514,7 @@ export function balanceSeries(ledger: Ledger, dates: IsoDate[]): BalancePoint[] 
 
 // --- Money flow (Sankey) ---
 
-export type FlowGroup = "income" | "hub" | "spending" | "savings" | "investment" | "balance";
+export type FlowGroup = "income" | "hub" | "spending" | "savings" | "investment" | "loan" | "balance";
 
 export interface FlowNode {
   id: string;
@@ -536,9 +536,9 @@ export interface MoneyFlow {
 /**
  * Where the money came from and where it went, through one "Income" hub:
  *   earning categories ─┐                ┌─ expense categories
- *   taken from savings ─┼─▶  Income  ─▶ ├─ savings, investments
+ *   taken from savings ─┼─▶  Income  ─▶ ├─ savings, investments, loan payments
  *   drawn from balances ┘                └─ left over in accounts
- * Transfers between your own accounts (card payments, cash withdrawals) don't appear:
+ * Other transfers between your own accounts (card payments, cash withdrawals) don't appear:
  * they move money without earning or spending it. Inflows always equal outflows.
  */
 export function moneyFlow(ledger: Ledger, month?: number): MoneyFlow {
@@ -565,9 +565,10 @@ export function moneyFlow(ledger: Ledger, month?: number): MoneyFlow {
   outOf("to-savings", "Savings", "savings", s.netSavings);
   outOf("to-retirement", "Retirement investing", "investment", s.investRetirement);
   outOf("to-taxable", "Taxable investing", "investment", s.investTaxable);
+  outOf("to-loans", "Loan payments", "loan", s.loanPayments);
 
   // Whatever is left balances the two sides.
-  const left = s.earned + Math.max(0, -s.netSavings) - s.spent - Math.max(0, s.netSavings) - s.investment;
+  const left = s.earned + Math.max(0, -s.netSavings) - s.spent - Math.max(0, s.netSavings) - s.investment - s.loanPayments;
   outOf("left-over", "Left over", "balance", left);
   into("drawn", "Drawn from balances", "balance", -left);
   return { nodes, links };

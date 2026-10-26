@@ -29,7 +29,7 @@ XFER_ROLES = {"Payment to CC": "cc_payment", "Savings": "savings_in",
               "Savings Takeout": "savings_out", "Investment - IRA": "invest_retirement",
               "Investment - Stocks & Cryptos": "invest_taxable",
               "Cash Withdraw": "cash_withdrawal", "General Transfer": "general"}
-EXP_ROLES = {"Charity": "charity", "Loan": "loan"}
+EXP_ROLES = {"Charity": "charity"}
 DROP_TAGS = {"", "Misc."}
 
 # Rows the importer reshapes carry one of these notes. verify.py (and tests/notion.ts) look

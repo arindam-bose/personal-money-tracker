@@ -25,7 +25,7 @@ describe("summarize", () => {
       investTaxable: 0,
       investment: 50000,
       charity: 2500,
-      loan: 30000,
+      loanPayments: 0,
       offsets: 4050, // refunds: 1550 aimed at Food + 500 untargeted; paid back: 2000
       netSpent: 213450, // 217500 − 4050
       netEarnings: 801234, // paychecks 800000 + interest 1234; refunds and paybacks never count

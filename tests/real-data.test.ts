@@ -9,7 +9,7 @@ import { fileURLToPath } from "node:url";
 import { beforeEach, describe, expect, it } from "vitest";
 import { exportYear, importYear } from "../src/backup";
 import {
-  accountsOverview, balanceSeries, balances, budgetView, moneyFlow, summarize, tagTotal, weeklySpending,
+  accountsOverview, balanceSeries, balances, budgetView, moneyFlow, spendByCategory, summarize, tagTotal, weeklySpending,
   type Ledger, type Summary,
 } from "../src/derive";
 import { checkDraft, draftFrom, type AnyEntry } from "../src/entries";
@@ -44,8 +44,11 @@ describe.skipIf(YEARS.length === 0).each(YEARS)("real %i data", (year) => {
       await importYear(file);
       const out = (await exportYear(year))!;
       expect(out.expenses).toHaveLength(file.expenses.length);
+      // Importing brings an older file up to date (an old loan expense role, say), so compare with that.
+      const r = validateYearFile(file);
+      const upgraded = r.ok ? r.file : file;
       // Files made before the IRA limit was saved per year get the IRS limit for their year.
-      expect({ ...out, exportedAt: "" }).toEqual({ ...file, exportedAt: "", iraLimit: file.iraLimit ?? iraLimitOf(file) });
+      expect({ ...out, exportedAt: "" }).toEqual({ ...upgraded, exportedAt: "", iraLimit: file.iraLimit ?? iraLimitOf(file) });
     });
 
     it("every entry opens in the form and saves back unchanged", () => {
@@ -123,7 +126,8 @@ describe.skipIf(YEARS.length === 0).each(YEARS)("real %i data", (year) => {
       ["Investment in IRA", (s) => s.investRetirement],
       ["Investment in S&C", (s) => s.investTaxable],
       ["Charity Amount", (s) => s.charity],
-      ["Loan Payment", (s) => s.loan],
+      // Notion counted loan payments as spending in its Loan category; here they're transfers to a loan account.
+      ["Loan Payment", (_, month) => spendByCategory(ledger, month).get("ce_loan")?.gross ?? 0],
       ["Send to India", (_, month) => tagTotal(ledger, INDIA, month)],
     ];
 

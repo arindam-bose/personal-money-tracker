@@ -175,7 +175,9 @@ describe("blankSetup", () => {
     const r = validateYearFile({ app: "money-tracker", schema: 1, exportedAt: "", ...s, expenses: [], earnings: [], transfers: [] });
     expect(r.ok ? [] : r.errors).toEqual([]);
     expect(new Set(s.categories.earning.map((c) => c.role))).toEqual(new Set(["paycheck", "income", "offset"]));
-    expect(s.categories.transfer).toHaveLength(8); // the 7 standard ones + Uncategorized
+    expect(s.categories.transfer).toHaveLength(9); // the 8 standard ones + Uncategorized
+    expect(s.categories.transfer.find((c) => c.role === "loan_payment")).toEqual({ id: "ct_loan-payments", name: "Loan Payments", role: "loan_payment" });
+    expect(s.categories.expense.some((c) => c.name === "Loan")).toBe(false);
     expect(["expense", "earning", "transfer"].map((k) => uncategorizedId(s, k as "expense"))).toEqual(["ce_uncategorized", "ci_uncategorized", "ct_uncategorized"]);
     expect(s.categories.earning.find((c) => c.name === "Other")!.net).toBe(false);
   });

@@ -19,14 +19,14 @@ const TYPE_LABEL: Record<AccountType, string> = {
 
 /** Plain-language names for the roles that drive the reports. */
 const ROLE_LABEL: Record<CategoryKind, Record<string, string>> = {
-  expense: { "": "Regular", charity: "Charity", loan: "Loan payment" },
+  expense: { "": "Regular", charity: "Charity" },
   earning: {
     paycheck: "Paycheck", income: "Other income", offset: "Lowers spending",
   },
   transfer: {
     cc_payment: "Card payment", savings_in: "Into savings", savings_out: "Out of savings",
     invest_retirement: "Retirement investing", invest_taxable: "Taxable investing",
-    cash_withdrawal: "Cash withdrawal", general: "Other move",
+    cash_withdrawal: "Cash withdrawal", loan_payment: "Loan payment", general: "Other move",
   },
 };
 
@@ -375,7 +375,7 @@ function CategoryCard({ kind, setup, usage }: { kind: CategoryKind; setup: YearS
       <p class="muted small">{{
         expense: "Rename freely: entries keep their category. Delete one and its entries move to Uncategorized. Charity shows as a share of pay on the dashboard.",
         earning: "Tick “Net” for the earnings that make up net earnings on the dashboard; untick one-offs. “Lowers spending” is for refunds, points and money paid back: they lower net spending instead. Uncategorized counts in neither.",
-        transfer: "What each one is for drives the savings, investing and card-payment figures.",
+        transfer: "What each one is for drives the savings, investing, card-payment and loan-payment figures.",
       }[kind]}</p>
       <ul class={`name-list ${kind === "earning" ? "with-net" : ""}`}>
         {list.map((c) => (

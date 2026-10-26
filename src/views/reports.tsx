@@ -100,15 +100,15 @@ function TableView(props: { head: string[]; rows: (string | number)[][]; foot?: 
 // --- Money flow ---
 
 const GROUP_LABEL: Partial<Record<FlowGroup, string>> = {
-  income: "Income", spending: "Spending", savings: "Savings", investment: "Investing", balance: "Accounts",
+  income: "Income", spending: "Spending", savings: "Savings", investment: "Investing", loan: "Loan payments", balance: "Accounts",
 };
 
 function MoneyFlowCard({ ledger: l, year }: { ledger: Ledger; year: number }) {
   const flow = moneyFlow(l);
-  const [c1, c2, c3, c4] = seriesColors();
+  const [c1, c2, c3, c4, , c6] = seriesColors();
   const neutral = token("--series-other");
   const color: Record<FlowGroup, string> = {
-    income: c1!, hub: neutral, spending: c2!, savings: c3!, investment: c4!, balance: neutral,
+    income: c1!, hub: neutral, spending: c2!, savings: c3!, investment: c4!, loan: c6!, balance: neutral,
   };
   const value = new Map<string, number>();
   for (const link of flow.links) value.set(link.source === "hub" ? link.target : link.source, link.value);
@@ -116,7 +116,7 @@ function MoneyFlowCard({ ledger: l, year }: { ledger: Ledger; year: number }) {
   value.set("hub", total);
 
   // Biggest first on each side; layoutIterations: 0 keeps this order.
-  const groupOrder: FlowGroup[] = ["income", "savings", "balance", "hub", "spending", "investment"];
+  const groupOrder: FlowGroup[] = ["income", "savings", "balance", "hub", "spending", "investment", "loan"];
   const nodes = [...flow.nodes].sort((a, b) =>
     groupOrder.indexOf(a.group) - groupOrder.indexOf(b.group) || (value.get(b.id) ?? 0) - (value.get(a.id) ?? 0));
   const usedGroups = (Object.keys(GROUP_LABEL) as FlowGroup[]).filter((g) => flow.nodes.some((n) => n.group === g));
@@ -162,7 +162,7 @@ function MoneyFlowCard({ ledger: l, year }: { ledger: Ledger; year: number }) {
 
   const height = Math.max(320, flow.nodes.filter((n) => n.group === "spending" || n.group === "investment").length * 34 + 60);
   return (
-    <Card title="Where the money went" subtitle={`${year < new Date().getFullYear() ? year : `${year} so far`}. Card payments and moves between your own accounts aren't shown: they don't earn or spend anything.`}>
+    <Card title="Where the money went" subtitle={`${year < new Date().getFullYear() ? year : `${year} so far`}. Card payments and other moves between your own accounts aren't shown: they don't earn or spend anything.`}>
       <ul class="legend" aria-label="Colours">
         {usedGroups.map((g) => <li><span class="swatch" style={{ background: color[g] }} />{GROUP_LABEL[g]}</li>)}
       </ul>

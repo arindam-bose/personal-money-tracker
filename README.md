@@ -52,7 +52,8 @@ import it: a household of two with a month of earnings, spending and transfers.
   it off its expenses.
   A **Loan / mortgage** account takes the day it began, the amount borrowed and
   the interest rate. Interest is added monthly on what's still owed, each payment
-  is a transfer into the loan, and what it owes comes off net tangible assets.
+  is a transfer into the loan (in **Loan Payments**), and what it owes comes off
+  net tangible assets.
 - **A household**: everything belongs to **Person A** until you add someone on
   the Accounts page. Then each entry can be logged for one person, and the
   Dashboard, Ledger and Reports can show **All people** or one person at a time.
