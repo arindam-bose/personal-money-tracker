@@ -99,3 +99,12 @@ describe("importing", () => {
     expect(r.ok === false && r.errors).toEqual([`Expense "e1" uses loan "a_l": a loan only takes transfers.`]);
   });
 });
+
+describe("the opening point", () => {
+  it("counts investments and assets at what was noted on the first day of tracking", () => {
+    let setup: YearSetup = { ...blankSetup(2026), accounts: [checking, { id: "a_car", name: "Car", type: "asset", ref: "", opening: 0 }] };
+    setup = saveValuation(setup, "a_car", "2026-01-01", 2000000);
+    const l = ledgerOf({ setup, expenses: [], earnings: [], transfers: [] });
+    expect(balanceSeries(l, ["2025-12-31", "2026-01-01"]).map((p) => p.netWorth)).toEqual([3000000, 3000000]);
+  });
+});

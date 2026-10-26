@@ -446,6 +446,10 @@ export function accountsOverview(ledger: Ledger, through?: IsoDate, today = loca
   const loans: LoanOverview[] = [];
   const invested = new Map<string, Cents>();
   const closed = new Set(ledger.accounts.filter((a) => isClosed(a, through)).map((a) => a.id));
+  // At the opening (the day before tracking starts), an investment or asset is worth what was noted
+  // on the first day: that's what it was worth when tracking began.
+  const first = ledger.year === undefined ? undefined : ledger.start ?? `${ledger.year}-01-01`;
+  const valuedBy = through !== undefined && first !== undefined && through < first ? first : through;
   for (const a of ledger.accounts) {
     switch (a.type) {
       case "checking":
@@ -466,7 +470,7 @@ export function accountsOverview(ledger: Ledger, through?: IsoDate, today = loca
         // Investment accounts open at 0 each year, so the balance is this year's contributions.
         invested.set(a.id, balOf(a) - a.opening);
         // What it's worth is only known from the balances the user enters.
-        const v = valuationOf(a, through);
+        const v = valuationOf(a, valuedBy);
         if (v) {
           valuations.set(a.id, v);
           investmentsWorth += v.amount;
@@ -474,7 +478,7 @@ export function accountsOverview(ledger: Ledger, through?: IsoDate, today = loca
         break;
       }
       case "asset": {
-        const v = valuationOf(a, through);
+        const v = valuationOf(a, valuedBy);
         if (v) {
           valuations.set(a.id, v);
           assetsWorth += v.amount;
