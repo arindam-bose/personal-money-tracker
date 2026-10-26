@@ -1,5 +1,5 @@
 // Loan and mortgage accounts: what they owe grows by monthly interest on the balance and
-// shrinks with each transfer into them, and it comes off net tangible assets.
+// shrinks with each transfer into them, and it comes off net worth.
 
 import { describe, expect, it } from "vitest";
 import { accountsOverview, balanceSeries, loanStatus, moneyFlow, summarize, type Ledger } from "../src/derive";
@@ -39,13 +39,13 @@ describe("a loan taken out this year", () => {
     expect(loanStatus(l, mortgage, "2026-06-15").balance).toBe(-29899750 - 149499);
   });
 
-  it("comes off net tangible assets", () => {
+  it("comes off net worth", () => {
     const o = accountsOverview(l, "2026-05-31");
     expect(o.availableCash).toBe(600000);
     expect(o.loanDebt).toBe(29899750);
     expect(o.loans).toEqual([{ account: mortgage, owed: 29899750, interest: 299750 }]);
-    expect(o.netTangibleAssets).toBe(600000 - 29899750);
-    expect(balanceSeries(l, ["2026-05-31"])[0]).toMatchObject({ loanDebt: 29899750, netTangibleAssets: 600000 - 29899750 });
+    expect(o.netWorth).toBe(600000 - 29899750);
+    expect(balanceSeries(l, ["2026-05-31"])[0]).toMatchObject({ loanDebt: 29899750, netWorth: 600000 - 29899750 });
   });
 
   it("runs interest only to today, or to the end of the year once it's over", () => {

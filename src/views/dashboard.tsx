@@ -7,13 +7,13 @@ import {
   MONTH_NAMES, accountsOverview, budgetView, earningsByCategory, localToday, monthProgress, netEarningCategories, remainingRetirement, shortDate, spendingOffsetCategories, spendByCategory, summarize, tagTotal,
 } from "../derive";
 import { formatCents, formatPercent } from "../money";
-import { current, iraLimit, ledger, ntaWithoutLoans, pinnedTags, saveNtaWithoutLoans, savePinnedTags } from "../state";
+import { current, iraLimit, ledger, netWorthWithoutLoans, pinnedTags, saveNetWorthWithoutLoans, savePinnedTags } from "../state";
 
-/** The switch for whether net tangible assets counts loans. One setting, shared by the Dashboard and Reports. */
+/** The switch for whether net worth counts loans. One setting, shared by the Dashboard and Reports. */
 export function IncludeLoans() {
   return (
-    <label class="hero-toggle" title="Untick to see net tangible assets without what loans and mortgages owe">
-      <input type="checkbox" checked={!ntaWithoutLoans.value} onChange={(e) => saveNtaWithoutLoans(!e.currentTarget.checked)} />
+    <label class="hero-toggle" title="Untick to see net worth without what loans and mortgages owe">
+      <input type="checkbox" checked={!netWorthWithoutLoans.value} onChange={(e) => saveNetWorthWithoutLoans(!e.currentTarget.checked)} />
       <span>Include loans</span>
     </label>
   );
@@ -75,10 +75,10 @@ export function DashboardView() {
   const pastYear = setup.closed || setup.year < new Date().getFullYear();
   const periodName = month ? `${MONTH_NAMES[month - 1]} ${setup.year}` : pastYear ? `${setup.year}` : `${setup.year} so far`;
   const asOf = month ? `End of ${MONTH_NAMES[month - 1]}` : pastYear ? `End of ${setup.year}` : "Today";
-  // Loans can be left out of net tangible assets, to see it without them. The switch only shows once there's a loan.
+  // Loans can be left out of net worth, to see it without them. The switch only shows once there's a loan.
   const hasLoans = accounts.loans.length > 0;
-  const withoutLoans = hasLoans && ntaWithoutLoans.value;
-  const nta = withoutLoans ? accounts.netTangibleAssets + accounts.loanDebt : accounts.netTangibleAssets;
+  const withoutLoans = hasLoans && netWorthWithoutLoans.value;
+  const worth = withoutLoans ? accounts.netWorth + accounts.loanDebt : accounts.netWorth;
   // Investments and assets only add to it once they have a value.
   const valued = (type: Account["type"]) => setup.accounts.some((a) => a.type === type && accounts.valuations.has(a.id));
   // Clicking a category opens the ledger with the same period and person.
@@ -120,10 +120,10 @@ export function DashboardView() {
       ) : (
         <section class="hero card">
           <div class="tile-label">
-            <span>Net tangible assets · {asOf}</span>
+            <span>Net worth · {asOf}</span>
             {hasLoans && <IncludeLoans />}
           </div>
-          <div class={`hero-value ${nta < 0 ? "neg" : ""}`}>{formatCents(nta)}</div>
+          <div class={`hero-value ${worth < 0 ? "neg" : ""}`}>{formatCents(worth)}</div>
           <div class="muted">
             Available cash {formatCents(accounts.availableCash)} − card debt {formatCents(accounts.cardDebt)}
             {hasLoans && (withoutLoans ? <> · loans ({formatCents(accounts.loanDebt)} owed) left out</> : <> − loans owed {formatCents(accounts.loanDebt)}</>)}
@@ -358,8 +358,8 @@ function AccountsTable(props: { overview: ReturnType<typeof accountsOverview>; a
           </tr>
         )}
         <tr class="total">
-          <td>Net tangible assets{props.withoutLoans && <span class="muted small"> without loans</span>}</td>
-          <td class="num">{formatCents(props.withoutLoans ? o.netTangibleAssets + o.loanDebt : o.netTangibleAssets)}</td>
+          <td>Net worth{props.withoutLoans && <span class="muted small"> without loans</span>}</td>
+          <td class="num">{formatCents(props.withoutLoans ? o.netWorth + o.loanDebt : o.netWorth)}</td>
         </tr>
       </tbody>
     </table>

@@ -61,12 +61,12 @@ export function setMemberView(id: string): void {
   }
 }
 export const pinnedTags = signal<string[]>([]);
-/** Whether the dashboard's net tangible assets leaves loans out. Kept on this device. */
-export const ntaWithoutLoans = signal(false);
+/** Whether the dashboard's net worth leaves loans out. Kept on this device. */
+export const netWorthWithoutLoans = signal(false);
 
 export async function loadSettings(): Promise<void> {
   pinnedTags.value = (await getSetting("pinnedTags")) ?? [];
-  ntaWithoutLoans.value = (await getSetting("ntaWithoutLoans")) ?? false;
+  netWorthWithoutLoans.value = (await getSetting("netWorthWithoutLoans")) ?? false;
 }
 
 /** Set what went into IRAs before the open year's tracking started. Null clears it. */
@@ -90,9 +90,9 @@ export async function savePinnedTags(ids: string[]): Promise<void> {
   pinnedTags.value = ids;
 }
 
-export async function saveNtaWithoutLoans(without: boolean): Promise<void> {
-  ntaWithoutLoans.value = without;
-  await setSetting("ntaWithoutLoans", without);
+export async function saveNetWorthWithoutLoans(without: boolean): Promise<void> {
+  netWorthWithoutLoans.value = without;
+  await setSetting("netWorthWithoutLoans", without);
 }
 
 export async function refreshYears(): Promise<void> {

@@ -31,7 +31,7 @@ export interface Account {
   /**
    * Investment and asset accounts only: what the account was worth on the days the user updated
    * it, oldest first, one per day. Between updates it's worth the last one; before the first, it's
-   * left out of net tangible assets. An investment starts each year without any; an asset (a house,
+   * left out of net worth. An investment starts each year without any; an asset (a house,
    * a car, whose value seldom changes) starts it with its last value, dated January 1.
    * An asset's value only ever comes from these: no entry can use an asset account.
    */

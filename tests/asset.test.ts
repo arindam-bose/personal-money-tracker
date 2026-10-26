@@ -1,5 +1,5 @@
 // Asset accounts (a house, a car): worth what the user last updated them to, counted in net
-// tangible assets, carried into the next year, and never used by an entry.
+// worth, carried into the next year, and never used by an entry.
 
 import { describe, expect, it } from "vitest";
 import { accountsOverview, balanceSeries, type Ledger } from "../src/derive";
@@ -21,13 +21,13 @@ describe("an asset", () => {
     expect(s.accounts[2]).toEqual({ id: "a_house", name: "House", type: "asset", ref: "", opening: 0 });
   });
 
-  it("counts in net tangible assets at its last value, once it has one", () => {
+  it("counts in net worth at its last value, once it has one", () => {
     let s = saveValuation(setup(), "a_car", "2026-02-01", 1800000);
     s = saveValuation(s, "a_car", "2026-09-01", 1650000);
     const l = ledgerOf(s);
-    expect(accountsOverview(l, "2026-01-31")).toMatchObject({ assetsWorth: 0, netTangibleAssets: 1000000 });
-    expect(accountsOverview(l, "2026-06-30")).toMatchObject({ assetsWorth: 1800000, investmentsWorth: 0, netTangibleAssets: 2800000 });
-    expect(balanceSeries(l, ["2026-12-31"])[0]).toMatchObject({ assetsWorth: 1650000, netTangibleAssets: 2650000 });
+    expect(accountsOverview(l, "2026-01-31")).toMatchObject({ assetsWorth: 0, netWorth: 1000000 });
+    expect(accountsOverview(l, "2026-06-30")).toMatchObject({ assetsWorth: 1800000, investmentsWorth: 0, netWorth: 2800000 });
+    expect(balanceSeries(l, ["2026-12-31"])[0]).toMatchObject({ assetsWorth: 1650000, netWorth: 2650000 });
   });
 
   it("keeps its last value, dated January 1, into the next year", () => {

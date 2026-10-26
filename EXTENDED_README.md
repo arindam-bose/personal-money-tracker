@@ -87,7 +87,7 @@ day, and a second one replaces the first. Between updates the account is worth
 the last one, whatever moved in or out since (`valuationOf` in `derive.ts`).
 Before its first update it isn't counted. Any investment account can have them,
 retirement ones included. A new year starts without any, so the account is left
-out of net tangible assets until it's updated again. A copied account doesn't
+out of net worth until it's updated again. A copied account doesn't
 take them, and tracking can't start after one.
 
 ### Assets
@@ -110,7 +110,7 @@ out: an asset or investment is worth nothing (`valuationOf` returns none), a clo
 card's limit stops counting, and the dashboard stops listing it (earlier months
 still do). No entry or value update can come after that day, and the next year
 doesn't have the account. A bank, cash, card or loan account must be at 0 at the
-end of the day it closes, so its money isn't lost from net tangible assets: move
+end of the day it closes, so its money isn't lost from net worth: move
 it out with a transfer first. **Reopen** undoes it. Tracking can't start after a
 closed account's day.
 
@@ -174,7 +174,7 @@ gives them back to the default; the default can't be deleted.
 A member's dashboard and reports use `forMember` (`derive.ts`): the ledger with
 only their entries and every account. So their earned, spent, net figures,
 savings and investing add up across members to the household's. Balances (net
-tangible assets, the Accounts card, Balances over time) and budgets are the
+worth, the Accounts card, Balances over time) and budgets are the
 household's and only show under "All people". The picker (`views/people.tsx`)
 and the Ledger's person filter appear once there are two members.
 
@@ -213,7 +213,7 @@ Tests).
 | Loans owed | −(loan balances), interest included |
 | Investments worth | Each investment account's latest balance update; accounts without one aren't counted |
 | Assets worth | Each asset account's latest value |
-| Net tangible assets | Available cash − card debt − loans owed + investments worth + assets worth. The **Include loans** switch (Dashboard, and Balances over time in Reports) can leave loans out too |
+| Net worth | Available cash − card debt − loans owed + investments worth + assets worth. The **Include loans** switch (Dashboard, and Balances over time in Reports) can leave loans out too |
 
 Investment accounts' ledger balances are contributions this year, not market
 value; they open at 0 every year. What they're worth is only what the user enters.
@@ -240,7 +240,7 @@ moves between your own accounts aren't shown.
 - `expenses`, `earnings`, `transfers`: one record per entry, keyed by
   `[year, id]`, because ids like `e0001` repeat every year.
 - `settings`: app-wide values (pinned tags, the year last opened, whether the
-  dashboard's net tangible assets leaves loans out).
+  dashboard's net worth leaves loans out).
 
 Replacing a year on import runs in one transaction: if anything fails, the old
 data stays. The app calls `navigator.storage.persist()` on start so the browser

@@ -1,5 +1,5 @@
 // Investment balances: the user notes what an investment account is worth from time to time.
-// It's worth the last balance noted until the next one, and only then counts in net tangible assets.
+// It's worth the last balance noted until the next one, and only then counts in net worth.
 
 import { describe, expect, it } from "vitest";
 import { accountsOverview, balanceSeries, valuationOf, type Ledger } from "../src/derive";
@@ -65,22 +65,22 @@ describe("what an investment account is worth", () => {
     expect(valuationOf(giaIn(s))).toEqual({ date: "2026-10-01", amount: 1248000 });
   });
 
-  it("counts in net tangible assets once noted; an account without one is left out", () => {
+  it("counts in net worth once noted; an account without one is left out", () => {
     const before = accountsOverview(l, "2026-02-28");
     expect(before.investmentsWorth).toBe(0);
-    expect(before.netTangibleAssets).toBe(before.availableCash);
+    expect(before.netWorth).toBe(before.availableCash);
 
     const may = accountsOverview(l, "2026-05-31");
     // The $500 put in on May 1 left checking but isn't in the March balance: it shows at the next update.
     expect(may.availableCash).toBe(950000);
     expect(may.investmentsWorth).toBe(900000);
-    expect(may.netTangibleAssets).toBe(950000 + 900000);
+    expect(may.netWorth).toBe(950000 + 900000);
     expect([...may.valuations.keys()]).toEqual(["a_gia"]);
     expect(may.invested.get("a_gia")).toBe(50000);
   });
 
   it("is in the balance series", () => {
-    expect(balanceSeries(l, ["2026-02-28", "2026-12-31"]).map((p) => [p.investmentsWorth, p.netTangibleAssets]))
+    expect(balanceSeries(l, ["2026-02-28", "2026-12-31"]).map((p) => [p.investmentsWorth, p.netWorth]))
       .toEqual([[0, 1000000], [1248000, 950000 + 1248000]]);
   });
 

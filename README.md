@@ -51,15 +51,15 @@ import it: a household of two with a month of earnings, spending and transfers.
   Deleting a category moves its entries to **Uncategorized**; deleting a tag takes
   it off its expenses.
   On an investment account, **Update balance** notes what it's worth today; it
-  counts at that amount in net tangible assets until you update it again.
+  counts at that amount in net worth until you update it again.
   An **Asset** account (a house, a car) has no entries: **Update value** sets
-  what it's worth, which counts in net tangible assets and carries into the next year.
+  what it's worth, which counts in net worth and carries into the next year.
   **Close…** an account on the day you sold, paid off or shut it: from then it's
-  left out of net tangible assets and the next year.
+  left out of net worth and the next year.
   A **Loan / mortgage** account takes the day it began, the amount borrowed and
   the interest rate. Interest is added monthly on what's still owed, each payment
   is a transfer into the loan (in **Loan Payments**), and what it owes comes off
-  net tangible assets. Untick **Include loans** on the dashboard or the Balances over time chart to see them without it.
+  net worth. Untick **Include loans** on the dashboard or the Balances over time chart to see them without it.
 - **A household**: everything belongs to **Person A** until you add someone on
   the Accounts page. Then each entry can be logged for one person, and the
   Dashboard, Ledger and Reports can show **All people** or one person at a time.

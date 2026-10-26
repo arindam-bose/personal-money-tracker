@@ -190,7 +190,7 @@ export function deleteValuation(setup: YearSetup, id: string, date: IsoDate): Ye
 
 /**
  * Close an account on a day: sold, paid off or shut. From that day on it's left out of net
- * tangible assets, and nothing can be entered for it after. An asset or investment is simply
+ * worth, and nothing can be entered for it after. An asset or investment is simply
  * worth nothing from then. A bank, cash, card or loan account must be at 0 at the end of that
  * day, or its money would vanish: move it out with a transfer first.
  */
@@ -216,7 +216,7 @@ export function closeAccount(data: Pick<YearData, "setup" | "expenses" | "earnin
     const left = balances(ledger, date).get(id) ?? 0;
     if (left !== 0) {
       const what = left < 0 ? `still owes ${formatCents(-left)}` : `still has ${formatCents(left)}`;
-      throw new SetupError(`${account.name} ${what} on ${shortDate(date)}. Move it with a transfer first, so it isn't lost from your net tangible assets.`);
+      throw new SetupError(`${account.name} ${what} on ${shortDate(date)}. Move it with a transfer first, so it isn't lost from your net worth.`);
     }
   }
   return { ...setup, accounts: upsert(setup.accounts, { ...account, closedOn: date }) };

@@ -180,7 +180,7 @@ function AccountsCard({ setup, usage }: { setup: YearSetup; usage: Usage }) {
                         ) : (
                           <>
                             <button type="button" onClick={() => (closing.value = closing.value === a.id ? null : a.id)}
-                              title="Sold, paid off or shut on a day: from then it's left out of net tangible assets">
+                              title="Sold, paid off or shut on a day: from then it's left out of net worth">
                               Close…
                             </button>
                             <button type="button" onClick={() => toggleArchive(a)}
@@ -212,7 +212,7 @@ function AccountsCard({ setup, usage }: { setup: YearSetup; usage: Usage }) {
 /** "Worth $12,480.00 on Oct 25", or a note that it has no balance yet. */
 function worthText(a: Account): string {
   const v = valuationOf(a);
-  return v ? `Worth ${formatCents(v.amount)} on ${shortDate(v.date)}` : `No ${valueWord(a)} yet: not in net tangible assets`;
+  return v ? `Worth ${formatCents(v.amount)} on ${shortDate(v.date)}` : `No ${valueWord(a)} yet: not in net worth`;
 }
 
 /** An investment has a balance; an asset (a house, a car) has a value. */
@@ -251,8 +251,8 @@ function ValuationForm(props: { account: Account; setup: YearSetup; onDone: () =
     <form class="inline-form" onSubmit={onSubmit} onKeyDown={(e) => e.key === "Escape" && props.onDone()}>
       <p class="muted small">
         {a.type === "asset"
-          ? <>What {a.name} is worth. Until the next update it counts at this amount in net tangible assets, and a new year starts with it.</>
-          : <>What {a.name} is worth, as your broker shows it. Until the next update it counts at this amount in net tangible assets. A new year starts without one.</>}
+          ? <>What {a.name} is worth. Until the next update it counts at this amount in net worth, and a new year starts with it.</>
+          : <>What {a.name} is worth, as your broker shows it. Until the next update it counts at this amount in net worth. A new year starts without one.</>}
       </p>
       <div class="fields">
         <label class="field w-date">
@@ -307,7 +307,7 @@ function CloseForm(props: { account: Account; setup: YearSetup; onDone: () => vo
     <form class="inline-form" onSubmit={onSubmit} onKeyDown={(e) => e.key === "Escape" && props.onDone()}>
       <p class="muted small">
         {hasValuations(a.type)
-          ? <>From this day {a.name} is worth nothing in net tangible assets, as when it's sold. Record what you got for it as an earning or a transfer into the account it went to.</>
+          ? <>From this day {a.name} counts for nothing in net worth, as when it's sold. Record what you got for it as an earning or a transfer into the account it went to.</>
           : <>{a.name} must be at {formatCents(0)} at the end of this day: move what's left with a transfer first. Nothing can be entered for it after.</>}
         {" "}It won't come into the next year. You can reopen it.
       </p>
@@ -503,7 +503,7 @@ function AccountForm(props: { account?: Account; first?: boolean; onDone: () => 
       {isLoan && (
         <p class="muted small">
           Each month on the day the loan began, the yearly rate ÷ 12 of what's still owed is added as interest.
-          Record payments as transfers into the loan. What it owes comes off net tangible assets.
+          Record payments as transfers into the loan. What it owes comes off net worth.
         </p>
       )}
       {error.value && <p class="form-error" role="alert">{error.value}</p>}

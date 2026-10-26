@@ -161,7 +161,7 @@ describe("accounts", () => {
     expect(o.cardDebt).toBe(15000);
     expect(o.cardLimit).toBe(500000);
     expect(o.utilization).toBe(0.03);
-    expect(o.netTangibleAssets).toBe(2032784 - 15000);
+    expect(o.netWorth).toBe(2032784 - 15000);
     expect(o.cards).toEqual([{ account: ledger.accounts[3], debt: 15000, utilization: 0.03 }]);
     expect(Object.fromEntries(o.invested)).toEqual({ a_ira: 50000 });
   });
@@ -208,9 +208,9 @@ describe("report series", () => {
   it("account totals over time", () => {
     expect(balanceSeries(ledger, ["2026-01-31", "2026-12-31"])).toEqual([
       // Jan 31: checking 560000 + savings 1101234 + wallet 0; card −20000 − 14550 + 20000
-      { date: "2026-01-31", availableCash: 1661234, cardDebt: 14550, loanDebt: 0, investmentsWorth: 0, assetsWorth: 0, netTangibleAssets: 1646684, invested: 50000, saved: 100000 },
+      { date: "2026-01-31", availableCash: 1661234, cardDebt: 14550, loanDebt: 0, investmentsWorth: 0, assetsWorth: 0, netWorth: 1646684, invested: 50000, saved: 100000 },
       // 100000 in, then 25000 taken out on Feb 16
-      { date: "2026-12-31", availableCash: 2032784, cardDebt: 15000, loanDebt: 0, investmentsWorth: 0, assetsWorth: 0, netTangibleAssets: 2017784, invested: 50000, saved: 75000 },
+      { date: "2026-12-31", availableCash: 2032784, cardDebt: 15000, loanDebt: 0, investmentsWorth: 0, assetsWorth: 0, netWorth: 2017784, invested: 50000, saved: 75000 },
     ]);
   });
 });

@@ -391,7 +391,7 @@ export interface AccountsOverview {
   loanDebt: Cents;
   loans: LoanOverview[];
   /** Available cash − card debt − loan debt + investments worth + assets worth. */
-  netTangibleAssets: Cents;
+  netWorth: Cents;
   /** Contributions made this year, per investment account. */
   invested: Map<string, Cents>;
   /** Accounts closed by then. They're at 0, so they only matter for what's listed. */
@@ -461,7 +461,7 @@ export function accountsOverview(ledger: Ledger, through?: IsoDate, today = loca
     utilization: ratio(cardDebt, cardLimit),
     cards,
     loanDebt, loans,
-    netTangibleAssets: availableCash - cardDebt - loanDebt + investmentsWorth + assetsWorth,
+    netWorth: availableCash - cardDebt - loanDebt + investmentsWorth + assetsWorth,
     invested, valuations, investmentsWorth, assetsWorth,
   };
 }
@@ -535,8 +535,8 @@ export interface BalancePoint {
   investmentsWorth: Cents;
   /** Asset accounts' latest values so far (AccountsOverview.assetsWorth). */
   assetsWorth: Cents;
-  /** Available cash − card debt − loan debt + investments and assets worth (AccountsOverview.netTangibleAssets). */
-  netTangibleAssets: Cents;
+  /** Available cash − card debt − loan debt + investments and assets worth (AccountsOverview.netWorth). */
+  netWorth: Cents;
   /** Contributions to investment accounts so far this year. */
   invested: Cents;
   /** Net savings so far this year: moved into savings minus taken out (Summary.netSavings to date). */
@@ -557,7 +557,7 @@ export function balanceSeries(ledger: Ledger, dates: IsoDate[]): BalancePoint[] 
       if (role === "savings_in") saved += t.amount;
       if (role === "savings_out") saved -= t.amount;
     }
-    return { date, availableCash: o.availableCash, cardDebt: o.cardDebt, loanDebt: o.loanDebt, investmentsWorth: o.investmentsWorth, assetsWorth: o.assetsWorth, netTangibleAssets: o.netTangibleAssets, invested, saved };
+    return { date, availableCash: o.availableCash, cardDebt: o.cardDebt, loanDebt: o.loanDebt, investmentsWorth: o.investmentsWorth, assetsWorth: o.assetsWorth, netWorth: o.netWorth, invested, saved };
   });
 }
 

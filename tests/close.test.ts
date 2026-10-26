@@ -1,5 +1,5 @@
-// Closing an account on a day: sold, paid off or shut. From then it's left out of net tangible
-// assets; nothing can be entered for it after, and the next year doesn't have it.
+// Closing an account on a day: sold, paid off or shut. From then it's left out of net worth;
+// nothing can be entered for it after, and the next year doesn't have it.
 
 import { describe, expect, it } from "vitest";
 import { accountsOverview, type Ledger } from "../src/derive";
@@ -26,12 +26,12 @@ const ledgerOf = (d: ReturnType<typeof year>): Ledger =>
 const find = (s: YearSetup, id: string) => s.accounts.find((a) => a.id === id)!;
 
 describe("closing an asset", () => {
-  it("leaves it out of net tangible assets from that day; before it, it still counts", () => {
+  it("leaves it out of net worth from that day; before it, it still counts", () => {
     const d = year();
     const closed = { ...d, setup: closeAccount(d, "a_car", "2026-02-14") };
     const l = ledgerOf(closed);
-    expect(accountsOverview(l, "2026-02-13")).toMatchObject({ assetsWorth: 2000000, netTangibleAssets: 1050000 + 2000000 });
-    expect(accountsOverview(l, "2026-02-14")).toMatchObject({ assetsWorth: 0, netTangibleAssets: 1050000 });
+    expect(accountsOverview(l, "2026-02-13")).toMatchObject({ assetsWorth: 2000000, netWorth: 1050000 + 2000000 });
+    expect(accountsOverview(l, "2026-02-14")).toMatchObject({ assetsWorth: 0, netWorth: 1050000 });
     expect(accountsOverview(l).closed).toEqual(new Set(["a_car"]));
   });
 

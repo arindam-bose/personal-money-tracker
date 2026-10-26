@@ -85,12 +85,12 @@ describe.skipIf(YEARS.length === 0).each(YEARS)("real %i data", (year) => {
       }
     });
 
-    it("next year opens at this year's net tangible assets, investments at 0 and without their balances", () => {
+    it("next year opens at this year's net worth, investments at 0 and without their balances", () => {
       const next = nextYearSetup(load(), ledger);
       const openingNet = next.accounts.filter((a) => a.type !== "investment").reduce((s, a) => s + a.opening, 0);
-      // Investment balance updates count in net tangible assets, but a new year starts without them.
+      // Investment balance updates count in net worth, but a new year starts without them.
       const end = accountsOverview(ledger, `${year}-12-31`);
-      expect(openingNet).toBe(end.netTangibleAssets - end.investmentsWorth);
+      expect(openingNet).toBe(end.netWorth - end.investmentsWorth);
       expect(next.accounts.every((a) => a.valuations === undefined)).toBe(true);
       expect(next.accounts.filter((a) => a.type === "investment").every((a) => a.opening === 0)).toBe(true);
     });
