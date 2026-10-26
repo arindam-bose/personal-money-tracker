@@ -144,7 +144,7 @@ export function EntryForm({ initial, onClose }: Props) {
           </>
         ) : (
           <Field label={d.kind === "expense" ? "Paid from" : "Paid into"} error={err.account} class="w-account">
-            <AccountSelect accounts={accounts} value={d.account} onChange={(v) => set("account", v)} />
+            <AccountSelect accounts={accounts.filter((a) => a.type !== "loan")} value={d.account} onChange={(v) => set("account", v)} />
           </Field>
         )}
 
@@ -212,7 +212,7 @@ function Field(props: { label: string; error?: string; class?: string; children:
 }
 
 const TYPE_LABEL: Record<Account["type"], string> = {
-  checking: "Bank", savings: "Savings", cash: "Cash", credit: "Credit cards", investment: "Investments",
+  checking: "Bank", savings: "Savings", cash: "Cash", credit: "Credit cards", investment: "Investments", loan: "Loans",
 };
 
 function AccountSelect(props: { accounts: Account[]; value: string; onChange: (id: string) => void }) {

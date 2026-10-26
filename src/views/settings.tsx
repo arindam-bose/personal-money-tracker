@@ -7,8 +7,8 @@ import { useEffect } from "preact/hooks";
 import { downloadYear, importYear, readJsonFile, saveYearFile } from "../backup";
 import { demoFileName, demoYear } from "../demo";
 import { formatCents, parseCents } from "../money";
-import { balances, localToday, shortDate } from "../derive";
-import { nextYearSetup } from "../rollover";
+import { localToday, shortDate } from "../derive";
+import { closingBalances, nextYearSetup } from "../rollover";
 import {
   closeYear, current, type YearSummary, eraseEverything, iraLimit, ledger, loadSettings, openYear, persistState, readOnly, removeYear, reopenYear, saveIraBeforeStart, saveIraLimit, startYear, years,
 } from "../state";
@@ -483,7 +483,7 @@ function CloseYearPanel(props: { year: number; onDone: (message: string) => void
   const data = current.value;
   const l = ledger.value!;
   const next = nextYearSetup(data.setup, l);
-  const closingBal = balances(l);
+  const closingBal = closingBalances(data.setup, l);
   const nextExists = years.value.some((y) => y.setup.year === year + 1);
   const notOver = new Date().getFullYear() <= year;
 

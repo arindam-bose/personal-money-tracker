@@ -5,8 +5,9 @@
 import type { YearData } from "./db";
 import { newId, slug } from "./entries";
 import { membersOf } from "./members";
-import { isDateInYear } from "./validate";
-import { shortDate } from "./derive";
+import { isDate, isDateInYear, isRate } from "./validate";
+import { loanStatus, shortDate } from "./derive";
+import { dayBefore, yearStart } from "./year";
 import type {
   Account, Categories, Category, Cents, IsoDate, Earning, EarningRole, Expense, ExpenseRole, Member, Tag, Transfer, TransferRole, YearSetup,
 } from "./types";
@@ -95,6 +96,15 @@ export function saveAccount(setup: YearSetup, account: Account): YearSetup {
       throw new SetupError("A credit card needs a credit limit.");
     }
     clean.limit = account.limit;
+  }
+  if (account.type === "loan") {
+    const { loanStart, loanAmount, rate } = account;
+    if (!isDate(loanStart) || loanStart > `${setup.year}-12-31`) throw new SetupError(`Pick the day the loan began, in ${setup.year} or earlier.`);
+    if (loanAmount === undefined || !Number.isSafeInteger(loanAmount) || loanAmount <= 0) throw new SetupError("Enter the amount borrowed.");
+    if (!isRate(rate)) throw new SetupError("Enter the yearly interest rate as a percentage, like 6.5.");
+    // A loan taken out since tracking started is added on its start date, so it opens at 0.
+    if (loanStart >= yearStart(setup)) clean.opening = 0;
+    Object.assign(clean, { loanStart, loanAmount, rate });
   }
   if (account.archived) clean.archived = true;
   return { ...setup, accounts: upsert(setup.accounts, clean) };
@@ -310,7 +320,7 @@ export function withStart(data: Pick<YearData, "setup" | "expenses" | "earnings"
   if (start === null || start === `${setup.year}-01-01`) {
     // From January 1 the whole year is in the ledger, so nothing came "before the start".
     const { iraBeforeStart: _before, ...whole } = setup;
-    return whole;
+    return { ...whole, accounts: loansFrom(data, `${setup.year}-01-01`) };
   }
   if (!isDateInYear(start, setup.year)) throw new SetupError(`Pick a day in ${setup.year}.`);
   const first = [...data.expenses, ...data.earnings, ...data.transfers].reduce<string | null>(
@@ -318,7 +328,24 @@ export function withStart(data: Pick<YearData, "setup" | "expenses" | "earnings"
   if (first !== null && first < start) {
     throw new SetupError(`There are entries from ${shortDate(first)}, so tracking can't start later than that. Move or delete them first.`);
   }
-  return { ...setup, start };
+  return { ...setup, start, accounts: loansFrom(data, start) };
+}
+
+/**
+ * The accounts with each loan's opening moved to a new start day. A loan that now begins on or
+ * after it opens at 0. One that now began before it opens at what it owed that morning: nothing
+ * is in the ledger before the new start, so that's its amount and interest so far. Moving the
+ * start earlier can't undo interest, so a loan that already began before keeps its opening.
+ */
+function loansFrom(data: Pick<YearData, "setup" | "expenses" | "earnings" | "transfers">, start: IsoDate): Account[] {
+  const { setup } = data;
+  const old = { ...data, accounts: setup.accounts, categories: setup.categories, year: setup.year, start: setup.start };
+  return setup.accounts.map((a) => {
+    if (a.type !== "loan" || !a.loanStart) return a;
+    if (a.loanStart >= start) return { ...a, opening: 0 };
+    if (start > yearStart(setup)) return { ...a, opening: loanStatus(old, a, dayBefore(start)).balance };
+    return a;
+  });
 }
 
 // --- IRA limit ---

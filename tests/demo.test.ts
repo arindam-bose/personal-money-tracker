@@ -17,12 +17,12 @@ describe("the demo file", () => {
 
   it("has a handful of each kind of entry", () => {
     const f = demoYear(2026);
-    expect([f.expenses.length, f.earnings.length, f.transfers.length]).toEqual([6, 5, 5]);
+    expect([f.expenses.length, f.earnings.length, f.transfers.length]).toEqual([6, 5, 6]);
   });
 
   it("shows a mix: every account type, both people, tags, a refund and a one-off", () => {
     const f = demoYear(2026);
-    expect(new Set(f.accounts.map((a) => a.type))).toEqual(new Set(["checking", "savings", "credit", "cash", "investment"]));
+    expect(new Set(f.accounts.map((a) => a.type))).toEqual(new Set(["checking", "savings", "credit", "cash", "investment", "loan"]));
     expect(f.members!.map((m) => m.id)).toEqual(["m_person-a", "m_john"]);
     expect([...f.expenses, ...f.earnings, ...f.transfers].some((e) => e.member === "m_john")).toBe(true);
     expect(f.expenses.some((e) => e.tags.length > 0)).toBe(true);
@@ -34,14 +34,17 @@ describe("the demo file", () => {
       return c.role === "income" && !countsInNetEarnings(c);
     })).toBe(true);
     const roles = new Set(f.transfers.map((t) => f.categories.transfer.find((c) => c.id === t.cat)!.role));
-    expect(roles).toEqual(new Set(["savings_in", "invest_retirement", "cash_withdrawal", "cc_payment", "invest_taxable"]));
+    expect(roles).toEqual(new Set(["savings_in", "invest_retirement", "cash_withdrawal", "cc_payment", "invest_taxable", "general"]));
   });
 
-  it("adds up to sensible balances: nothing overdrawn, the card owes less than it did", () => {
+  it("adds up to sensible balances: nothing overdrawn, the card and the loan owe less than they did", () => {
     const f = demoYear(2026);
-    const bal = balances(f);
-    for (const a of f.accounts.filter((x) => x.type !== "credit")) expect(bal.get(a.id)!).toBeGreaterThanOrEqual(0);
+    // The demo is one January; later, the loan would keep adding interest with no payments.
+    const bal = balances(f, "2026-01-31");
+    for (const a of f.accounts.filter((x) => x.type !== "credit" && x.type !== "loan")) expect(bal.get(a.id)!).toBeGreaterThanOrEqual(0);
     expect(bal.get("a_card")!).toBeGreaterThan(-45000);
+    // Jan 14: $125.35 interest on $21,800 at 6.9%, then $450 paid.
+    expect(bal.get("a_car-loan")!).toBe(-2180000 - 12535 + 45000);
     expect(summarize(f).surplus).toBeGreaterThan(0);
   });
 

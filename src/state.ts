@@ -32,7 +32,7 @@ export const readOnly = computed(() => current.value?.setup.closed === true);
 /** The open year in the shape the calculations in derive.ts take. */
 export const ledger = computed<Ledger | null>(() => {
   const d = current.value;
-  return d && { ...d, accounts: d.setup.accounts, categories: d.setup.categories };
+  return d && { ...d, accounts: d.setup.accounts, categories: d.setup.categories, year: d.setup.year, start: d.setup.start };
 });
 
 /** The open year's IRA contribution limit. Change it on the Settings page. */

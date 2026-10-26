@@ -6,7 +6,7 @@ import type { AccountType, YearFile } from "./types";
 
 export type ValidationResult = { ok: true; file: YearFile } | { ok: false; errors: string[] };
 
-const ACCOUNT_TYPES: AccountType[] = ["checking", "savings", "cash", "credit", "investment"];
+const ACCOUNT_TYPES: AccountType[] = ["checking", "savings", "cash", "credit", "investment", "loan"];
 const EXPENSE_ROLES = ["charity", "loan"];
 const EARNING_ROLES = ["paycheck", "income", "offset"];
 const TRANSFER_ROLES = [
@@ -30,6 +30,16 @@ export function isDateInYear(v: unknown, year: number): boolean {
   if (typeof v !== "string" || !/^\d{4}-\d{2}-\d{2}$/.test(v)) return false;
   const d = new Date(v + "T00:00:00Z");
   return d.toISOString().slice(0, 10) === v && d.getUTCFullYear() === year;
+}
+
+/** A real calendar date in any year, as "YYYY-MM-DD". */
+export function isDate(v: unknown): v is string {
+  return typeof v === "string" && /^\d{4}-/.test(v) && isDateInYear(v, Number(v.slice(0, 4)));
+}
+
+/** A yearly interest rate as a percentage: 0 to 100, at most 3 decimals (6.125). */
+export function isRate(v: unknown): v is number {
+  return typeof v === "number" && v >= 0 && v <= 100 && Math.abs(v * 1000 - Math.round(v * 1000)) < 1e-6;
 }
 
 /** A copy of the list with `key` removed from every object in it. Anything else passes through. */
@@ -129,6 +139,16 @@ export function validateYearFile(raw: unknown): ValidationResult {
     if (typeof a.ref !== "string") err(`Account "${a.id}" has no ref.`);
     if (!isCents(a.opening)) err(`Account "${a.id}" opening balance is not whole cents.`);
     if (a.limit !== undefined && !(isCents(a.limit) && a.limit >= 0)) err(`Account "${a.id}" limit is not whole cents.`);
+    if (a.type === "loan") {
+      if (!isDate(a.loanStart) || Number(a.loanStart.slice(0, 4)) > y) err(`Loan "${a.id}" needs a start date in ${y} or earlier.`);
+      else if (a.opening !== 0 && a.loanStart >= (start ?? `${y}-01-01`)) {
+        err(`Loan "${a.id}" began after tracking started, so it must open at 0: its amount is added on its start date.`);
+      }
+      if (!(isCents(a.loanAmount) && a.loanAmount > 0)) err(`Loan "${a.id}" amount is not whole cents.`);
+      if (!isRate(a.rate)) err(`Loan "${a.id}" interest rate must be a percentage from 0 to 100.`);
+    } else if (a.loanStart !== undefined || a.loanAmount !== undefined || a.rate !== undefined) {
+      err(`Account "${a.id}" isn't a loan, so it can't have a loan start, amount or rate.`);
+    }
   }
 
   // Earning and transfer categories drive the reports, so they must have a role.

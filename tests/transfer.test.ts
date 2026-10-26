@@ -21,7 +21,10 @@ function everything(): Required<YearFile> {
     ...f,
     start: "2026-01-15",
     closed: true,
-    accounts: f.accounts.map((a, i) => (i === 0 ? { ...a, archived: true } : a)),
+    accounts: [
+      ...f.accounts.map((a, i) => (i === 0 ? { ...a, archived: true } : a)),
+      { id: "a_car-loan", name: "Car loan", type: "loan", ref: "", opening: 0, loanStart: "2026-02-01", loanAmount: 2000000, rate: 6.5 },
+    ],
     categories: { ...f.categories, earning: f.categories.earning.map((c, i) => (i === 1 ? { ...c, net: false } : c)) },
     members: [{ id: "m_person-a", name: "Sam" }, { id: "m_alex", name: "Alex" }],
     expenses: later(f.expenses).map((e, i) => (i === 0 ? { ...e, member: "m_alex" } : e)),

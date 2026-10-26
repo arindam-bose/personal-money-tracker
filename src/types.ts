@@ -7,7 +7,7 @@ export type Cents = number;
 /** A calendar date as "YYYY-MM-DD". */
 export type IsoDate = string;
 
-export type AccountType = "checking" | "savings" | "cash" | "credit" | "investment";
+export type AccountType = "checking" | "savings" | "cash" | "credit" | "investment" | "loan";
 
 export interface Account {
   id: string;
@@ -15,10 +15,19 @@ export interface Account {
   type: AccountType;
   /** Last 4 digits or a handle, e.g. "**0883" or "@someone". */
   ref: string;
-  /** Net-worth sign: a credit card that owes money opens negative. */
+  /**
+   * Net-worth sign: a credit card that owes money opens negative, and so does a loan.
+   * A loan taken out on or after the day tracking starts opens at 0: its amount is added on its start date.
+   */
   opening: Cents;
   /** Credit limit, credit cards only. */
   limit?: Cents;
+  /** Loans only: the day the loan began. Interest is added on each monthly anniversary of it. */
+  loanStart?: IsoDate;
+  /** Loans only: the amount borrowed. */
+  loanAmount?: Cents;
+  /** Loans only: the yearly interest rate as a percentage, e.g. 6.5. */
+  rate?: number;
   archived?: boolean;
 }
 

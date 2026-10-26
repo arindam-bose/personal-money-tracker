@@ -107,6 +107,7 @@ export function DashboardView() {
           <div class={`hero-value ${accounts.netTangibleAssets < 0 ? "neg" : ""}`}>{formatCents(accounts.netTangibleAssets)}</div>
           <div class="muted">
             Available cash {formatCents(accounts.availableCash)} − card debt {formatCents(accounts.cardDebt)}
+            {accounts.loans.length > 0 && <> − loans owed {formatCents(accounts.loanDebt)}</>}
           </div>
         </section>
       )}
@@ -280,6 +281,21 @@ function AccountsTable(props: { overview: ReturnType<typeof accountsOverview>; a
           <td>Card debt · {formatPercent(o.utilization)} of limits</td>
           <td class="num">{formatCents(o.cardDebt)}</td>
         </tr>
+        {o.loans.filter((l) => !l.account.archived || l.owed !== 0).map((l) => (
+          <tr>
+            <td>{l.account.name}</td>
+            <td class="num">
+              {l.owed ? `${formatCents(l.owed)} owed` : "Paid off"}
+              <div class="tile-detail">{formatCents(l.interest)} interest this year</div>
+            </td>
+          </tr>
+        ))}
+        {o.loans.length > 0 && (
+          <tr class="subtotal">
+            <td>Loans owed</td>
+            <td class="num">{formatCents(o.loanDebt)}</td>
+          </tr>
+        )}
         <tr class="total">
           <td>Net tangible assets</td>
           <td class="num">{formatCents(o.netTangibleAssets)}</td>

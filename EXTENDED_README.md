@@ -71,10 +71,25 @@ The rules that everything else relies on:
 - **Dates are `YYYY-MM-DD` strings**, and every entry's date is inside its year.
 - **Everything refers to everything else by id.** Renaming an account or a
   category never touches an entry.
-- **Balances use the net-worth sign.** A card that owes money has a negative
-  balance. For every account: `balance = opening + money in − money out`.
+- **Balances use the net-worth sign.** A card or loan that owes money has a negative
+  balance. For every account: `balance = opening + money in − money out`, and a
+  loan also adds its interest (below).
 - **Nothing computed is stored.** Balances, totals and budget progress are worked
   out from the entries each time (a year is ~1,000 rows; this is fast).
+
+### Loans
+
+A `loan` account (a loan or mortgage) also has `loanStart`, `loanAmount` and
+`rate` (yearly, as a percentage). Its `opening` is what was owed the morning
+tracking started; a loan taken out since then opens at 0, and its amount is
+added on `loanStart`. On each monthly anniversary of `loanStart` (the 31st falls
+on a shorter month's last day), `rate ÷ 12` of what's still owed is added,
+rounded to the cent, before that day's entries. A payment is a transfer into
+the loan. Loans take transfers only, not expenses or earnings.
+
+All of this is in `loanStatus` (`derive.ts`). Without a `through` day, interest
+runs to today, or to December 31 once the year is over. Moving the year's start
+date moves each loan's opening with it (`withStart` in `setup.ts`).
 
 ### Roles
 
@@ -149,7 +164,8 @@ Tests).
 | Savings / investment / charity rate | As a share of paycheck income |
 | Available cash | Checking + savings + cash balances |
 | Card debt, utilization | −(card balances); debt ÷ total limits |
-| Net tangible assets | Available cash − card debt (investments left out) |
+| Loans owed | −(loan balances), interest included |
+| Net tangible assets | Available cash − card debt − loans owed (investments left out) |
 
 Investment accounts track contributions this year, not market value; they open
 at 0 every year.
@@ -266,8 +282,8 @@ last opened, and per-tab filters and periods.
 ### Closing a year
 
 `closeYear` makes the year read-only and starts the next one
-(`nextYearSetup` in `rollover.ts`): bank, cash and card accounts open at their
-closing balance, investment accounts at 0; accounts, categories, tags and
+(`nextYearSetup` in `rollover.ts`): bank, cash, card and loan accounts open at their
+closing balance on December 31 (a loan's interest included), investment accounts at 0; accounts, categories, tags and
 usual budget targets carry over (one-month overrides don't). If the next year
 already exists, it is left alone. A closed year can be reopened.
 

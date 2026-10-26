@@ -3,9 +3,14 @@
 import { balances, type Ledger } from "./derive";
 import type { YearFile, YearSetup } from "./types";
 
+/** Every account's balance at the end of December 31, loan interest included. */
+export function closingBalances(setup: YearSetup, ledger: Ledger): Map<string, number> {
+  return balances({ ...ledger, year: setup.year, start: setup.start }, `${setup.year}-12-31`);
+}
+
 /**
  * The next year's setup:
- * - bank, cash and card accounts open at this year's closing balance;
+ * - bank, cash, card and loan accounts open at this year's closing balance;
  * - investment accounts open at 0, because only this year's contributions are tracked
  *   (market value isn't, so gains and losses are unknown);
  * - accounts, categories, tags, members and the usual budget targets carry over.
@@ -14,7 +19,7 @@ import type { YearFile, YearSetup } from "./types";
  * - the new year starts on January 1, even if this one started partway through.
  */
 export function nextYearSetup(setup: YearSetup, ledger: Ledger): YearSetup {
-  const closing = balances(ledger);
+  const closing = closingBalances(setup, ledger);
   return {
     year: setup.year + 1,
     accounts: setup.accounts.map((a) => ({

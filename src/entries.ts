@@ -127,6 +127,7 @@ export function checkDraft(draft: Draft, setup: YearSetup, id: string): CheckRes
   }
 
   if (!usable(draft.account)) errors.account = "Pick an account.";
+  else if (accounts.get(draft.account)!.type === "loan") errors.account = "A loan only takes transfers: record a payment as a transfer into it.";
 
   if (draft.kind === "expense") {
     const tagIds = new Set(setup.tags.map((t) => t.id));

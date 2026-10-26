@@ -4,7 +4,7 @@
 //
 // A household of two, Jane and John, one January: paychecks, interest, a refund that lowers
 // spending and a one-off gift; rent, groceries, a date night, a jacket, charity and coffee in cash; and
-// transfers to savings, an IRA, a brokerage, the wallet and the credit card.
+// transfers to savings, an IRA, a brokerage, the wallet, the credit card and the car loan.
 
 import { emptyYearFile } from "./rollover";
 import { DEFAULT_MEMBER } from "./members";
@@ -35,6 +35,7 @@ export function demoYear(year: number, now = new Date()): YearFile {
     { id: "x0003", date: d("10"), item: "ATM withdrawal", amount: 10000, from: "a_checking", to: "a_wallet", cat: "ct_cash-withdraw", notes: "" },
     { id: "x0004", date: d("25"), item: "Pay Rewards Card", amount: 45000, from: "a_checking", to: "a_card", cat: "ct_payment-to-cc", notes: "Last month's statement" },
     { id: "x0005", date: d("28"), item: "Index fund purchase", amount: 25000, from: "a_savings", to: "a_brokerage", cat: "ct_investment-stocks-cryptos", notes: "", member: "m_john" },
+    { id: "x0006", date: d("14"), item: "Car loan payment", amount: 45000, from: "a_checking", to: "a_car-loan", cat: "ct_general-transfer", notes: "" },
   ];
   return {
     ...emptyYearFile({
@@ -47,6 +48,8 @@ export function demoYear(year: number, now = new Date()): YearFile {
         { id: "a_wallet", name: "Wallet", type: "cash", ref: "", opening: 6000 },
         { id: "a_ira", name: "Roth IRA", type: "investment", ref: "**9012", opening: 0 },
         { id: "a_brokerage", name: "Brokerage", type: "investment", ref: "**3456", opening: 0 },
+        // Taken out last August, so it opens at what was still owed on January 1.
+        { id: "a_car-loan", name: "Car Loan", type: "loan", ref: "**7788", opening: -2180000, loanStart: `${year - 1}-08-14`, loanAmount: 2400000, rate: 6.9 },
       ],
       tags: [
         { id: "t_date-night", name: "Date night" },

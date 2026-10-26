@@ -14,7 +14,7 @@ import type { Account, AccountType, EarningRole, YearSetup } from "../types";
 import { startsMidYear, yearStart } from "../year";
 
 const TYPE_LABEL: Record<AccountType, string> = {
-  checking: "Checking", savings: "Savings", cash: "Cash", credit: "Credit card", investment: "Investment",
+  checking: "Checking", savings: "Savings", cash: "Cash", credit: "Credit card", investment: "Investment", loan: "Loan / mortgage",
 };
 
 /** Plain-language names for the roles that drive the reports. */
@@ -139,12 +139,15 @@ function AccountsCard({ setup, usage }: { setup: YearSetup; usage: Usage }) {
               <tr key={a.id}><td colSpan={8}><AccountForm account={a} onDone={() => (editing.value = null)} /></td></tr>
             ) : (
               <tr key={a.id} class={a.archived ? "archived" : ""}>
-                <td>{a.name}{a.archived && <span class="badge">archived</span>}</td>
+                <td>
+                  {a.name}{a.archived && <span class="badge">archived</span>}
+                  {a.type === "loan" && <div class="tile-detail">{loanText(a)}</div>}
+                </td>
                 <td>{TYPE_LABEL[a.type]}</td>
                 <td>{a.ref}</td>
-                <td class="num">{a.type === "credit" ? owedText(a.opening) : formatCents(a.opening)}</td>
+                <td class="num">{owes(a) ? owedText(a.opening) : formatCents(a.opening)}</td>
                 <td class="num">{a.limit !== undefined ? formatCents(a.limit) : ""}</td>
-                <td class="num">{a.type === "credit" ? owedText(bal.get(a.id) ?? 0) : formatCents(bal.get(a.id) ?? 0)}</td>
+                <td class="num">{owes(a) ? owedText(bal.get(a.id) ?? 0) : formatCents(bal.get(a.id) ?? 0)}</td>
                 <td class="num">{usage.accounts.get(a.id) ?? 0}</td>
                 <td>
                   {!readOnly.value && (
@@ -168,7 +171,17 @@ function AccountsCard({ setup, usage }: { setup: YearSetup; usage: Usage }) {
   );
 }
 
-/** A card balance in plain words: −1234 -> "$12.34 owed". */
+/** Cards and loans show what they owe rather than a balance. */
+function owes(a: Account): boolean {
+  return a.type === "credit" || a.type === "loan";
+}
+
+/** "6.5% a year · $300,000.00 from Mar 15, 2024". */
+function loanText(a: Account): string {
+  return `${a.rate}% a year · ${formatCents(a.loanAmount ?? 0)} from ${shortDate(a.loanStart!)}, ${a.loanStart!.slice(0, 4)}`;
+}
+
+/** A card or loan balance in plain words: −1234 -> "$12.34 owed". */
 function owedText(balance: number): string {
   return balance < 0 ? `${formatCents(-balance)} owed` : balance > 0 ? `${formatCents(balance)} credit` : formatCents(0);
 }
@@ -219,18 +232,32 @@ function AccountForm(props: { account?: Account; first?: boolean; onDone: () => 
   const name = useSignal(a?.name ?? "");
   const type = useSignal<AccountType>(a?.type ?? "checking");
   const ref = useSignal(a?.ref ?? "");
-  // A card's opening is entered as the amount owed (positive) and stored negative.
-  const opening = useSignal(a ? ((a.type === "credit" ? -a.opening : a.opening) / 100).toFixed(2) : "");
+  // A card or loan opening is entered as the amount owed (positive) and stored negative.
+  const opening = useSignal(a ? ((owes(a) ? -a.opening : a.opening) / 100).toFixed(2) : "");
   const limit = useSignal(a?.limit !== undefined ? (a.limit / 100).toFixed(2) : "");
+  const loanStart = useSignal(a?.loanStart ?? "");
+  const loanAmount = useSignal(a?.loanAmount !== undefined ? (a.loanAmount / 100).toFixed(2) : "");
+  const rate = useSignal(a?.rate !== undefined ? String(a.rate) : "");
   const error = useSignal<string | null>(null);
   const nameRef = useRef<HTMLInputElement>(null);
+  const setup = current.value!.setup;
   const isCard = type.value === "credit";
+  const isLoan = type.value === "loan";
+  // Only a loan that began before tracking started has an amount owed to enter; a newer one is added on its start date.
+  const loanBefore = isLoan && loanStart.value !== "" && loanStart.value < yearStart(setup);
   useEffect(() => nameRef.current?.focus(), []);
 
   async function onSubmit(e: Event) {
     e.preventDefault();
-    const amount = opening.value.trim() === "" ? 0 : parseSignedCents(opening.value);
-    if (amount === null) return void (error.value = "Enter the opening balance like 1234.56.");
+    const amount = opening.value.trim() === "" || (isLoan && !loanBefore) ? 0 : parseSignedCents(opening.value);
+    if (amount === null) return void (error.value = isLoan ? "Enter what was owed, like 1234.56." : "Enter the opening balance like 1234.56.");
+    let loan: Pick<Account, "loanStart" | "loanAmount" | "rate"> = {};
+    if (isLoan) {
+      const borrowed = parseCents(loanAmount.value);
+      if (borrowed === null) return void (error.value = "Enter the amount borrowed, like 250000.");
+      if (!/^\d+(\.\d+)?$/.test(rate.value.trim())) return void (error.value = "Enter the yearly interest rate as a percentage, like 6.5.");
+      loan = { loanStart: loanStart.value, loanAmount: borrowed, rate: Number(rate.value.trim()) };
+    }
     let lim: number | undefined;
     if (isCard) {
       const l = parseCents(limit.value);
@@ -239,21 +266,22 @@ function AccountForm(props: { account?: Account; first?: boolean; onDone: () => 
     }
     const account: Account = {
       id: a?.id ?? "", name: name.value, type: type.value, ref: ref.value,
-      opening: isCard ? -amount : amount,
+      opening: isCard || isLoan ? -amount : amount,
       ...(lim !== undefined ? { limit: lim } : {}),
+      ...loan,
       ...(a?.archived ? { archived: true } : {}),
     };
     const ok = await attempt((s) => saveAccount(s, account), (m) => (error.value = m));
     if (!ok) return;
     if (a) return props.onDone();
     // Ready for the next account.
-    name.value = ""; ref.value = ""; opening.value = ""; limit.value = "";
+    name.value = ""; ref.value = ""; opening.value = ""; limit.value = ""; loanStart.value = ""; loanAmount.value = ""; rate.value = "";
     nameRef.current?.focus();
   }
 
   return (
     <form class="inline-form" onSubmit={onSubmit} onKeyDown={(e) => e.key === "Escape" && props.onDone()}>
-      {props.first && <p class="hint-box">Start by adding the accounts you track: bank accounts, cash, cards and investment accounts.</p>}
+      {props.first && <p class="hint-box">Start by adding the accounts you track: bank accounts, cash, cards, investment accounts and loans.</p>}
       <div class="fields">
         <label class="field w-item">
           <span class="field-label">Name</span>
@@ -270,11 +298,32 @@ function AccountForm(props: { account?: Account; first?: boolean; onDone: () => 
           <span class="field-label">Last 4 / handle</span>
           <input type="text" value={ref.value} placeholder="**1234" onInput={(e) => (ref.value = e.currentTarget.value)} />
         </label>
-        <label class="field w-account">
-          <span class="field-label">{openingLabel(isCard, type.value === "investment", current.value!.setup)}</span>
-          <input type="text" inputMode="decimal" class="num" value={opening.value} placeholder="0.00"
-            onInput={(e) => (opening.value = e.currentTarget.value)} />
-        </label>
+        {isLoan && (
+          <>
+            <label class="field w-date">
+              <span class="field-label">Loan began</span>
+              <input type="date" value={loanStart.value} max={`${setup.year}-12-31`}
+                onInput={(e) => (loanStart.value = e.currentTarget.value)} />
+            </label>
+            <label class="field w-amount">
+              <span class="field-label">Amount borrowed</span>
+              <input type="text" inputMode="decimal" class="num" value={loanAmount.value} placeholder="0.00"
+                onInput={(e) => (loanAmount.value = e.currentTarget.value)} />
+            </label>
+            <label class="field w-amount">
+              <span class="field-label">Interest, % a year</span>
+              <input type="text" inputMode="decimal" class="num" value={rate.value} placeholder="6.5"
+                onInput={(e) => (rate.value = e.currentTarget.value)} />
+            </label>
+          </>
+        )}
+        {(!isLoan || loanBefore) && (
+          <label class="field w-account">
+            <span class="field-label">{openingLabel(isCard || isLoan, type.value === "investment", setup)}</span>
+            <input type="text" inputMode="decimal" class="num" value={opening.value} placeholder="0.00"
+              onInput={(e) => (opening.value = e.currentTarget.value)} />
+          </label>
+        )}
         {isCard && (
           <label class="field w-amount">
             <span class="field-label">Credit limit</span>
@@ -283,6 +332,12 @@ function AccountForm(props: { account?: Account; first?: boolean; onDone: () => 
           </label>
         )}
       </div>
+      {isLoan && (
+        <p class="muted small">
+          Each month on the day the loan began, the yearly rate ÷ 12 of what's still owed is added as interest.
+          Record payments as transfers into the loan. What it owes comes off net tangible assets.
+        </p>
+      )}
       {error.value && <p class="form-error" role="alert">{error.value}</p>}
       <div class="form-actions">
         <button type="submit" class="primary">{a ? "Save changes" : "Add account"}</button>

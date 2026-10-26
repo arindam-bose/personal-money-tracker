@@ -9,8 +9,12 @@ import type {
 } from "./types";
 import { monthShare } from "./year";
 
-/** The parts of a year the calculations read. A YearFile, or YearData flattened, fits. */
-export type Ledger = Pick<YearFile, "accounts" | "categories" | "expenses" | "earnings" | "transfers">;
+/**
+ * The parts of a year the calculations read. A YearFile, or YearData flattened, fits.
+ * Loans need the year and its start to know when interest is due; without them a loan only moves with its entries.
+ */
+export type Ledger = Pick<YearFile, "accounts" | "categories" | "expenses" | "earnings" | "transfers">
+  & Partial<Pick<YearFile, "year" | "start">>;
 
 /** Month 1-12, or omitted for the whole year so far. */
 export type Month = number | undefined;
@@ -259,10 +263,12 @@ export function earningsByCategory(ledger: Ledger, month?: number): Map<string, 
 // --- Accounts ---
 
 /**
- * Balance of every account id, using the net-worth sign (a card that owes money is negative):
- * balance = opening + money in − money out. Pass `through` to get balances at the end of that day.
+ * Balance of every account id, using the net-worth sign (a card or loan that owes money is negative):
+ * balance = opening + money in − money out, and for a loan − interest (see loanStatus).
+ * Pass `through` to get balances at the end of that day. Without it, every entry counts and
+ * loan interest runs to `today`, or to the end of the year if that comes first.
  */
-export function balances(ledger: Ledger, through?: IsoDate): Map<string, Cents> {
+export function balances(ledger: Ledger, through?: IsoDate, today = localToday()): Map<string, Cents> {
   const bal = new Map(ledger.accounts.map((a) => [a.id, a.opening]));
   const add = (id: string, amount: Cents) => bal.set(id, (bal.get(id) ?? 0) + amount);
   const keep = (date: IsoDate) => through === undefined || date <= through;
@@ -273,7 +279,68 @@ export function balances(ledger: Ledger, through?: IsoDate): Map<string, Cents> 
     add(t.from, -t.amount);
     add(t.to, t.amount);
   }
+  for (const a of ledger.accounts) if (a.type === "loan") bal.set(a.id, loanStatus(ledger, a, through, today).balance);
   return bal;
+}
+
+/** The same day n months later, or the month's last day if it's shorter: "2026-01-31" plus 1 -> "2026-02-28". */
+function monthsAfter(date: IsoDate, n: number): IsoDate {
+  return monthsBefore(date, -n);
+}
+
+export interface LoanStatus {
+  /** Net-worth sign, so what's owed is −balance. */
+  balance: Cents;
+  /** Interest added this year, through the day asked for. */
+  interest: Cents;
+}
+
+/**
+ * A loan's balance, walked day by day through the year:
+ * - it opens at what was owed the morning tracking started; a loan taken out since then
+ *   opens at 0 and its amount is added on its start date;
+ * - on each monthly anniversary of the start date, rate ÷ 12 of what's still owed is added
+ *   (rounded to the cent), before that day's entries;
+ * - money in (a payment) lowers what's owed, money out raises it.
+ * Without the year, there's no interest or loan amount to add: only the opening and entries count.
+ */
+export function loanStatus(ledger: Ledger, account: Account, through?: IsoDate, today = localToday()): LoanStatus {
+  const flows = new Map<IsoDate, Cents>();
+  const add = (date: IsoDate, amount: Cents) => flows.set(date, (flows.get(date) ?? 0) + amount);
+  for (const e of ledger.expenses) if (e.account === account.id) add(e.date, -e.amount);
+  for (const i of ledger.earnings) if (i.account === account.id) add(i.date, i.amount);
+  for (const t of ledger.transfers) {
+    if (t.from === account.id) add(t.date, -t.amount);
+    if (t.to === account.id) add(t.date, t.amount);
+  }
+
+  const dueDates: IsoDate[] = [];
+  const { loanStart, loanAmount, rate } = account;
+  if (ledger.year !== undefined && loanStart) {
+    const from = ledger.start ?? `${ledger.year}-01-01`;
+    const yearEnd = `${ledger.year}-12-31`;
+    const end = through ?? (today < yearEnd ? today : yearEnd);
+    if (loanStart >= from && loanStart <= end && loanAmount) add(loanStart, -loanAmount);
+    if (rate) {
+      for (let n = 1, due = monthsAfter(loanStart, 1); due <= end; due = monthsAfter(loanStart, ++n)) {
+        if (due >= from) dueDates.push(due);
+      }
+    }
+  }
+
+  let balance = account.opening, interest = 0;
+  const days = [...new Set([...flows.keys(), ...dueDates])].sort();
+  const due = new Set(dueDates);
+  for (const day of days) {
+    if (through !== undefined && day > through) break;
+    if (due.has(day) && balance < 0) {
+      const charge = Math.round((-balance * rate!) / 1200);
+      balance -= charge;
+      interest += charge;
+    }
+    balance += flows.get(day) ?? 0;
+  }
+  return { balance, interest };
 }
 
 export interface CardStatus {
@@ -282,6 +349,14 @@ export interface CardStatus {
   debt: Cents;
   /** debt ÷ limit, or null for a card without a limit. */
   utilization: number | null;
+}
+
+export interface LoanOverview {
+  account: Account;
+  /** Amount still owed, positive. 0 once it's paid off. */
+  owed: Cents;
+  /** Interest added so far this year. */
+  interest: Cents;
 }
 
 export interface AccountsOverview {
@@ -294,18 +369,22 @@ export interface AccountsOverview {
   /** cardDebt ÷ cardLimit. */
   utilization: number | null;
   cards: CardStatus[];
-  /** Available cash − card debt. Investments are left out (only contributions are tracked). */
+  /** What all loans still owe together. */
+  loanDebt: Cents;
+  loans: LoanOverview[];
+  /** Available cash − card debt − loan debt. Investments are left out (only contributions are tracked). */
   netTangibleAssets: Cents;
   /** Contributions made this year, per investment account. */
   invested: Map<string, Cents>;
 }
 
-export function accountsOverview(ledger: Ledger, through?: IsoDate): AccountsOverview {
-  const bal = balances(ledger, through);
+export function accountsOverview(ledger: Ledger, through?: IsoDate, today = localToday()): AccountsOverview {
+  const bal = balances(ledger, through, today);
   const balOf = (a: Account) => bal.get(a.id) ?? 0;
 
-  let availableCash = 0, cardDebt = 0, cardLimit = 0;
+  let availableCash = 0, cardDebt = 0, cardLimit = 0, loanDebt = 0;
   const cards: CardStatus[] = [];
+  const loans: LoanOverview[] = [];
   const invested = new Map<string, Cents>();
   for (const a of ledger.accounts) {
     switch (a.type) {
@@ -325,6 +404,10 @@ export function accountsOverview(ledger: Ledger, through?: IsoDate): AccountsOve
         // Investment accounts open at 0 each year, so the balance is this year's contributions.
         invested.set(a.id, balOf(a) - a.opening);
         break;
+      case "loan":
+        loanDebt -= balOf(a);
+        loans.push({ account: a, owed: Math.max(0, -balOf(a)), interest: loanStatus(ledger, a, through, today).interest });
+        break;
     }
   }
   return {
@@ -332,7 +415,8 @@ export function accountsOverview(ledger: Ledger, through?: IsoDate): AccountsOve
     availableCash, cardDebt, cardLimit,
     utilization: ratio(cardDebt, cardLimit),
     cards,
-    netTangibleAssets: availableCash - cardDebt,
+    loanDebt, loans,
+    netTangibleAssets: availableCash - cardDebt - loanDebt,
     invested,
   };
 }
@@ -401,7 +485,8 @@ export interface BalancePoint {
   date: IsoDate;
   availableCash: Cents;
   cardDebt: Cents;
-  /** Available cash − card debt (AccountsOverview.netTangibleAssets). */
+  loanDebt: Cents;
+  /** Available cash − card debt − loan debt (AccountsOverview.netTangibleAssets). */
   netTangibleAssets: Cents;
   /** Contributions to investment accounts so far this year. */
   invested: Cents;
@@ -423,7 +508,7 @@ export function balanceSeries(ledger: Ledger, dates: IsoDate[]): BalancePoint[] 
       if (role === "savings_in") saved += t.amount;
       if (role === "savings_out") saved -= t.amount;
     }
-    return { date, availableCash: o.availableCash, cardDebt: o.cardDebt, netTangibleAssets: o.netTangibleAssets, invested, saved };
+    return { date, availableCash: o.availableCash, cardDebt: o.cardDebt, loanDebt: o.loanDebt, netTangibleAssets: o.netTangibleAssets, invested, saved };
   });
 }
 
