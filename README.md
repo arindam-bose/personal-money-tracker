@@ -30,7 +30,8 @@ a signal too. New versions download by themselves; the top bar then offers
 3. Log what happens on the **Ledger** page.
 
 Want to look around first? On the **Settings** page, **Download a demo file** and
-import it: a household of two with a month of earnings, spending and transfers.
+import it: a household of two with this year so far, with every kind of account and
+entry, a loan, investments and a car, and accounts that were closed.
 
 ## What's in it
 

@@ -234,7 +234,8 @@ function DemoDownload() {
       <button type="button" class="link" onClick={() => saveYearFile(demoYear(year), demoFileName(year))}>
         Download a demo file
       </button>{" "}
-      and import it to look around: a household of two with a month of earnings, spending and transfers.
+      and import it to look around: a household of two with this year so far, with every kind of account
+            and entry, a loan, investments and a car, and accounts that were closed.
       {have && <> It is a {year} file, so importing it would replace your own {year} (you'll be asked first).</>}
     </p>
   );
