@@ -77,6 +77,19 @@ The rules that everything else relies on:
 - **Nothing computed is stored.** Balances, totals and budget progress are worked
   out from the entries each time (a year is ~1,000 rows; this is fast).
 
+### Investment balances
+
+An investment account's balance in the ledger is only what was put in this year.
+What it's worth comes from **Update balance** on the Accounts page, which notes
+the balance on a day (today by default) in the account's `valuations`
+(`saveValuation` and `deleteValuation` in `setup.ts`). There's at most one per
+day, and a second one replaces the first. Between updates the account is worth
+the last one, whatever moved in or out since (`valuationOf` in `derive.ts`).
+Before its first update it isn't counted. Any investment account can have them,
+retirement ones included. A new year starts without any, so the account is left
+out of net tangible assets until it's updated again. A copied account doesn't
+take them, and tracking can't start after one.
+
 ### Loans
 
 A `loan` account (a loan or mortgage) also has `loanStart`, `loanAmount` and
@@ -174,10 +187,11 @@ Tests).
 | Available cash | Checking + savings + cash balances |
 | Card debt, utilization | −(card balances); debt ÷ total limits |
 | Loans owed | −(loan balances), interest included |
-| Net tangible assets | Available cash − card debt − loans owed (investments left out). The **Include loans** switch (Dashboard, and Balances over time in Reports) can leave loans out too |
+| Investments worth | Each investment account's latest balance update; accounts without one aren't counted |
+| Net tangible assets | Available cash − card debt − loans owed + investments worth. The **Include loans** switch (Dashboard, and Balances over time in Reports) can leave loans out too |
 
-Investment accounts track contributions this year, not market value; they open
-at 0 every year.
+Investment accounts' ledger balances are contributions this year, not market
+value; they open at 0 every year. What they're worth is only what the user enters.
 
 **Budgets** (`budgetView`): each expense category has a usual monthly target
 (`budgets.default`) and optional one-month overrides (`budgets["2026-03"]`).
@@ -294,7 +308,7 @@ last opened, and per-tab filters and periods.
 
 `closeYear` makes the year read-only and starts the next one
 (`nextYearSetup` in `rollover.ts`): bank, cash, card and loan accounts open at their
-closing balance on December 31 (a loan's interest included), investment accounts at 0; accounts, categories, tags and
+closing balance on December 31 (a loan's interest included), investment accounts at 0 and without balance updates; accounts, categories, tags and
 usual budget targets carry over (one-month overrides don't). If the next year
 already exists, it is left alone. A closed year can be reopened.
 

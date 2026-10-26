@@ -28,7 +28,19 @@ export interface Account {
   loanAmount?: Cents;
   /** Loans only: the yearly interest rate as a percentage, e.g. 6.5. */
   rate?: number;
+  /**
+   * Investment accounts only: what the account was worth on the days the user updated it,
+   * oldest first, one per day. Between updates it's worth the last one; before the first, it's
+   * left out of net tangible assets. Each year starts without any.
+   */
+  valuations?: Valuation[];
   archived?: boolean;
+}
+
+/** An investment account's balance on a day, as the user read it from the broker. */
+export interface Valuation {
+  date: IsoDate;
+  amount: Cents;
 }
 
 // Roles are hidden tags on categories, so users can rename categories

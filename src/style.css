@@ -1328,6 +1328,22 @@ button.danger-solid {
   color: var(--muted);
 }
 
+/* Earlier balance updates under the Update balance form: day, amount, delete. */
+.valuation-list {
+  list-style: none;
+  margin: 12px 0 0;
+  padding: 0;
+  display: grid;
+  grid-template-columns: max-content max-content 22px;
+  gap: 4px 24px;
+  align-items: center;
+  font-size: 13px;
+}
+
+.valuation-list li {
+  display: contents;
+}
+
 .hero-toggle {
   display: flex;
   align-items: center;

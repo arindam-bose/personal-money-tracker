@@ -125,6 +125,7 @@ export function DashboardView() {
           <div class="muted">
             Available cash {formatCents(accounts.availableCash)} − card debt {formatCents(accounts.cardDebt)}
             {hasLoans && (withoutLoans ? <> · loans ({formatCents(accounts.loanDebt)} owed) left out</> : <> − loans owed {formatCents(accounts.loanDebt)}</>)}
+            {accounts.valuations.size > 0 && <> + investments {formatCents(accounts.investmentsWorth)}</>}
           </div>
         </section>
       )}
@@ -313,16 +314,31 @@ function AccountsTable(props: { overview: ReturnType<typeof accountsOverview>; a
             <td class="num">{formatCents(o.loanDebt)}</td>
           </tr>
         )}
+        {group(["investment"]).map((a) => {
+          // Worth what it was last updated to; without an update it only shows this year's contributions.
+          const v = o.valuations.get(a.id);
+          return (
+            <tr>
+              <td>{a.name}</td>
+              <td class="num">
+                {v ? formatCents(v.amount) : <span class="muted">No balance yet</span>}
+                <div class="tile-detail">
+                  {v ? `on ${shortDate(v.date)} · ` : ""}{formatCents(o.invested.get(a.id) ?? 0)} invested this year
+                </div>
+              </td>
+            </tr>
+          );
+        })}
+        {o.valuations.size > 0 && (
+          <tr class="subtotal">
+            <td>Investments <span class="muted small">latest balances</span></td>
+            <td class="num">{formatCents(o.investmentsWorth)}</td>
+          </tr>
+        )}
         <tr class="total">
           <td>Net tangible assets{props.withoutLoans && <span class="muted small"> without loans</span>}</td>
           <td class="num">{formatCents(props.withoutLoans ? o.netTangibleAssets + o.loanDebt : o.netTangibleAssets)}</td>
         </tr>
-        {group(["investment"]).map((a) => (
-          <tr>
-            <td>{a.name} <span class="muted small">invested this year</span></td>
-            <td class="num">{formatCents(o.invested.get(a.id) ?? 0)}</td>
-          </tr>
-        ))}
       </tbody>
     </table>
   );

@@ -162,6 +162,19 @@ export function validateYearFile(raw: unknown): ValidationResult {
     } else if (a.loanStart !== undefined || a.loanAmount !== undefined || a.rate !== undefined) {
       err(`Account "${a.id}" isn't a loan, so it can't have a loan start, amount or rate.`);
     }
+    if (a.valuations !== undefined) {
+      if (a.type !== "investment") err(`Account "${a.id}" isn't an investment account, so it can't have balance updates.`);
+      else if (!Array.isArray(a.valuations)) err(`Account "${a.id}" valuations must be a list.`);
+      else {
+        const days = new Set<string>();
+        for (const v of a.valuations) {
+          const ok = isObj(v) && isDateInYear(v.date, y) && !(start && (v.date as string) < start) && isCents(v.amount) && v.amount >= 0;
+          if (!ok) err(`Account "${a.id}" has a balance update that isn't a date in ${y}'s tracking with whole cents: ${JSON.stringify(v)}.`);
+          else if (days.has(v.date as string)) err(`Account "${a.id}" has two balance updates on ${String(v.date)}.`);
+          if (isObj(v)) days.add(v.date as string);
+        }
+      }
+    }
   }
 
   // Earning and transfer categories drive the reports, so they must have a role.

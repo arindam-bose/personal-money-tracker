@@ -5,7 +5,7 @@
 // against the totals Notion computed (tests/derive.test.ts, tests/real-data.test.ts).
 
 import type {
-  Account, Budgets, Cents, EarningRole, ExpenseRole, IsoDate, TransferRole, YearFile,
+  Account, Budgets, Cents, EarningRole, ExpenseRole, IsoDate, TransferRole, Valuation, YearFile,
 } from "./types";
 import { monthShare } from "./year";
 
@@ -359,6 +359,12 @@ export interface LoanOverview {
   interest: Cents;
 }
 
+/** An investment account's latest balance update on or before `through` (or its latest), or null if there's none. */
+export function valuationOf(account: Account, through?: IsoDate): Valuation | null {
+  const list = (account.valuations ?? []).filter((v) => through === undefined || v.date <= through);
+  return list.length ? list.reduce((a, b) => (b.date > a.date ? b : a)) : null;
+}
+
 export interface AccountsOverview {
   balances: Map<string, Cents>;
   /** Checking + savings + cash. */
@@ -372,17 +378,22 @@ export interface AccountsOverview {
   /** What all loans still owe together. */
   loanDebt: Cents;
   loans: LoanOverview[];
-  /** Available cash − card debt − loan debt. Investments are left out (only contributions are tracked). */
+  /** Available cash − card debt − loan debt + investments worth. */
   netTangibleAssets: Cents;
   /** Contributions made this year, per investment account. */
   invested: Map<string, Cents>;
+  /** Each investment account's latest balance update, for those that have one. */
+  valuations: Map<string, Valuation>;
+  /** What those balance updates add up to. Accounts without one aren't counted. */
+  investmentsWorth: Cents;
 }
 
 export function accountsOverview(ledger: Ledger, through?: IsoDate, today = localToday()): AccountsOverview {
   const bal = balances(ledger, through, today);
   const balOf = (a: Account) => bal.get(a.id) ?? 0;
 
-  let availableCash = 0, cardDebt = 0, cardLimit = 0, loanDebt = 0;
+  let availableCash = 0, cardDebt = 0, cardLimit = 0, loanDebt = 0, investmentsWorth = 0;
+  const valuations = new Map<string, Valuation>();
   const cards: CardStatus[] = [];
   const loans: LoanOverview[] = [];
   const invested = new Map<string, Cents>();
@@ -400,10 +411,17 @@ export function accountsOverview(ledger: Ledger, through?: IsoDate, today = loca
         cards.push({ account: a, debt, utilization: a.limit ? debt / a.limit : null });
         break;
       }
-      case "investment":
+      case "investment": {
         // Investment accounts open at 0 each year, so the balance is this year's contributions.
         invested.set(a.id, balOf(a) - a.opening);
+        // What it's worth is only known from the balances the user enters.
+        const v = valuationOf(a, through);
+        if (v) {
+          valuations.set(a.id, v);
+          investmentsWorth += v.amount;
+        }
         break;
+      }
       case "loan":
         loanDebt -= balOf(a);
         loans.push({ account: a, owed: Math.max(0, -balOf(a)), interest: loanStatus(ledger, a, through, today).interest });
@@ -416,8 +434,8 @@ export function accountsOverview(ledger: Ledger, through?: IsoDate, today = loca
     utilization: ratio(cardDebt, cardLimit),
     cards,
     loanDebt, loans,
-    netTangibleAssets: availableCash - cardDebt - loanDebt,
-    invested,
+    netTangibleAssets: availableCash - cardDebt - loanDebt + investmentsWorth,
+    invested, valuations, investmentsWorth,
   };
 }
 
@@ -486,7 +504,9 @@ export interface BalancePoint {
   availableCash: Cents;
   cardDebt: Cents;
   loanDebt: Cents;
-  /** Available cash − card debt − loan debt (AccountsOverview.netTangibleAssets). */
+  /** Investment accounts' latest balance updates so far (AccountsOverview.investmentsWorth). */
+  investmentsWorth: Cents;
+  /** Available cash − card debt − loan debt + investments worth (AccountsOverview.netTangibleAssets). */
   netTangibleAssets: Cents;
   /** Contributions to investment accounts so far this year. */
   invested: Cents;
@@ -508,7 +528,7 @@ export function balanceSeries(ledger: Ledger, dates: IsoDate[]): BalancePoint[] 
       if (role === "savings_in") saved += t.amount;
       if (role === "savings_out") saved -= t.amount;
     }
-    return { date, availableCash: o.availableCash, cardDebt: o.cardDebt, loanDebt: o.loanDebt, netTangibleAssets: o.netTangibleAssets, invested, saved };
+    return { date, availableCash: o.availableCash, cardDebt: o.cardDebt, loanDebt: o.loanDebt, investmentsWorth: o.investmentsWorth, netTangibleAssets: o.netTangibleAssets, invested, saved };
   });
 }
 

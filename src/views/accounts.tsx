@@ -2,11 +2,12 @@
 // Everything is referenced by id, so renaming here never breaks an entry.
 
 import { useSignal } from "@preact/signals";
+import { Fragment } from "preact";
 import { useEffect, useRef } from "preact/hooks";
-import { balances, countsInNetEarnings, shortDate } from "../derive";
+import { balances, countsInNetEarnings, localToday, shortDate, valuationOf } from "../derive";
 import { formatCents, parseCents, parseSignedCents } from "../money";
 import {
-  deleteAccount, duplicateAccount, memberUses, membersOf, saveAccount, saveCategory, saveMember, saveTag,
+  deleteAccount, deleteValuation, duplicateAccount, memberUses, membersOf, saveAccount, saveCategory, saveMember, saveTag, saveValuation,
   uncategorizedId, usageOf, type CategoryKind, type Usage,
 } from "../setup";
 import { current, ledger, readOnly, removeCategory, removeMember, removeTag, setStart, updateSetup } from "../state";
@@ -81,6 +82,8 @@ export function AccountsView() {
 function AccountsCard({ setup, usage }: { setup: YearSetup; usage: Usage }) {
   /** The account being added ("new") or edited (its id); null when the form is closed. */
   const editing = useSignal<string | null>(setup.accounts.length === 0 && !readOnly.value ? "new" : null);
+  /** The investment account whose balance is being updated, or null. */
+  const valuing = useSignal<string | null>(null);
   const error = useSignal<string | null>(null);
   const bal = balances(ledger.value!);
   const sorted = [...setup.accounts].sort((a, b) => Number(!!a.archived) - Number(!!b.archived));
@@ -138,36 +141,116 @@ function AccountsCard({ setup, usage }: { setup: YearSetup; usage: Usage }) {
             {sorted.map((a) => editing.value === a.id ? (
               <tr key={a.id}><td colSpan={8}><AccountForm account={a} onDone={() => (editing.value = null)} /></td></tr>
             ) : (
-              <tr key={a.id} class={a.archived ? "archived" : ""}>
-                <td>
-                  {a.name}{a.archived && <span class="badge">archived</span>}
-                  {a.type === "loan" && <div class="tile-detail">{loanText(a)}</div>}
-                </td>
-                <td>{TYPE_LABEL[a.type]}</td>
-                <td>{a.ref}</td>
-                <td class="num">{owes(a) ? owedText(a.opening) : formatCents(a.opening)}</td>
-                <td class="num">{a.limit !== undefined ? formatCents(a.limit) : ""}</td>
-                <td class="num">{owes(a) ? owedText(bal.get(a.id) ?? 0) : formatCents(bal.get(a.id) ?? 0)}</td>
-                <td class="num">{usage.accounts.get(a.id) ?? 0}</td>
-                <td>
-                  {!readOnly.value && (
-                    <div class="row-actions">
-                      <button type="button" onClick={() => (editing.value = a.id)}>Edit</button>
-                      <button type="button" onClick={() => copy(a)} title={`Add a copy named “${a.name}_new”`}>Duplicate</button>
-                      <button type="button" onClick={() => toggleArchive(a)}
-                        title={a.archived ? "Show it again for new entries" : "Hide it from new entries; old entries keep it"}>
-                        {a.archived ? "Unarchive" : "Archive"}
-                      </button>
-                      {!usage.accounts.get(a.id) && <button type="button" class="danger" onClick={() => remove(a)}>Delete</button>}
-                    </div>
-                  )}
-                </td>
-              </tr>
+              <Fragment key={a.id}>
+                <tr class={a.archived ? "archived" : ""}>
+                  <td>
+                    {a.name}{a.archived && <span class="badge">archived</span>}
+                    {a.type === "loan" && <div class="tile-detail">{loanText(a)}</div>}
+                    {a.type === "investment" && <div class="tile-detail">{worthText(a)}</div>}
+                  </td>
+                  <td>{TYPE_LABEL[a.type]}</td>
+                  <td>{a.ref}</td>
+                  <td class="num">{owes(a) ? owedText(a.opening) : formatCents(a.opening)}</td>
+                  <td class="num">{a.limit !== undefined ? formatCents(a.limit) : ""}</td>
+                  <td class="num">{owes(a) ? owedText(bal.get(a.id) ?? 0) : formatCents(bal.get(a.id) ?? 0)}</td>
+                  <td class="num">{usage.accounts.get(a.id) ?? 0}</td>
+                  <td>
+                    {!readOnly.value && (
+                      <div class="row-actions">
+                        {a.type === "investment" && (
+                          <button type="button" onClick={() => (valuing.value = valuing.value === a.id ? null : a.id)}
+                            title="Note what the account is worth today">
+                            Update balance
+                          </button>
+                        )}
+                        <button type="button" onClick={() => (editing.value = a.id)}>Edit</button>
+                        <button type="button" onClick={() => copy(a)} title={`Add a copy named “${a.name}_new”`}>Duplicate</button>
+                        <button type="button" onClick={() => toggleArchive(a)}
+                          title={a.archived ? "Show it again for new entries" : "Hide it from new entries; old entries keep it"}>
+                          {a.archived ? "Unarchive" : "Archive"}
+                        </button>
+                        {!usage.accounts.get(a.id) && <button type="button" class="danger" onClick={() => remove(a)}>Delete</button>}
+                      </div>
+                    )}
+                  </td>
+                </tr>
+                {valuing.value === a.id && (
+                  <tr><td colSpan={8}><ValuationForm account={a} setup={setup} onDone={() => (valuing.value = null)} /></td></tr>
+                )}
+              </Fragment>
             ))}
           </tbody>
         </table>
       )}
     </section>
+  );
+}
+
+/** "Worth $12,480.00 on Oct 25", or a note that it has no balance yet. */
+function worthText(a: Account): string {
+  const v = valuationOf(a);
+  return v ? `Worth ${formatCents(v.amount)} on ${shortDate(v.date)}` : "No balance yet: not in net tangible assets";
+}
+
+/**
+ * Note what an investment account is worth: today by default, or another day in the year.
+ * Lists the earlier updates, newest first, so a wrong one can be deleted.
+ */
+function ValuationForm(props: { account: Account; setup: YearSetup; onDone: () => void }) {
+  const { account: a, setup } = props;
+  const first = yearStart(setup), last = `${setup.year}-12-31`;
+  const today = localToday();
+  const date = useSignal(today < first ? first : today > last ? last : today);
+  const amount = useSignal("");
+  const error = useSignal<string | null>(null);
+  const amountRef = useRef<HTMLInputElement>(null);
+  useEffect(() => amountRef.current?.focus(), []);
+
+  async function onSubmit(e: Event) {
+    e.preventDefault();
+    const cents = parseCents(amount.value);
+    if (cents === null) return void (error.value = "Enter the balance like 1234.56.");
+    if (await attempt((s) => saveValuation(s, a.id, date.value, cents), (m) => (error.value = m))) amount.value = "";
+  }
+
+  return (
+    <form class="inline-form" onSubmit={onSubmit} onKeyDown={(e) => e.key === "Escape" && props.onDone()}>
+      <p class="muted small">
+        What {a.name} is worth, as your broker shows it. Until the next update it counts at this amount in net
+        tangible assets. A new year starts without one.
+      </p>
+      <div class="fields">
+        <label class="field w-date">
+          <span class="field-label">On</span>
+          <input type="date" value={date.value} min={first} max={last} onInput={(e) => (date.value = e.currentTarget.value)} />
+        </label>
+        <label class="field w-amount">
+          <span class="field-label">Balance</span>
+          <input ref={amountRef} type="text" inputMode="decimal" class="num" value={amount.value} placeholder="0.00"
+            onInput={(e) => (amount.value = e.currentTarget.value)} />
+        </label>
+      </div>
+      {error.value && <p class="form-error" role="alert">{error.value}</p>}
+      <div class="form-actions">
+        <button type="submit" class="primary">Save balance</button>
+        <button type="button" onClick={props.onDone}>Done</button>
+      </div>
+      {a.valuations?.length ? (
+        <ul class="valuation-list">
+          {[...a.valuations].reverse().map((v) => (
+            <li key={v.date}>
+              <span>{shortDate(v.date)}</span>
+              <span class="num">{formatCents(v.amount)}</span>
+              <button type="button" class="icon-btn danger" aria-label={`Delete the balance on ${shortDate(v.date)}`}
+                onClick={() => confirm(`Delete the ${formatCents(v.amount)} balance on ${shortDate(v.date)}?`)
+                  && attempt((s) => deleteValuation(s, a.id, v.date), (m) => (error.value = m))}>
+                ×
+              </button>
+            </li>
+          ))}
+        </ul>
+      ) : null}
+    </form>
   );
 }
 
@@ -270,6 +353,8 @@ function AccountForm(props: { account?: Account; first?: boolean; onDone: () => 
       ...(lim !== undefined ? { limit: lim } : {}),
       ...loan,
       ...(a?.archived ? { archived: true } : {}),
+      // Balance updates aren't in this form; they stay with the account.
+      ...(a?.valuations ? { valuations: a.valuations } : {}),
     };
     const ok = await attempt((s) => saveAccount(s, account), (m) => (error.value = m));
     if (!ok) return;

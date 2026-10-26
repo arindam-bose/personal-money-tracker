@@ -11,8 +11,8 @@ export function closingBalances(setup: YearSetup, ledger: Ledger): Map<string, n
 /**
  * The next year's setup:
  * - bank, cash, card and loan accounts open at this year's closing balance;
- * - investment accounts open at 0, because only this year's contributions are tracked
- *   (market value isn't, so gains and losses are unknown);
+ * - investment accounts open at 0, because only this year's contributions are tracked,
+ *   and without balance updates: what they're worth is left out until it's next updated;
  * - accounts, categories, tags, members and the usual budget targets carry over.
  *   One-month budget overrides belong to their month, so they don't, and neither does the
  *   IRA limit: it changes by year, so the new year starts at the IRS limit.
@@ -22,7 +22,7 @@ export function nextYearSetup(setup: YearSetup, ledger: Ledger): YearSetup {
   const closing = closingBalances(setup, ledger);
   return {
     year: setup.year + 1,
-    accounts: setup.accounts.map((a) => ({
+    accounts: setup.accounts.map(({ valuations: _v, ...a }) => ({
       ...a,
       opening: a.type === "investment" ? 0 : closing.get(a.id) ?? a.opening,
     })),

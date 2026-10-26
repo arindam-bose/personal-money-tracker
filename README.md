@@ -50,6 +50,8 @@ import it: a household of two with a month of earnings, spending and transfers.
   categories (refunds, points, money paid back) lower net spending instead.
   Deleting a category moves its entries to **Uncategorized**; deleting a tag takes
   it off its expenses.
+  On an investment account, **Update balance** notes what it's worth today; it
+  counts at that amount in net tangible assets until you update it again.
   A **Loan / mortgage** account takes the day it began, the amount borrowed and
   the interest rate. Interest is added monthly on what's still owed, each payment
   is a transfer into the loan (in **Loan Payments**), and what it owes comes off

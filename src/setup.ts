@@ -106,6 +106,8 @@ export function saveAccount(setup: YearSetup, account: Account): YearSetup {
     if (loanStart >= yearStart(setup)) clean.opening = 0;
     Object.assign(clean, { loanStart, loanAmount, rate });
   }
+  // Balance updates stay with an investment account through edits; they mean nothing on any other type.
+  if (account.type === "investment" && account.valuations?.length) clean.valuations = account.valuations;
   if (account.archived) clean.archived = true;
   const saved = { ...setup, accounts: upsert(setup.accounts, clean) };
   // The first loan brings a category for its payments, if the year has none (years from before loans).
@@ -129,13 +131,14 @@ export function withLoanPayments(setup: YearSetup): YearSetup {
 
 /**
  * Copy an account, named "<name>_new" ("_new2", "_new3"… if that's taken), right below the
- * original. Everything else is copied as is, opening balance included; the copy is never archived.
+ * original. Everything else is copied as is, opening balance included; the copy is never archived
+ * and has no balance updates (it doesn't hold the original's investments).
  * Returns the new setup and the copy's id.
  */
 export function duplicateAccount(setup: YearSetup, id: string): { setup: YearSetup; id: string } {
   const at = setup.accounts.findIndex((a) => a.id === id);
   if (at < 0) throw new SetupError("That account no longer exists.");
-  const { archived: _a, ...original } = setup.accounts[at]!;
+  const { archived: _a, valuations: _v, ...original } = setup.accounts[at]!;
   const taken = new Set(setup.accounts.map((a) => a.name.toLowerCase()));
   let name = `${original.name}_new`;
   for (let n = 2; taken.has(name.toLowerCase()); n++) name = `${original.name}_new${n}`;
@@ -148,6 +151,32 @@ export function deleteAccount(setup: YearSetup, id: string, usage: Usage): YearS
   const n = usage.accounts.get(id) ?? 0;
   if (n) throw new SetupError(`This account is used by ${n} ${n === 1 ? "entry" : "entries"}. Archive it instead, to hide it from new entries.`);
   return { ...setup, accounts: setup.accounts.filter((a) => a.id !== id) };
+}
+
+// --- Investment balances ---
+
+/**
+ * Note what an investment account is worth on a day. A second update on the same day replaces
+ * the first. The day must be in the tracked part of the year.
+ */
+export function saveValuation(setup: YearSetup, id: string, date: IsoDate, amount: Cents): YearSetup {
+  const account = setup.accounts.find((a) => a.id === id);
+  if (account?.type !== "investment") throw new SetupError("Only investment accounts have a balance to update.");
+  if (!isDateInYear(date, setup.year)) throw new SetupError(`Pick a day in ${setup.year}.`);
+  if (date < yearStart(setup)) throw new SetupError(`Tracking starts on ${shortDate(yearStart(setup))}. Pick that day or later.`);
+  if (!Number.isSafeInteger(amount) || amount < 0) throw new SetupError("Enter the balance like 1234.56.");
+  const valuations = [...(account.valuations ?? []).filter((v) => v.date !== date), { date, amount }]
+    .sort((a, b) => a.date.localeCompare(b.date));
+  return { ...setup, accounts: upsert(setup.accounts, { ...account, valuations }) };
+}
+
+/** Remove the balance update an investment account has on a day. */
+export function deleteValuation(setup: YearSetup, id: string, date: IsoDate): YearSetup {
+  const account = setup.accounts.find((a) => a.id === id);
+  if (!account) throw new SetupError("That account no longer exists.");
+  const { valuations: old = [], ...rest } = account;
+  const valuations = old.filter((v) => v.date !== date);
+  return { ...setup, accounts: upsert(setup.accounts, valuations.length ? { ...rest, valuations } : rest) };
 }
 
 // --- Categories ---
@@ -352,6 +381,10 @@ export function withStart(data: Pick<YearData, "setup" | "expenses" | "earnings"
     (min, e) => (min === null || e.date < min ? e.date : min), null);
   if (first !== null && first < start) {
     throw new SetupError(`There are entries from ${shortDate(first)}, so tracking can't start later than that. Move or delete them first.`);
+  }
+  const early = setup.accounts.find((a) => a.valuations?.some((v) => v.date < start));
+  if (early) {
+    throw new SetupError(`${early.name} has a balance update from before ${shortDate(start)}, so tracking can't start that late. Delete it first.`);
   }
   return { ...setup, start, accounts: loansFrom(data, start) };
 }
