@@ -4,7 +4,7 @@
 import { useSignal } from "@preact/signals";
 import { Fragment } from "preact";
 import { useEffect, useRef } from "preact/hooks";
-import { balances, countsInNetEarnings, localToday, shortDate, valuationOf } from "../derive";
+import { balances, countsInNetEarnings, hasValuations, localToday, shortDate, valuationOf } from "../derive";
 import { formatCents, parseCents, parseSignedCents } from "../money";
 import {
   deleteAccount, deleteValuation, duplicateAccount, memberUses, membersOf, saveAccount, saveCategory, saveMember, saveTag, saveValuation,
@@ -15,7 +15,7 @@ import type { Account, AccountType, EarningRole, YearSetup } from "../types";
 import { startsMidYear, yearStart } from "../year";
 
 const TYPE_LABEL: Record<AccountType, string> = {
-  checking: "Checking", savings: "Savings", cash: "Cash", credit: "Credit card", investment: "Investment", loan: "Loan / mortgage",
+  checking: "Checking", savings: "Savings", cash: "Cash", credit: "Credit card", investment: "Investment", loan: "Loan / mortgage", asset: "Asset",
 };
 
 /** Plain-language names for the roles that drive the reports. */
@@ -146,21 +146,22 @@ function AccountsCard({ setup, usage }: { setup: YearSetup; usage: Usage }) {
                   <td>
                     {a.name}{a.archived && <span class="badge">archived</span>}
                     {a.type === "loan" && <div class="tile-detail">{loanText(a)}</div>}
-                    {a.type === "investment" && <div class="tile-detail">{worthText(a)}</div>}
+                    {hasValuations(a.type) && <div class="tile-detail">{worthText(a)}</div>}
                   </td>
                   <td>{TYPE_LABEL[a.type]}</td>
                   <td>{a.ref}</td>
-                  <td class="num">{owes(a) ? owedText(a.opening) : formatCents(a.opening)}</td>
+                  {/* An asset has no opening or ledger balance: only the value it was last updated to. */}
+                  <td class="num">{a.type === "asset" ? "" : owes(a) ? owedText(a.opening) : formatCents(a.opening)}</td>
                   <td class="num">{a.limit !== undefined ? formatCents(a.limit) : ""}</td>
-                  <td class="num">{owes(a) ? owedText(bal.get(a.id) ?? 0) : formatCents(bal.get(a.id) ?? 0)}</td>
+                  <td class="num">{a.type === "asset" ? "" : owes(a) ? owedText(bal.get(a.id) ?? 0) : formatCents(bal.get(a.id) ?? 0)}</td>
                   <td class="num">{usage.accounts.get(a.id) ?? 0}</td>
                   <td>
                     {!readOnly.value && (
                       <div class="row-actions">
-                        {a.type === "investment" && (
+                        {hasValuations(a.type) && (
                           <button type="button" onClick={() => (valuing.value = valuing.value === a.id ? null : a.id)}
-                            title="Note what the account is worth today">
-                            Update balance
+                            title={`Note what ${a.type === "asset" ? "it" : "the account"} is worth today`}>
+                            {a.type === "asset" ? "Update value" : "Update balance"}
                           </button>
                         )}
                         <button type="button" onClick={() => (editing.value = a.id)}>Edit</button>
@@ -189,7 +190,18 @@ function AccountsCard({ setup, usage }: { setup: YearSetup; usage: Usage }) {
 /** "Worth $12,480.00 on Oct 25", or a note that it has no balance yet. */
 function worthText(a: Account): string {
   const v = valuationOf(a);
-  return v ? `Worth ${formatCents(v.amount)} on ${shortDate(v.date)}` : "No balance yet: not in net tangible assets";
+  return v ? `Worth ${formatCents(v.amount)} on ${shortDate(v.date)}` : `No ${valueWord(a)} yet: not in net tangible assets`;
+}
+
+/** An investment has a balance; an asset (a house, a car) has a value. */
+function valueWord(a: Pick<Account, "type">): string {
+  return a.type === "asset" ? "value" : "balance";
+}
+
+/** The day an update is for by default: today, or the nearest day of the tracked year. */
+function updateDay(setup: YearSetup): string {
+  const first = yearStart(setup), last = `${setup.year}-12-31`, today = localToday();
+  return today < first ? first : today > last ? last : today;
 }
 
 /**
@@ -199,8 +211,8 @@ function worthText(a: Account): string {
 function ValuationForm(props: { account: Account; setup: YearSetup; onDone: () => void }) {
   const { account: a, setup } = props;
   const first = yearStart(setup), last = `${setup.year}-12-31`;
-  const today = localToday();
-  const date = useSignal(today < first ? first : today > last ? last : today);
+  const word = valueWord(a);
+  const date = useSignal(updateDay(setup));
   const amount = useSignal("");
   const error = useSignal<string | null>(null);
   const amountRef = useRef<HTMLInputElement>(null);
@@ -209,15 +221,16 @@ function ValuationForm(props: { account: Account; setup: YearSetup; onDone: () =
   async function onSubmit(e: Event) {
     e.preventDefault();
     const cents = parseCents(amount.value);
-    if (cents === null) return void (error.value = "Enter the balance like 1234.56.");
+    if (cents === null) return void (error.value = `Enter the ${word} like 1234.56.`);
     if (await attempt((s) => saveValuation(s, a.id, date.value, cents), (m) => (error.value = m))) amount.value = "";
   }
 
   return (
     <form class="inline-form" onSubmit={onSubmit} onKeyDown={(e) => e.key === "Escape" && props.onDone()}>
       <p class="muted small">
-        What {a.name} is worth, as your broker shows it. Until the next update it counts at this amount in net
-        tangible assets. A new year starts without one.
+        {a.type === "asset"
+          ? <>What {a.name} is worth. Until the next update it counts at this amount in net tangible assets, and a new year starts with it.</>
+          : <>What {a.name} is worth, as your broker shows it. Until the next update it counts at this amount in net tangible assets. A new year starts without one.</>}
       </p>
       <div class="fields">
         <label class="field w-date">
@@ -225,14 +238,14 @@ function ValuationForm(props: { account: Account; setup: YearSetup; onDone: () =
           <input type="date" value={date.value} min={first} max={last} onInput={(e) => (date.value = e.currentTarget.value)} />
         </label>
         <label class="field w-amount">
-          <span class="field-label">Balance</span>
+          <span class="field-label">{a.type === "asset" ? "Value" : "Balance"}</span>
           <input ref={amountRef} type="text" inputMode="decimal" class="num" value={amount.value} placeholder="0.00"
             onInput={(e) => (amount.value = e.currentTarget.value)} />
         </label>
       </div>
       {error.value && <p class="form-error" role="alert">{error.value}</p>}
       <div class="form-actions">
-        <button type="submit" class="primary">Save balance</button>
+        <button type="submit" class="primary">Save {word}</button>
         <button type="button" onClick={props.onDone}>Done</button>
       </div>
       {a.valuations?.length ? (
@@ -241,8 +254,8 @@ function ValuationForm(props: { account: Account; setup: YearSetup; onDone: () =
             <li key={v.date}>
               <span>{shortDate(v.date)}</span>
               <span class="num">{formatCents(v.amount)}</span>
-              <button type="button" class="icon-btn danger" aria-label={`Delete the balance on ${shortDate(v.date)}`}
-                onClick={() => confirm(`Delete the ${formatCents(v.amount)} balance on ${shortDate(v.date)}?`)
+              <button type="button" class="icon-btn danger" aria-label={`Delete the ${word} on ${shortDate(v.date)}`}
+                onClick={() => confirm(`Delete the ${formatCents(v.amount)} ${word} on ${shortDate(v.date)}?`)
                   && attempt((s) => deleteValuation(s, a.id, v.date), (m) => (error.value = m))}>
                 ×
               </button>
@@ -326,14 +339,18 @@ function AccountForm(props: { account?: Account; first?: boolean; onDone: () => 
   const setup = current.value!.setup;
   const isCard = type.value === "credit";
   const isLoan = type.value === "loan";
+  // An asset has no opening balance. When adding one, the same box takes its value today, its first update.
+  const isAsset = type.value === "asset";
   // Only a loan that began before tracking started has an amount owed to enter; a newer one is added on its start date.
   const loanBefore = isLoan && loanStart.value !== "" && loanStart.value < yearStart(setup);
   useEffect(() => nameRef.current?.focus(), []);
 
   async function onSubmit(e: Event) {
     e.preventDefault();
-    const amount = opening.value.trim() === "" || (isLoan && !loanBefore) ? 0 : parseSignedCents(opening.value);
-    if (amount === null) return void (error.value = isLoan ? "Enter what was owed, like 1234.56." : "Enter the opening balance like 1234.56.");
+    const amount = opening.value.trim() === "" || (isLoan && !loanBefore) ? 0 : isAsset ? parseCents(opening.value) : parseSignedCents(opening.value);
+    if (amount === null) {
+      return void (error.value = isLoan ? "Enter what was owed, like 1234.56." : isAsset ? "Enter what it's worth, like 1234.56." : "Enter the opening balance like 1234.56.");
+    }
     let loan: Pick<Account, "loanStart" | "loanAmount" | "rate"> = {};
     if (isLoan) {
       const borrowed = parseCents(loanAmount.value);
@@ -349,14 +366,19 @@ function AccountForm(props: { account?: Account; first?: boolean; onDone: () => 
     }
     const account: Account = {
       id: a?.id ?? "", name: name.value, type: type.value, ref: ref.value,
-      opening: isCard || isLoan ? -amount : amount,
+      opening: isAsset ? 0 : isCard || isLoan ? -amount : amount,
       ...(lim !== undefined ? { limit: lim } : {}),
       ...loan,
       ...(a?.archived ? { archived: true } : {}),
       // Balance updates aren't in this form; they stay with the account.
       ...(a?.valuations ? { valuations: a.valuations } : {}),
     };
-    const ok = await attempt((s) => saveAccount(s, account), (m) => (error.value = m));
+    const ok = await attempt((s) => {
+      const saved = saveAccount(s, account);
+      if (!isAsset || a || opening.value.trim() === "") return saved;
+      const added = saved.accounts.find((x) => !s.accounts.some((y) => y.id === x.id))!;
+      return saveValuation(saved, added.id, updateDay(s), amount);
+    }, (m) => (error.value = m));
     if (!ok) return;
     if (a) return props.onDone();
     // Ready for the next account.
@@ -366,7 +388,7 @@ function AccountForm(props: { account?: Account; first?: boolean; onDone: () => 
 
   return (
     <form class="inline-form" onSubmit={onSubmit} onKeyDown={(e) => e.key === "Escape" && props.onDone()}>
-      {props.first && <p class="hint-box">Start by adding the accounts you track: bank accounts, cash, cards, investment accounts and loans.</p>}
+      {props.first && <p class="hint-box">Start by adding the accounts you track: bank accounts, cash, cards, investment accounts, loans and assets.</p>}
       <div class="fields">
         <label class="field w-item">
           <span class="field-label">Name</span>
@@ -402,9 +424,9 @@ function AccountForm(props: { account?: Account; first?: boolean; onDone: () => 
             </label>
           </>
         )}
-        {(!isLoan || loanBefore) && (
+        {(isAsset ? !a : !isLoan || loanBefore) && (
           <label class="field w-account">
-            <span class="field-label">{openingLabel(isCard || isLoan, type.value === "investment", setup)}</span>
+            <span class="field-label">{isAsset ? "Value today" : openingLabel(isCard || isLoan, type.value === "investment", setup)}</span>
             <input type="text" inputMode="decimal" class="num" value={opening.value} placeholder="0.00"
               onInput={(e) => (opening.value = e.currentTarget.value)} />
           </label>

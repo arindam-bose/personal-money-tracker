@@ -521,10 +521,12 @@ function CloseYearPanel(props: { year: number; onDone: (message: string) => void
             {next.accounts.map((a) => (
               <tr>
                 <td>{a.name}</td>
-                <td class="num">{formatCents(closingBal.get(a.id) ?? 0)}</td>
+                {/* An asset has no balance: what carries over is its last value. */}
+                <td class="num">{a.type === "asset" ? "" : formatCents(closingBal.get(a.id) ?? 0)}</td>
                 <td class="num">
-                  {formatCents(a.opening)}
+                  {a.type === "asset" ? (a.valuations ? formatCents(a.valuations[0]!.amount) : "") : formatCents(a.opening)}
                   {a.type === "investment" && <span class="muted small"> (contributions start again)</span>}
+                  {a.type === "asset" && <span class="muted small">{a.valuations ? " (value carried over)" : " (no value yet)"}</span>}
                 </td>
               </tr>
             ))}

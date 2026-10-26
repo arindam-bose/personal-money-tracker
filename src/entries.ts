@@ -95,7 +95,8 @@ export function checkDraft(draft: Draft, setup: YearSetup, id: string): CheckRes
   const usable = (accountId: string) => {
     const a = accounts.get(accountId);
     // An archived account can stay on old entries, but new entries can't use it.
-    return !!a && (!a.archived || draft.id !== undefined);
+    // An asset never can: its value only changes by updating it.
+    return !!a && a.type !== "asset" && (!a.archived || draft.id !== undefined);
   };
 
   if (!isDateInYear(draft.date, setup.year)) errors.date = `Pick a date in ${setup.year}.`;

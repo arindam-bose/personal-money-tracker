@@ -22,7 +22,7 @@ describe("the demo file", () => {
 
   it("shows a mix: every account type, both people, tags, a refund and a one-off", () => {
     const f = demoYear(2026);
-    expect(new Set(f.accounts.map((a) => a.type))).toEqual(new Set(["checking", "savings", "credit", "cash", "investment", "loan"]));
+    expect(new Set(f.accounts.map((a) => a.type))).toEqual(new Set(["checking", "savings", "credit", "cash", "investment", "loan", "asset"]));
     expect(f.members!.map((m) => m.id)).toEqual(["m_person-a", "m_john"]);
     expect([...f.expenses, ...f.earnings, ...f.transfers].some((e) => e.member === "m_john")).toBe(true);
     expect(f.expenses.some((e) => e.tags.length > 0)).toBe(true);

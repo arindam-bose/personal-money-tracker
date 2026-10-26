@@ -79,6 +79,8 @@ export function DashboardView() {
   const hasLoans = accounts.loans.length > 0;
   const withoutLoans = hasLoans && ntaWithoutLoans.value;
   const nta = withoutLoans ? accounts.netTangibleAssets + accounts.loanDebt : accounts.netTangibleAssets;
+  // Investments and assets only add to it once they have a value.
+  const valued = (type: Account["type"]) => setup.accounts.some((a) => a.type === type && accounts.valuations.has(a.id));
   // Clicking a category opens the ledger with the same period and person.
   const inLedger = { month: period.value, member: member?.id ?? "" };
 
@@ -125,7 +127,8 @@ export function DashboardView() {
           <div class="muted">
             Available cash {formatCents(accounts.availableCash)} − card debt {formatCents(accounts.cardDebt)}
             {hasLoans && (withoutLoans ? <> · loans ({formatCents(accounts.loanDebt)} owed) left out</> : <> − loans owed {formatCents(accounts.loanDebt)}</>)}
-            {accounts.valuations.size > 0 && <> + investments {formatCents(accounts.investmentsWorth)}</>}
+            {valued("investment") && <> + investments {formatCents(accounts.investmentsWorth)}</>}
+            {valued("asset") && <> + assets {formatCents(accounts.assetsWorth)}</>}
           </div>
         </section>
       )}
@@ -329,10 +332,28 @@ function AccountsTable(props: { overview: ReturnType<typeof accountsOverview>; a
             </tr>
           );
         })}
-        {o.valuations.size > 0 && (
+        {group(["investment"]).some((a) => o.valuations.has(a.id)) && (
           <tr class="subtotal">
             <td>Investments <span class="muted small">latest balances</span></td>
             <td class="num">{formatCents(o.investmentsWorth)}</td>
+          </tr>
+        )}
+        {group(["asset"]).map((a) => {
+          const v = o.valuations.get(a.id);
+          return (
+            <tr>
+              <td>{a.name}</td>
+              <td class="num">
+                {v ? formatCents(v.amount) : <span class="muted">No value yet</span>}
+                {v && <div class="tile-detail">on {shortDate(v.date)}</div>}
+              </td>
+            </tr>
+          );
+        })}
+        {group(["asset"]).some((a) => o.valuations.has(a.id)) && (
+          <tr class="subtotal">
+            <td>Assets <span class="muted small">latest values</span></td>
+            <td class="num">{formatCents(o.assetsWorth)}</td>
           </tr>
         )}
         <tr class="total">

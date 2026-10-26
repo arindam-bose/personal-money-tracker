@@ -101,7 +101,7 @@ describe("importing balances", () => {
       const r = validateYearFile(file([a], start));
       return r.ok ? [] : r.errors;
     };
-    expect(errors({ ...checking, valuations: [{ date: "2026-10-01", amount: 1 }] })[0]).toMatch(/isn't an investment account/);
+    expect(errors({ ...checking, valuations: [{ date: "2026-10-01", amount: 1 }] })[0]).toMatch(/isn't an investment or asset account/);
     expect(errors({ ...gia, valuations: [{ date: "2025-10-01", amount: 1 }] })[0]).toMatch(/isn't a date in 2026/);
     expect(errors({ ...gia, valuations: [{ date: "2026-03-01", amount: 1 }] }, "2026-07-01")[0]).toMatch(/isn't a date in 2026/);
     expect(errors({ ...gia, valuations: [{ date: "2026-10-01", amount: 1.5 }] })[0]).toMatch(/whole cents/);

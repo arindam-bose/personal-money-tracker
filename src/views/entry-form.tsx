@@ -105,7 +105,8 @@ export function EntryForm({ initial, onClose }: Props) {
   }
 
   const err = errors.value;
-  const accounts = setup.accounts.filter((a) => !a.archived || [d.account, d.from, d.to].includes(a.id));
+  // Assets never take entries: their value only changes by updating it on the Accounts page.
+  const accounts = setup.accounts.filter((a) => a.type !== "asset" && (!a.archived || [d.account, d.from, d.to].includes(a.id)));
   const role = earningRole(d, setup);
 
   return (
@@ -212,7 +213,7 @@ function Field(props: { label: string; error?: string; class?: string; children:
 }
 
 const TYPE_LABEL: Record<Account["type"], string> = {
-  checking: "Bank", savings: "Savings", cash: "Cash", credit: "Credit cards", investment: "Investments", loan: "Loans",
+  checking: "Bank", savings: "Savings", cash: "Cash", credit: "Credit cards", investment: "Investments", loan: "Loans", asset: "Assets",
 };
 
 function AccountSelect(props: { accounts: Account[]; value: string; onChange: (id: string) => void }) {

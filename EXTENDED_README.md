@@ -90,6 +90,18 @@ retirement ones included. A new year starts without any, so the account is left
 out of net tangible assets until it's updated again. A copied account doesn't
 take them, and tracking can't start after one.
 
+### Assets
+
+An `asset` account is something you own whose value seldom changes: a house, a
+car. It has no opening balance and no entries can use it: its value only comes
+from **Update value**, the same `valuations` investments have, and it's worth
+the last one until the next. Adding an asset can take its value today as the
+first update. Unlike an investment, it keeps its value into a new year: closing
+a year carries the value on December 31 over, dated January 1. Moving the start
+date later moves an asset's earlier value up to the new start day, instead of
+refusing as it does for an investment. Imported files can't have an asset with
+an opening balance, or an entry that uses one.
+
 ### Loans
 
 A `loan` account (a loan or mortgage) also has `loanStart`, `loanAmount` and
@@ -188,7 +200,8 @@ Tests).
 | Card debt, utilization | −(card balances); debt ÷ total limits |
 | Loans owed | −(loan balances), interest included |
 | Investments worth | Each investment account's latest balance update; accounts without one aren't counted |
-| Net tangible assets | Available cash − card debt − loans owed + investments worth. The **Include loans** switch (Dashboard, and Balances over time in Reports) can leave loans out too |
+| Assets worth | Each asset account's latest value |
+| Net tangible assets | Available cash − card debt − loans owed + investments worth + assets worth. The **Include loans** switch (Dashboard, and Balances over time in Reports) can leave loans out too |
 
 Investment accounts' ledger balances are contributions this year, not market
 value; they open at 0 every year. What they're worth is only what the user enters.
@@ -308,7 +321,7 @@ last opened, and per-tab filters and periods.
 
 `closeYear` makes the year read-only and starts the next one
 (`nextYearSetup` in `rollover.ts`): bank, cash, card and loan accounts open at their
-closing balance on December 31 (a loan's interest included), investment accounts at 0 and without balance updates; accounts, categories, tags and
+closing balance on December 31 (a loan's interest included), investment accounts at 0 and without balance updates, assets with their last value dated January 1; accounts, categories, tags and
 usual budget targets carry over (one-month overrides don't). If the next year
 already exists, it is left alone. A closed year can be reopened.
 

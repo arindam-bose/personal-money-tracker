@@ -7,7 +7,7 @@ export type Cents = number;
 /** A calendar date as "YYYY-MM-DD". */
 export type IsoDate = string;
 
-export type AccountType = "checking" | "savings" | "cash" | "credit" | "investment" | "loan";
+export type AccountType = "checking" | "savings" | "cash" | "credit" | "investment" | "loan" | "asset";
 
 export interface Account {
   id: string;
@@ -29,9 +29,11 @@ export interface Account {
   /** Loans only: the yearly interest rate as a percentage, e.g. 6.5. */
   rate?: number;
   /**
-   * Investment accounts only: what the account was worth on the days the user updated it,
-   * oldest first, one per day. Between updates it's worth the last one; before the first, it's
-   * left out of net tangible assets. Each year starts without any.
+   * Investment and asset accounts only: what the account was worth on the days the user updated
+   * it, oldest first, one per day. Between updates it's worth the last one; before the first, it's
+   * left out of net tangible assets. An investment starts each year without any; an asset (a house,
+   * a car, whose value seldom changes) starts it with its last value, dated January 1.
+   * An asset's value only ever comes from these: no entry can use an asset account.
    */
   valuations?: Valuation[];
   archived?: boolean;

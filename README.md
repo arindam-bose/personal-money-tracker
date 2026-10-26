@@ -52,6 +52,8 @@ import it: a household of two with a month of earnings, spending and transfers.
   it off its expenses.
   On an investment account, **Update balance** notes what it's worth today; it
   counts at that amount in net tangible assets until you update it again.
+  An **Asset** account (a house, a car) has no entries: **Update value** sets
+  what it's worth, which counts in net tangible assets and carries into the next year.
   A **Loan / mortgage** account takes the day it began, the amount borrowed and
   the interest rate. Interest is added monthly on what's still owed, each payment
   is a transfer into the loan (in **Loan Payments**), and what it owes comes off

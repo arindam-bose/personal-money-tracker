@@ -4,7 +4,8 @@
 //
 // A household of two, Jane and John, one January: paychecks, interest, a refund that lowers
 // spending and a one-off gift; rent, groceries, a date night, a jacket, charity and coffee in cash; and
-// transfers to savings, an IRA, a brokerage, the wallet, the credit card and the car loan.
+// transfers to savings, an IRA, a brokerage, the wallet, the credit card and the car loan. The car
+// itself is an asset, worth what it was last valued at.
 
 import { emptyYearFile } from "./rollover";
 import { DEFAULT_MEMBER } from "./members";
@@ -50,6 +51,7 @@ export function demoYear(year: number, now = new Date()): YearFile {
         { id: "a_brokerage", name: "Brokerage", type: "investment", ref: "**3456", opening: 0 },
         // Taken out last August, so it opens at what was still owed on January 1.
         { id: "a_car-loan", name: "Car Loan", type: "loan", ref: "**7788", opening: -2180000, loanStart: `${year - 1}-08-14`, loanAmount: 2400000, rate: 6.9 },
+        { id: "a_car", name: "Car", type: "asset", ref: "", opening: 0, valuations: [{ date: d("01"), amount: 2150000 }] },
       ],
       tags: [
         { id: "t_date-night", name: "Date night" },

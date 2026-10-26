@@ -1,6 +1,6 @@
 // Year rollover (brief §7): what the next year starts with when a year is closed.
 
-import { balances, type Ledger } from "./derive";
+import { balances, valuationOf, type Ledger } from "./derive";
 import type { YearFile, YearSetup } from "./types";
 
 /** Every account's balance at the end of December 31, loan interest included. */
@@ -13,6 +13,7 @@ export function closingBalances(setup: YearSetup, ledger: Ledger): Map<string, n
  * - bank, cash, card and loan accounts open at this year's closing balance;
  * - investment accounts open at 0, because only this year's contributions are tracked,
  *   and without balance updates: what they're worth is left out until it's next updated;
+ * - asset accounts keep their last value, dated January 1: it seldom changes;
  * - accounts, categories, tags, members and the usual budget targets carry over.
  *   One-month budget overrides belong to their month, so they don't, and neither does the
  *   IRA limit: it changes by year, so the new year starts at the IRS limit.
@@ -22,10 +23,14 @@ export function nextYearSetup(setup: YearSetup, ledger: Ledger): YearSetup {
   const closing = closingBalances(setup, ledger);
   return {
     year: setup.year + 1,
-    accounts: setup.accounts.map(({ valuations: _v, ...a }) => ({
-      ...a,
-      opening: a.type === "investment" ? 0 : closing.get(a.id) ?? a.opening,
-    })),
+    accounts: setup.accounts.map(({ valuations: _v, ...a }) => {
+      const last = a.type === "asset" ? valuationOf({ ...a, valuations: _v }, `${setup.year}-12-31`) : null;
+      return {
+        ...a,
+        opening: a.type === "investment" ? 0 : closing.get(a.id) ?? a.opening,
+        ...(last ? { valuations: [{ date: `${setup.year + 1}-01-01`, amount: last.amount }] } : {}),
+      };
+    }),
     categories: setup.categories,
     tags: setup.tags,
     ...(setup.members ? { members: setup.members } : {}),

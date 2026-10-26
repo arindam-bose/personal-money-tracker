@@ -6,7 +6,7 @@ import type { YearData } from "./db";
 import { newId, slug } from "./entries";
 import { membersOf } from "./members";
 import { isDate, isDateInYear, isRate } from "./validate";
-import { loanStatus, shortDate } from "./derive";
+import { hasValuations, loanStatus, shortDate, valuationOf } from "./derive";
 import { dayBefore, yearStart } from "./year";
 import type {
   Account, Categories, Category, Cents, IsoDate, Earning, EarningRole, Expense, ExpenseRole, Member, Tag, Transfer, TransferRole, YearSetup,
@@ -106,8 +106,10 @@ export function saveAccount(setup: YearSetup, account: Account): YearSetup {
     if (loanStart >= yearStart(setup)) clean.opening = 0;
     Object.assign(clean, { loanStart, loanAmount, rate });
   }
-  // Balance updates stay with an investment account through edits; they mean nothing on any other type.
-  if (account.type === "investment" && account.valuations?.length) clean.valuations = account.valuations;
+  // An asset's value only comes from its updates: no opening balance, and no entries.
+  if (account.type === "asset") clean.opening = 0;
+  // Updates stay with an investment or asset account through edits; they mean nothing on any other type.
+  if (hasValuations(account.type) && account.valuations?.length) clean.valuations = account.valuations;
   if (account.archived) clean.archived = true;
   const saved = { ...setup, accounts: upsert(setup.accounts, clean) };
   // The first loan brings a category for its payments, if the year has none (years from before loans).
@@ -161,7 +163,7 @@ export function deleteAccount(setup: YearSetup, id: string, usage: Usage): YearS
  */
 export function saveValuation(setup: YearSetup, id: string, date: IsoDate, amount: Cents): YearSetup {
   const account = setup.accounts.find((a) => a.id === id);
-  if (account?.type !== "investment") throw new SetupError("Only investment accounts have a balance to update.");
+  if (!account || !hasValuations(account.type)) throw new SetupError("Only investment and asset accounts have a value to update.");
   if (!isDateInYear(date, setup.year)) throw new SetupError(`Pick a day in ${setup.year}.`);
   if (date < yearStart(setup)) throw new SetupError(`Tracking starts on ${shortDate(yearStart(setup))}. Pick that day or later.`);
   if (!Number.isSafeInteger(amount) || amount < 0) throw new SetupError("Enter the balance like 1234.56.");
@@ -382,11 +384,25 @@ export function withStart(data: Pick<YearData, "setup" | "expenses" | "earnings"
   if (first !== null && first < start) {
     throw new SetupError(`There are entries from ${shortDate(first)}, so tracking can't start later than that. Move or delete them first.`);
   }
-  const early = setup.accounts.find((a) => a.valuations?.some((v) => v.date < start));
+  const early = setup.accounts.find((a) => a.type === "investment" && a.valuations?.some((v) => v.date < start));
   if (early) {
     throw new SetupError(`${early.name} has a balance update from before ${shortDate(start)}, so tracking can't start that late. Delete it first.`);
   }
-  return { ...setup, start, accounts: loansFrom(data, start) };
+  return { ...setup, start, accounts: assetsFrom(loansFrom(data, start), start) };
+}
+
+/**
+ * The accounts with each asset's values moved to a new start day: one that had a value before
+ * it is worth that on the start day (its latest one), and the earlier ones go. An asset's value
+ * seldom changes, so moving the start shouldn't lose it.
+ */
+function assetsFrom(accounts: Account[], start: IsoDate): Account[] {
+  return accounts.map((a) => {
+    if (a.type !== "asset" || !a.valuations?.some((v) => v.date < start)) return a;
+    const later = a.valuations.filter((v) => v.date >= start);
+    const carried = later.some((v) => v.date === start) ? [] : [{ date: start, amount: valuationOf(a, start)!.amount }];
+    return { ...a, valuations: [...carried, ...later] };
+  });
 }
 
 /**

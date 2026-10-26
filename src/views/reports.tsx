@@ -332,7 +332,8 @@ function BalancesCard({ ledger: l, year, start, lastDate }: { ledger: Ledger; ye
   const series = balanceSeries(l, points).map((p) => (withoutLoans ? { ...p, netTangibleAssets: p.netTangibleAssets + p.loanDebt } : p));
   const [c1, c2, c3, c4, c5, c6] = seriesColors();
   // Once an investment account has a balance update, what it's worth gets a line; contributions go dashed beside it.
-  const hasWorth = l.accounts.some((a) => a.valuations?.length);
+  const hasWorth = l.accounts.some((a) => a.type === "investment" && a.valuations?.length);
+  const hasAssets = l.accounts.some((a) => a.type === "asset" && a.valuations?.length);
   const lines = [
     { key: "availableCash", name: "Available cash", color: c1 },
     { key: "cardDebt", name: "Card debt", color: c2 },
@@ -340,6 +341,7 @@ function BalancesCard({ ledger: l, year, start, lastDate }: { ledger: Ledger; ye
     { key: "netTangibleAssets", name: "Net tangible assets", color: c5 },
     ...(hasWorth ? [{ key: "investmentsWorth", name: "Investments worth", color: c3 }] as const : []),
     { key: "invested", name: "Invested this year", color: c3, dashed: hasWorth },
+    ...(hasAssets ? [{ key: "assetsWorth", name: "Assets worth", color: token("--series-other") }] as const : []),
     { key: "saved", name: "Saved this year", color: c4 },
   ] as const;
   const label = (d: string) => (d === opening ? "Start" : shortDate(d));
@@ -364,8 +366,8 @@ function BalancesCard({ ledger: l, year, start, lastDate }: { ledger: Ledger; ye
   };
   return (
     <Card title="Balances over time" action={hasLoans && <IncludeLoans />}
-      subtitle={`At the end of each week. Net tangible assets is available cash minus card debt${hasLoans ? (withoutLoans ? ", with loans left out" : " and what loans still owe") : ""}${hasWorth ? ", plus investments at the balance you last updated them to" : ""}. ${hasWorth ? "Invested this year is what you put in." : "Investments count what you put in this year, not market value."} Saved is what went into savings minus what came out.`}>
-      <Chart option={option} height={320} label={`Available cash, card debt, ${hasLoans ? "loans owed, " : ""}net tangible assets, ${hasWorth ? "investments worth, " : ""}investments and savings over the year`} />
+      subtitle={`At the end of each week. Net tangible assets is available cash minus card debt${hasLoans ? (withoutLoans ? ", with loans left out" : " and what loans still owe") : ""}${hasWorth || hasAssets ? `, plus ${hasWorth && hasAssets ? "investments and assets" : hasWorth ? "investments" : "assets"} at what you last updated them to` : ""}. ${hasWorth ? "Invested this year is what you put in." : "Investments count what you put in this year, not market value."} Saved is what went into savings minus what came out.`}>
+      <Chart option={option} height={320} label={`Available cash, card debt, ${hasLoans ? "loans owed, " : ""}net tangible assets, ${hasWorth ? "investments worth, " : ""}investments, ${hasAssets ? "assets worth, " : ""}and savings over the year`} />
       <TableView head={["Date", ...lines.map((x) => x.name)]}
         rows={series.map((p) => [label(p.date), ...lines.map((x) => formatCents(p[x.key]))])} />
     </Card>
