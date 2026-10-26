@@ -7,7 +7,7 @@ import {
   MONTH_NAMES, accountsOverview, budgetView, earningsByCategory, localToday, monthProgress, netEarningCategories, remainingRetirement, shortDate, spendingOffsetCategories, spendByCategory, summarize, tagTotal,
 } from "../derive";
 import { formatCents, formatPercent } from "../money";
-import { current, iraLimit, ledger, pinnedTags, savePinnedTags } from "../state";
+import { current, iraLimit, ledger, ntaWithoutLoans, pinnedTags, saveNtaWithoutLoans, savePinnedTags } from "../state";
 import type { Ledger } from "../derive";
 import type { Account } from "../types";
 import { firstMonth, yearStart } from "../year";
@@ -65,6 +65,10 @@ export function DashboardView() {
   const pastYear = setup.closed || setup.year < new Date().getFullYear();
   const periodName = month ? `${MONTH_NAMES[month - 1]} ${setup.year}` : pastYear ? `${setup.year}` : `${setup.year} so far`;
   const asOf = month ? `End of ${MONTH_NAMES[month - 1]}` : pastYear ? `End of ${setup.year}` : "Today";
+  // Loans can be left out of net tangible assets, to see it without them. The switch only shows once there's a loan.
+  const hasLoans = accounts.loans.length > 0;
+  const withoutLoans = hasLoans && ntaWithoutLoans.value;
+  const nta = withoutLoans ? accounts.netTangibleAssets + accounts.loanDebt : accounts.netTangibleAssets;
   // Clicking a category opens the ledger with the same period and person.
   const inLedger = { month: period.value, member: member?.id ?? "" };
 
@@ -103,11 +107,19 @@ export function DashboardView() {
         </p>
       ) : (
         <section class="hero card">
-          <div class="tile-label">Net tangible assets · {asOf}</div>
-          <div class={`hero-value ${accounts.netTangibleAssets < 0 ? "neg" : ""}`}>{formatCents(accounts.netTangibleAssets)}</div>
+          <div class="tile-label">
+            <span>Net tangible assets · {asOf}</span>
+            {hasLoans && (
+              <label class="hero-toggle" title="Untick to see net tangible assets without what loans and mortgages owe">
+                <input type="checkbox" checked={!withoutLoans} onChange={(e) => saveNtaWithoutLoans(!e.currentTarget.checked)} />
+                <span>Include loans</span>
+              </label>
+            )}
+          </div>
+          <div class={`hero-value ${nta < 0 ? "neg" : ""}`}>{formatCents(nta)}</div>
           <div class="muted">
             Available cash {formatCents(accounts.availableCash)} − card debt {formatCents(accounts.cardDebt)}
-            {accounts.loans.length > 0 && <> − loans owed {formatCents(accounts.loanDebt)}</>}
+            {hasLoans && (withoutLoans ? <> · loans ({formatCents(accounts.loanDebt)} owed) left out</> : <> − loans owed {formatCents(accounts.loanDebt)}</>)}
           </div>
         </section>
       )}
@@ -155,7 +167,7 @@ export function DashboardView() {
           <section class="card">
             <h3>Accounts</h3>
             <p class="muted small">{asOf}</p>
-            <AccountsTable overview={accounts} accounts={setup.accounts} />
+            <AccountsTable overview={accounts} accounts={setup.accounts} withoutLoans={withoutLoans} />
             <RetirementRoom left={remainingRetirement(all, iraLimit.value, setup.iraBeforeStart)} limit={iraLimit.value}
               before={setup.iraBeforeStart} start={yearStart(setup)} />
           </section>
@@ -242,7 +254,7 @@ function CategoryBars(props: {
   );
 }
 
-function AccountsTable(props: { overview: ReturnType<typeof accountsOverview>; accounts: Account[] }) {
+function AccountsTable(props: { overview: ReturnType<typeof accountsOverview>; accounts: Account[]; withoutLoans: boolean }) {
   const o = props.overview;
   const bal = (a: Account) => o.balances.get(a.id) ?? 0;
   const live = props.accounts.filter((a) => !a.archived || bal(a) !== 0);
@@ -297,8 +309,8 @@ function AccountsTable(props: { overview: ReturnType<typeof accountsOverview>; a
           </tr>
         )}
         <tr class="total">
-          <td>Net tangible assets</td>
-          <td class="num">{formatCents(o.netTangibleAssets)}</td>
+          <td>Net tangible assets{props.withoutLoans && <span class="muted small"> without loans</span>}</td>
+          <td class="num">{formatCents(props.withoutLoans ? o.netTangibleAssets + o.loanDebt : o.netTangibleAssets)}</td>
         </tr>
         {group(["investment"]).map((a) => (
           <tr>

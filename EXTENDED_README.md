@@ -174,7 +174,7 @@ Tests).
 | Available cash | Checking + savings + cash balances |
 | Card debt, utilization | −(card balances); debt ÷ total limits |
 | Loans owed | −(loan balances), interest included |
-| Net tangible assets | Available cash − card debt − loans owed (investments left out) |
+| Net tangible assets | Available cash − card debt − loans owed (investments left out). The dashboard's **Include loans** switch can leave loans out too |
 
 Investment accounts track contributions this year, not market value; they open
 at 0 every year.
@@ -200,7 +200,8 @@ moves between your own accounts aren't shown.
   the IRA limit if one is set, plus `closed` and `lastBackupAt`), keyed by year.
 - `expenses`, `earnings`, `transfers`: one record per entry, keyed by
   `[year, id]`, because ids like `e0001` repeat every year.
-- `settings`: app-wide values (pinned tags, the year last opened).
+- `settings`: app-wide values (pinned tags, the year last opened, whether the
+  dashboard's net tangible assets leaves loans out).
 
 Replacing a year on import runs in one transaction: if anything fails, the old
 data stays. The app calls `navigator.storage.persist()` on start so the browser

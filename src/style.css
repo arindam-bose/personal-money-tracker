@@ -1328,6 +1328,13 @@ button.danger-solid {
   color: var(--muted);
 }
 
+.hero-toggle {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  cursor: pointer;
+}
+
 .net-tick input:disabled + span {
   opacity: 0.4;
 }

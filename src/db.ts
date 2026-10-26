@@ -38,6 +38,8 @@ export interface Settings {
   activeYear: number;
   /** Tag ids whose totals show on the dashboard (e.g. "t_india"). */
   pinnedTags: string[];
+  /** True to leave what loans owe out of net tangible assets on the dashboard. Left out, they count. */
+  ntaWithoutLoans: boolean;
 }
 
 // --- Small promise wrappers around the callback-style IndexedDB API ---
