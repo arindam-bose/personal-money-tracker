@@ -102,6 +102,18 @@ date later moves an asset's earlier value up to the new start day, instead of
 refusing as it does for an investment. Imported files can't have an asset with
 an opening balance, or an entry that uses one.
 
+### Closing an account
+
+**Close…** on the Accounts page closes an account on a day: sold, paid off, shut
+(`closeAccount` in `setup.ts`; `closedOn` on the account). From that day it's left
+out: an asset or investment is worth nothing (`valuationOf` returns none), a closed
+card's limit stops counting, and the dashboard stops listing it (earlier months
+still do). No entry or value update can come after that day, and the next year
+doesn't have the account. A bank, cash, card or loan account must be at 0 at the
+end of the day it closes, so its money isn't lost from net tangible assets: move
+it out with a transfer first. **Reopen** undoes it. Tracking can't start after a
+closed account's day.
+
 ### Loans
 
 A `loan` account (a loan or mortgage) also has `loanStart`, `loanAmount` and
@@ -321,7 +333,7 @@ last opened, and per-tab filters and periods.
 
 `closeYear` makes the year read-only and starts the next one
 (`nextYearSetup` in `rollover.ts`): bank, cash, card and loan accounts open at their
-closing balance on December 31 (a loan's interest included), investment accounts at 0 and without balance updates, assets with their last value dated January 1; accounts, categories, tags and
+closing balance on December 31 (a loan's interest included), investment accounts at 0 and without balance updates, assets with their last value dated January 1, closed accounts left behind; accounts, categories, tags and
 usual budget targets carry over (one-month overrides don't). If the next year
 already exists, it is left alone. A closed year can be reopened.
 

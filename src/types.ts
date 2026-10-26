@@ -37,6 +37,13 @@ export interface Account {
    */
   valuations?: Valuation[];
   archived?: boolean;
+  /**
+   * The day the account was closed (sold, paid off, shut). From that day on it's left out:
+   * an asset or investment is worth nothing, and no entry or update can come after it.
+   * A bank, cash, card or loan account must be at 0 that day: its money moves out by a transfer.
+   * The next year doesn't have it.
+   */
+  closedOn?: IsoDate;
 }
 
 /** An investment account's balance on a day, as the user read it from the broker. */

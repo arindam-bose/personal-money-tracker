@@ -359,6 +359,11 @@ export interface LoanOverview {
   interest: Cents;
 }
 
+/** True if the account is closed on or before `through` (or at all, without a day). */
+export function isClosed(account: Account, through?: IsoDate): boolean {
+  return account.closedOn !== undefined && (through === undefined || account.closedOn <= through);
+}
+
 /** Account types whose value comes from the user's updates rather than from entries. */
 export function hasValuations(type: Account["type"]): boolean {
   return type === "investment" || type === "asset";
@@ -366,6 +371,8 @@ export function hasValuations(type: Account["type"]): boolean {
 
 /** An investment or asset account's latest update on or before `through` (or its latest), or null if there's none. */
 export function valuationOf(account: Account, through?: IsoDate): Valuation | null {
+  // From the day it's closed (sold, say), it's worth nothing.
+  if (isClosed(account, through)) return null;
   const list = (account.valuations ?? []).filter((v) => through === undefined || v.date <= through);
   return list.length ? list.reduce((a, b) => (b.date > a.date ? b : a)) : null;
 }
@@ -387,6 +394,8 @@ export interface AccountsOverview {
   netTangibleAssets: Cents;
   /** Contributions made this year, per investment account. */
   invested: Map<string, Cents>;
+  /** Accounts closed by then. They're at 0, so they only matter for what's listed. */
+  closed: Set<string>;
   /** Each investment and asset account's latest update, for those that have one. */
   valuations: Map<string, Valuation>;
   /** What the investment accounts' latest updates add up to. Accounts without one aren't counted. */
@@ -404,6 +413,7 @@ export function accountsOverview(ledger: Ledger, through?: IsoDate, today = loca
   const cards: CardStatus[] = [];
   const loans: LoanOverview[] = [];
   const invested = new Map<string, Cents>();
+  const closed = new Set(ledger.accounts.filter((a) => isClosed(a, through)).map((a) => a.id));
   for (const a of ledger.accounts) {
     switch (a.type) {
       case "checking":
@@ -413,6 +423,8 @@ export function accountsOverview(ledger: Ledger, through?: IsoDate, today = loca
         break;
       case "credit": {
         cardDebt -= balOf(a);
+        // A closed card has no limit left to use.
+        if (closed.has(a.id)) break;
         cardLimit += a.limit ?? 0;
         const debt = Math.max(0, -balOf(a));
         cards.push({ account: a, debt, utilization: a.limit ? debt / a.limit : null });
@@ -439,12 +451,12 @@ export function accountsOverview(ledger: Ledger, through?: IsoDate, today = loca
       }
       case "loan":
         loanDebt -= balOf(a);
-        loans.push({ account: a, owed: Math.max(0, -balOf(a)), interest: loanStatus(ledger, a, through, today).interest });
+        if (!closed.has(a.id)) loans.push({ account: a, owed: Math.max(0, -balOf(a)), interest: loanStatus(ledger, a, through, today).interest });
         break;
     }
   }
   return {
-    balances: bal,
+    balances: bal, closed,
     availableCash, cardDebt, cardLimit,
     utilization: ratio(cardDebt, cardLimit),
     cards,

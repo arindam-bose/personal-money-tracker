@@ -7,10 +7,10 @@ import { useEffect, useRef } from "preact/hooks";
 import { balances, countsInNetEarnings, hasValuations, localToday, shortDate, valuationOf } from "../derive";
 import { formatCents, parseCents, parseSignedCents } from "../money";
 import {
-  deleteAccount, deleteValuation, duplicateAccount, memberUses, membersOf, saveAccount, saveCategory, saveMember, saveTag, saveValuation,
+  deleteAccount, deleteValuation, duplicateAccount, memberUses, membersOf, reopenAccount, saveAccount, saveCategory, saveMember, saveTag, saveValuation,
   uncategorizedId, usageOf, type CategoryKind, type Usage,
 } from "../setup";
-import { current, ledger, readOnly, removeCategory, removeMember, removeTag, setStart, updateSetup } from "../state";
+import { current, ledger, readOnly, removeCategory, removeMember, removeTag, setClosed, setStart, updateSetup } from "../state";
 import type { Account, AccountType, EarningRole, YearSetup } from "../types";
 import { startsMidYear, yearStart } from "../year";
 
@@ -84,9 +84,17 @@ function AccountsCard({ setup, usage }: { setup: YearSetup; usage: Usage }) {
   const editing = useSignal<string | null>(setup.accounts.length === 0 && !readOnly.value ? "new" : null);
   /** The investment account whose balance is being updated, or null. */
   const valuing = useSignal<string | null>(null);
+  /** The account whose Close form is open, or null. */
+  const closing = useSignal<string | null>(null);
   const error = useSignal<string | null>(null);
   const bal = balances(ledger.value!);
-  const sorted = [...setup.accounts].sort((a, b) => Number(!!a.archived) - Number(!!b.archived));
+  // Open accounts first, then archived ones, then closed ones.
+  const rank = (a: Account) => (a.closedOn ? 2 : a.archived ? 1 : 0);
+  const sorted = [...setup.accounts].sort((a, b) => rank(a) - rank(b));
+
+  async function reopen(a: Account) {
+    await attempt((s) => reopenAccount(s, a.id), (m) => (error.value = m));
+  }
 
   async function toggleArchive(a: Account) {
     await attempt((s) => saveAccount(s, { ...a, archived: !a.archived }), (m) => (error.value = m));
@@ -142,11 +150,12 @@ function AccountsCard({ setup, usage }: { setup: YearSetup; usage: Usage }) {
               <tr key={a.id}><td colSpan={8}><AccountForm account={a} onDone={() => (editing.value = null)} /></td></tr>
             ) : (
               <Fragment key={a.id}>
-                <tr class={a.archived ? "archived" : ""}>
+                <tr class={a.archived || a.closedOn ? "archived" : ""}>
                   <td>
-                    {a.name}{a.archived && <span class="badge">archived</span>}
+                    {a.name}{a.archived && !a.closedOn && <span class="badge">archived</span>}
+                    {a.closedOn && <span class="badge">closed {shortDate(a.closedOn)}</span>}
                     {a.type === "loan" && <div class="tile-detail">{loanText(a)}</div>}
-                    {hasValuations(a.type) && <div class="tile-detail">{worthText(a)}</div>}
+                    {hasValuations(a.type) && !a.closedOn && <div class="tile-detail">{worthText(a)}</div>}
                   </td>
                   <td>{TYPE_LABEL[a.type]}</td>
                   <td>{a.ref}</td>
@@ -158,7 +167,7 @@ function AccountsCard({ setup, usage }: { setup: YearSetup; usage: Usage }) {
                   <td>
                     {!readOnly.value && (
                       <div class="row-actions">
-                        {hasValuations(a.type) && (
+                        {hasValuations(a.type) && !a.closedOn && (
                           <button type="button" onClick={() => (valuing.value = valuing.value === a.id ? null : a.id)}
                             title={`Note what ${a.type === "asset" ? "it" : "the account"} is worth today`}>
                             {a.type === "asset" ? "Update value" : "Update balance"}
@@ -166,10 +175,20 @@ function AccountsCard({ setup, usage }: { setup: YearSetup; usage: Usage }) {
                         )}
                         <button type="button" onClick={() => (editing.value = a.id)}>Edit</button>
                         <button type="button" onClick={() => copy(a)} title={`Add a copy named “${a.name}_new”`}>Duplicate</button>
-                        <button type="button" onClick={() => toggleArchive(a)}
-                          title={a.archived ? "Show it again for new entries" : "Hide it from new entries; old entries keep it"}>
-                          {a.archived ? "Unarchive" : "Archive"}
-                        </button>
+                        {a.closedOn ? (
+                          <button type="button" onClick={() => reopen(a)} title="Undo closing it: it counts again, and takes entries after that day">Reopen</button>
+                        ) : (
+                          <>
+                            <button type="button" onClick={() => (closing.value = closing.value === a.id ? null : a.id)}
+                              title="Sold, paid off or shut on a day: from then it's left out of net tangible assets">
+                              Close…
+                            </button>
+                            <button type="button" onClick={() => toggleArchive(a)}
+                              title={a.archived ? "Show it again for new entries" : "Hide it from new entries; old entries keep it"}>
+                              {a.archived ? "Unarchive" : "Archive"}
+                            </button>
+                          </>
+                        )}
                         {!usage.accounts.get(a.id) && <button type="button" class="danger" onClick={() => remove(a)}>Delete</button>}
                       </div>
                     )}
@@ -177,6 +196,9 @@ function AccountsCard({ setup, usage }: { setup: YearSetup; usage: Usage }) {
                 </tr>
                 {valuing.value === a.id && (
                   <tr><td colSpan={8}><ValuationForm account={a} setup={setup} onDone={() => (valuing.value = null)} /></td></tr>
+                )}
+                {closing.value === a.id && !a.closedOn && (
+                  <tr><td colSpan={8}><CloseForm account={a} setup={setup} onDone={() => (closing.value = null)} /></td></tr>
                 )}
               </Fragment>
             ))}
@@ -263,6 +285,44 @@ function ValuationForm(props: { account: Account; setup: YearSetup; onDone: () =
           ))}
         </ul>
       ) : null}
+    </form>
+  );
+}
+
+/**
+ * Close an account on a day. What closing means depends on the account: an asset or investment
+ * is worth nothing from then; any other account must already be at 0, its money moved by a transfer.
+ */
+function CloseForm(props: { account: Account; setup: YearSetup; onDone: () => void }) {
+  const { account: a, setup } = props;
+  const date = useSignal(updateDay(setup));
+  const error = useSignal<string | null>(null);
+
+  async function onSubmit(e: Event) {
+    e.preventDefault();
+    if (await tryAction(() => setClosed(a.id, date.value), (m) => (error.value = m))) props.onDone();
+  }
+
+  return (
+    <form class="inline-form" onSubmit={onSubmit} onKeyDown={(e) => e.key === "Escape" && props.onDone()}>
+      <p class="muted small">
+        {hasValuations(a.type)
+          ? <>From this day {a.name} is worth nothing in net tangible assets, as when it's sold. Record what you got for it as an earning or a transfer into the account it went to.</>
+          : <>{a.name} must be at {formatCents(0)} at the end of this day: move what's left with a transfer first. Nothing can be entered for it after.</>}
+        {" "}It won't come into the next year. You can reopen it.
+      </p>
+      <div class="fields">
+        <label class="field w-date">
+          <span class="field-label">Closed on</span>
+          <input type="date" value={date.value} min={yearStart(setup)} max={`${setup.year}-12-31`}
+            onInput={(e) => (date.value = e.currentTarget.value)} />
+        </label>
+      </div>
+      {error.value && <p class="form-error" role="alert">{error.value}</p>}
+      <div class="form-actions">
+        <button type="submit" class="primary">Close account</button>
+        <button type="button" onClick={props.onDone}>Cancel</button>
+      </div>
     </form>
   );
 }
@@ -372,6 +432,7 @@ function AccountForm(props: { account?: Account; first?: boolean; onDone: () => 
       ...(a?.archived ? { archived: true } : {}),
       // Balance updates aren't in this form; they stay with the account.
       ...(a?.valuations ? { valuations: a.valuations } : {}),
+      ...(a?.closedOn ? { closedOn: a.closedOn } : {}),
     };
     const ok = await attempt((s) => {
       const saved = saveAccount(s, account);

@@ -6,7 +6,8 @@ import type { YearData } from "./db";
 import { newId, slug } from "./entries";
 import { membersOf } from "./members";
 import { isDate, isDateInYear, isRate } from "./validate";
-import { hasValuations, loanStatus, shortDate, valuationOf } from "./derive";
+import { balances, hasValuations, loanStatus, shortDate, valuationOf } from "./derive";
+import { formatCents } from "./money";
 import { dayBefore, yearStart } from "./year";
 import type {
   Account, Categories, Category, Cents, IsoDate, Earning, EarningRole, Expense, ExpenseRole, Member, Tag, Transfer, TransferRole, YearSetup,
@@ -111,6 +112,7 @@ export function saveAccount(setup: YearSetup, account: Account): YearSetup {
   // Updates stay with an investment or asset account through edits; they mean nothing on any other type.
   if (hasValuations(account.type) && account.valuations?.length) clean.valuations = account.valuations;
   if (account.archived) clean.archived = true;
+  if (account.closedOn) clean.closedOn = account.closedOn;
   const saved = { ...setup, accounts: upsert(setup.accounts, clean) };
   // The first loan brings a category for its payments, if the year has none (years from before loans).
   return clean.type === "loan" && !account.id ? withLoanPayments(saved) : saved;
@@ -140,7 +142,7 @@ export function withLoanPayments(setup: YearSetup): YearSetup {
 export function duplicateAccount(setup: YearSetup, id: string): { setup: YearSetup; id: string } {
   const at = setup.accounts.findIndex((a) => a.id === id);
   if (at < 0) throw new SetupError("That account no longer exists.");
-  const { archived: _a, valuations: _v, ...original } = setup.accounts[at]!;
+  const { archived: _a, valuations: _v, closedOn: _c, ...original } = setup.accounts[at]!;
   const taken = new Set(setup.accounts.map((a) => a.name.toLowerCase()));
   let name = `${original.name}_new`;
   for (let n = 2; taken.has(name.toLowerCase()); n++) name = `${original.name}_new${n}`;
@@ -167,6 +169,9 @@ export function saveValuation(setup: YearSetup, id: string, date: IsoDate, amoun
   if (!isDateInYear(date, setup.year)) throw new SetupError(`Pick a day in ${setup.year}.`);
   if (date < yearStart(setup)) throw new SetupError(`Tracking starts on ${shortDate(yearStart(setup))}. Pick that day or later.`);
   if (!Number.isSafeInteger(amount) || amount < 0) throw new SetupError("Enter the balance like 1234.56.");
+  if (account.closedOn && date >= account.closedOn) {
+    throw new SetupError(`${account.name} was closed on ${shortDate(account.closedOn)}, so it has no value from then on.`);
+  }
   const valuations = [...(account.valuations ?? []).filter((v) => v.date !== date), { date, amount }]
     .sort((a, b) => a.date.localeCompare(b.date));
   return { ...setup, accounts: upsert(setup.accounts, { ...account, valuations }) };
@@ -179,6 +184,50 @@ export function deleteValuation(setup: YearSetup, id: string, date: IsoDate): Ye
   const { valuations: old = [], ...rest } = account;
   const valuations = old.filter((v) => v.date !== date);
   return { ...setup, accounts: upsert(setup.accounts, valuations.length ? { ...rest, valuations } : rest) };
+}
+
+// --- Closing an account ---
+
+/**
+ * Close an account on a day: sold, paid off or shut. From that day on it's left out of net
+ * tangible assets, and nothing can be entered for it after. An asset or investment is simply
+ * worth nothing from then. A bank, cash, card or loan account must be at 0 at the end of that
+ * day, or its money would vanish: move it out with a transfer first.
+ */
+export function closeAccount(data: Pick<YearData, "setup" | "expenses" | "earnings" | "transfers">, id: string, date: IsoDate): YearSetup {
+  const { setup } = data;
+  const account = setup.accounts.find((a) => a.id === id);
+  if (!account) throw new SetupError("That account no longer exists.");
+  if (!isDateInYear(date, setup.year)) throw new SetupError(`Pick a day in ${setup.year}.`);
+  if (date < yearStart(setup)) throw new SetupError(`Tracking starts on ${shortDate(yearStart(setup))}. Pick that day or later.`);
+  const later = [
+    ...data.expenses.filter((e) => e.account === id), ...data.earnings.filter((e) => e.account === id),
+    ...data.transfers.filter((t) => t.from === id || t.to === id),
+  ].filter((e) => e.date > date);
+  if (later.length) {
+    const first = later.reduce((a, b) => (b.date < a.date ? b : a));
+    throw new SetupError(`${account.name} has entries after ${shortDate(date)} (the first on ${shortDate(first.date)}). Close it on that day or later, or move them.`);
+  }
+  if (account.valuations?.some((v) => v.date >= date)) {
+    throw new SetupError(`${account.name} has a ${account.type === "asset" ? "value" : "balance"} update on or after ${shortDate(date)}. Delete it first, or close it later.`);
+  }
+  if (!hasValuations(account.type)) {
+    const ledger = { ...data, accounts: setup.accounts, categories: setup.categories, year: setup.year, start: setup.start };
+    const left = balances(ledger, date).get(id) ?? 0;
+    if (left !== 0) {
+      const what = left < 0 ? `still owes ${formatCents(-left)}` : `still has ${formatCents(left)}`;
+      throw new SetupError(`${account.name} ${what} on ${shortDate(date)}. Move it with a transfer first, so it isn't lost from your net tangible assets.`);
+    }
+  }
+  return { ...setup, accounts: upsert(setup.accounts, { ...account, closedOn: date }) };
+}
+
+/** Undo closing an account. */
+export function reopenAccount(setup: YearSetup, id: string): YearSetup {
+  const account = setup.accounts.find((a) => a.id === id);
+  if (!account) throw new SetupError("That account no longer exists.");
+  const { closedOn: _c, ...open } = account;
+  return { ...setup, accounts: upsert(setup.accounts, open) };
 }
 
 // --- Categories ---
@@ -384,6 +433,8 @@ export function withStart(data: Pick<YearData, "setup" | "expenses" | "earnings"
   if (first !== null && first < start) {
     throw new SetupError(`There are entries from ${shortDate(first)}, so tracking can't start later than that. Move or delete them first.`);
   }
+  const shut = setup.accounts.find((a) => a.closedOn && a.closedOn < start);
+  if (shut) throw new SetupError(`${shut.name} was closed on ${shortDate(shut.closedOn!)}, so tracking can't start later than that. Reopen it first.`);
   const early = setup.accounts.find((a) => a.type === "investment" && a.valuations?.some((v) => v.date < start));
   if (early) {
     throw new SetupError(`${early.name} has a balance update from before ${shortDate(start)}, so tracking can't start that late. Delete it first.`);

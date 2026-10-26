@@ -146,6 +146,12 @@ export function validateYearFile(raw: unknown): ValidationResult {
   const accountIds = ids(accounts, "Account", true);
   // An asset's value only comes from its updates, so no entry may use it.
   const assetIds = new Set(accounts.filter(isObj).filter((a) => a.type === "asset").map((a) => a.id as string));
+  // Nothing can be entered for an account after the day it was closed.
+  const closedOn = new Map(accounts.filter(isObj).filter((a) => typeof a.closedOn === "string").map((a) => [a.id as string, a.closedOn as string]));
+  const afterClose = (label: string, r: Obj, id: unknown) => {
+    const day = closedOn.get(id as string);
+    if (day && (r.date as string) > day) err(`${label} "${r.id}" on ${String(r.date)} uses "${String(id)}", which was closed on ${day}.`);
+  };
   const asset = (label: string, r: Obj, id: unknown) => {
     if (assetIds.has(id as string)) err(`${label} "${r.id}" uses asset "${String(id)}": assets only change by updating their value.`);
   };
@@ -171,6 +177,12 @@ export function validateYearFile(raw: unknown): ValidationResult {
       err(`Account "${a.id}" isn't a loan, so it can't have a loan start, amount or rate.`);
     }
     if (a.type === "asset" && a.opening !== 0) err(`Asset "${a.id}" must open at 0: its value comes from its updates.`);
+    if (a.closedOn !== undefined) {
+      if (!isDateInYear(a.closedOn, y) || (start && (a.closedOn as string) < start)) err(`Account "${a.id}" closedOn must be a date in ${y}'s tracking.`);
+      else if (Array.isArray(a.valuations) && a.valuations.some((v) => isObj(v) && (v.date as string) >= (a.closedOn as string))) {
+        err(`Account "${a.id}" has a value update on or after the day it was closed (${String(a.closedOn)}).`);
+      }
+    }
     if (a.valuations !== undefined) {
       if (a.type !== "investment" && a.type !== "asset") err(`Account "${a.id}" isn't an investment or asset account, so it can't have balance updates.`);
       else if (!Array.isArray(a.valuations)) err(`Account "${a.id}" valuations must be a list.`);
@@ -225,6 +237,7 @@ export function validateYearFile(raw: unknown): ValidationResult {
     checkEntry(r, "Expense");
     if (!accountIds.has(r.account as string)) err(`Expense "${r.id}" uses unknown account "${String(r.account)}".`);
     asset("Expense", r, r.account);
+    afterClose("Expense", r, r.account);
     if (!expenseCats.has(r.cat as string)) err(`Expense "${r.id}" uses unknown category "${String(r.cat)}".`);
     if (!Array.isArray(r.tags)) err(`Expense "${r.id}" tags must be a list.`);
     else for (const t of r.tags) if (!tagIds.has(t as string)) err(`Expense "${r.id}" uses unknown tag "${String(t)}".`);
@@ -236,6 +249,7 @@ export function validateYearFile(raw: unknown): ValidationResult {
     checkEntry(r, "Earning");
     if (!accountIds.has(r.account as string)) err(`Earning "${r.id}" uses unknown account "${String(r.account)}".`);
     asset("Earning", r, r.account);
+    afterClose("Earning", r, r.account);
     if (!earningCats.has(r.cat as string)) err(`Earning "${r.id}" uses unknown category "${String(r.cat)}".`);
     if (r.offsets != null && !expenseCats.has(r.offsets as string)) err(`Earning "${r.id}" offsets unknown category "${String(r.offsets)}".`);
   }
@@ -248,6 +262,8 @@ export function validateYearFile(raw: unknown): ValidationResult {
     if (!accountIds.has(r.to as string)) err(`Transfer "${r.id}" goes to unknown account "${String(r.to)}".`);
     asset("Transfer", r, r.from);
     asset("Transfer", r, r.to);
+    afterClose("Transfer", r, r.from);
+    afterClose("Transfer", r, r.to);
     if (r.from === r.to) err(`Transfer "${r.id}" goes from an account to itself.`);
     if (!transferCats.has(r.cat as string)) err(`Transfer "${r.id}" uses unknown category "${String(r.cat)}".`);
   }

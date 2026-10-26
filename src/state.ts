@@ -7,7 +7,7 @@ import { deleteEntry, deleteYear, eraseAll, getSetting, listYears, loadYear, put
 import type { Ledger } from "./derive";
 import { ID_PREFIX, STORE, duplicateEntry, newId, slug, type AnyEntry, type Kind } from "./entries";
 import { emptyYearFile, nextYearSetup } from "./rollover";
-import { blankSetup, deleteCategory, iraLimitOf, deleteMember, deleteTag, usageOf, withChange, withStart, withUncategorized, withoutPeople, type YearChange, type CategoryKind, type Usage } from "./setup";
+import { blankSetup, closeAccount, deleteCategory, iraLimitOf, deleteMember, deleteTag, usageOf, withChange, withStart, withUncategorized, withoutPeople, type YearChange, type CategoryKind, type Usage } from "./setup";
 import type { PersistState } from "./storage";
 import type { YearSetup } from "./types";
 
@@ -286,6 +286,14 @@ export function setStart(start: string | null): Promise<void> {
   return inTurn(async () => {
     const data = editable();
     await saveSetup(withStart(data, start));
+  });
+}
+
+/** Close an account on a day (see closeAccount). Throws a SetupError if it can't close then. */
+export function setClosed(id: string, date: string): Promise<void> {
+  return inTurn(async () => {
+    const data = editable();
+    await saveSetup(closeAccount(data, id, date));
   });
 }
 

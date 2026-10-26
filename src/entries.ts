@@ -98,6 +98,11 @@ export function checkDraft(draft: Draft, setup: YearSetup, id: string): CheckRes
     // An asset never can: its value only changes by updating it.
     return !!a && a.type !== "asset" && (!a.archived || draft.id !== undefined);
   };
+  /** Why a closed account can't take this entry, or null: nothing can come after the day it closed. */
+  const closedBy = (accountId: string) => {
+    const a = accounts.get(accountId)!;
+    return a.closedOn && draft.date > a.closedOn ? `${a.name} was closed on ${shortDate(a.closedOn)}.` : null;
+  };
 
   if (!isDateInYear(draft.date, setup.year)) errors.date = `Pick a date in ${setup.year}.`;
   else if (draft.date < yearStart(setup)) errors.date = `Tracking starts on ${shortDate(yearStart(setup))}. Pick that day or later.`;
@@ -120,8 +125,10 @@ export function checkDraft(draft: Draft, setup: YearSetup, id: string): CheckRes
 
   if (draft.kind === "transfer") {
     if (!usable(draft.from)) errors.from = "Pick the account the money left.";
+    else if (closedBy(draft.from)) errors.from = closedBy(draft.from)!;
     if (!usable(draft.to)) errors.to = "Pick the account the money went to.";
     else if (draft.from === draft.to) errors.to = "Pick a different account from the one it left.";
+    else if (closedBy(draft.to)) errors.to = closedBy(draft.to)!;
     return Object.keys(errors).length
       ? { ok: false, errors }
       : { ok: true, entry: { kind: "transfer", entry: { ...head, from: draft.from, to: draft.to, cat: draft.cat, notes, ...owner } } };
@@ -129,6 +136,7 @@ export function checkDraft(draft: Draft, setup: YearSetup, id: string): CheckRes
 
   if (!usable(draft.account)) errors.account = "Pick an account.";
   else if (accounts.get(draft.account)!.type === "loan") errors.account = "A loan only takes transfers: record a payment as a transfer into it.";
+  else if (closedBy(draft.account)) errors.account = closedBy(draft.account)!;
 
   if (draft.kind === "expense") {
     const tagIds = new Set(setup.tags.map((t) => t.id));

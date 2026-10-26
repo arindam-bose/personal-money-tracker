@@ -14,6 +14,7 @@ export function closingBalances(setup: YearSetup, ledger: Ledger): Map<string, n
  * - investment accounts open at 0, because only this year's contributions are tracked,
  *   and without balance updates: what they're worth is left out until it's next updated;
  * - asset accounts keep their last value, dated January 1: it seldom changes;
+ * - closed accounts don't come along;
  * - accounts, categories, tags, members and the usual budget targets carry over.
  *   One-month budget overrides belong to their month, so they don't, and neither does the
  *   IRA limit: it changes by year, so the new year starts at the IRS limit.
@@ -23,7 +24,7 @@ export function nextYearSetup(setup: YearSetup, ledger: Ledger): YearSetup {
   const closing = closingBalances(setup, ledger);
   return {
     year: setup.year + 1,
-    accounts: setup.accounts.map(({ valuations: _v, ...a }) => {
+    accounts: setup.accounts.filter((a) => !a.closedOn).map(({ valuations: _v, ...a }) => {
       const last = a.type === "asset" ? valuationOf({ ...a, valuations: _v }, `${setup.year}-12-31`) : null;
       return {
         ...a,

@@ -25,7 +25,7 @@ function everything(): Required<YearFile> {
       ...f.accounts.map((a, i) => (i === 0 ? { ...a, archived: true } : a.type === "investment"
         ? { ...a, valuations: [{ date: "2026-03-01", amount: 120000 }, { date: "2026-06-30", amount: 131250 }] } : a)),
       { id: "a_car-loan", name: "Car loan", type: "loan", ref: "", opening: 0, loanStart: "2026-02-01", loanAmount: 2000000, rate: 6.5 },
-      { id: "a_house", name: "House", type: "asset", ref: "", opening: 0, valuations: [{ date: "2026-01-15", amount: 45000000 }] },
+      { id: "a_house", name: "House", type: "asset", ref: "", opening: 0, valuations: [{ date: "2026-01-15", amount: 45000000 }], closedOn: "2026-06-01" },
     ],
     categories: { ...f.categories, earning: f.categories.earning.map((c, i) => (i === 1 ? { ...c, net: false } : c)) },
     members: [{ id: "m_person-a", name: "Sam" }, { id: "m_alex", name: "Alex" }],

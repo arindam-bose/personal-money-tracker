@@ -106,7 +106,8 @@ export function EntryForm({ initial, onClose }: Props) {
 
   const err = errors.value;
   // Assets never take entries: their value only changes by updating it on the Accounts page.
-  const accounts = setup.accounts.filter((a) => a.type !== "asset" && (!a.archived || [d.account, d.from, d.to].includes(a.id)));
+  // A closed account, like an archived one, only stays on the entries that already use it.
+  const accounts = setup.accounts.filter((a) => a.type !== "asset" && (!(a.archived || a.closedOn) || [d.account, d.from, d.to].includes(a.id)));
   const role = earningRole(d, setup);
 
   return (

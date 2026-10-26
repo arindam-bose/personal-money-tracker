@@ -266,7 +266,8 @@ function CategoryBars(props: {
 function AccountsTable(props: { overview: ReturnType<typeof accountsOverview>; accounts: Account[]; withoutLoans: boolean }) {
   const o = props.overview;
   const bal = (a: Account) => o.balances.get(a.id) ?? 0;
-  const live = props.accounts.filter((a) => !a.archived || bal(a) !== 0);
+  // Archived accounts show while they hold money or a value; closed ones only before the day they closed.
+  const live = props.accounts.filter((a) => !o.closed.has(a.id) && (!a.archived || bal(a) !== 0 || o.valuations.has(a.id)));
   const group = (types: Account["type"][]) => live.filter((a) => types.includes(a.type));
   const cardStatus = new Map(o.cards.map((c) => [c.account.id, c]));
 
