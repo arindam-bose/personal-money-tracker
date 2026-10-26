@@ -4,12 +4,12 @@
 
 import type { ComponentChildren } from "preact";
 import {
-  MONTH_SHORT, balanceSeries, moneyFlow, monthlySummaries, shortDate, spendingByMonth, weeklySpending,
+  MONTH_SHORT, balanceSeries, hasLoanAccount, moneyFlow, monthlySummaries, shortDate, spendingByMonth, weeklySpending,
   type FlowGroup, type Ledger,
 } from "../derive";
 import { formatCents, formatCompact } from "../money";
 import { membersOf } from "../setup";
-import { current, ledger, netWorthWithoutLoans } from "../state";
+import { current, ledger, loansLeftOut } from "../state";
 import { IncludeLoans } from "./dashboard";
 import { Chart, axisStyle, baseOption, seriesColors, token, type ChartOption } from "./chart";
 import { showInLedger } from "./ledger";
@@ -326,10 +326,10 @@ function BalancesCard({ ledger: l, year, start, lastDate }: { ledger: Ledger; ye
   const opening = dayBefore(start);
   const points = [opening, ...weeklySpending(l, year).map((w) => (w.end > lastDate ? lastDate : w.end)).filter((d) => d >= start)]
     .filter((d, i, all) => all.indexOf(d) === i && d <= lastDate);
-  const hasLoans = l.accounts.some((a) => a.type === "loan");
+  const hasLoans = hasLoanAccount(l.accounts);
   // The Include loans switch (shared with the Dashboard) can leave loans out of net worth.
-  const withoutLoans = hasLoans && netWorthWithoutLoans.value;
-  const series = balanceSeries(l, points).map((p) => (withoutLoans ? { ...p, netWorth: p.netWorth + p.loanDebt } : p));
+  const withoutLoans = hasLoans && loansLeftOut.value;
+  const series = balanceSeries(l, points).map((p) => (withoutLoans ? { ...p, netWorth: p.netWorthWithoutLoans } : p));
   const [c1, c2, c3, c4, c5, c6] = seriesColors();
   // Once an investment account has a balance update, what it's worth gets a line; contributions go dashed beside it.
   const hasWorth = l.accounts.some((a) => a.type === "investment" && a.valuations?.length);

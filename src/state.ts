@@ -4,10 +4,10 @@
 
 import { computed, signal } from "@preact/signals";
 import { deleteEntry, deleteYear, eraseAll, getSetting, listYears, loadYear, putEntry, putSetup, putSetupAndEntries, replaceYear, setSetting, type YearData } from "./db";
-import type { Ledger } from "./derive";
+import { ledgerOf, type Ledger } from "./derive";
 import { ID_PREFIX, STORE, duplicateEntry, newId, slug, type AnyEntry, type Kind } from "./entries";
 import { emptyYearFile, nextYearSetup } from "./rollover";
-import { blankSetup, closeAccount, deleteCategory, iraLimitOf, deleteMember, deleteTag, usageOf, withChange, withStart, withUncategorized, withoutPeople, type YearChange, type CategoryKind, type Usage } from "./setup";
+import { assertClosedStayEmpty, blankSetup, closeAccount, deleteCategory, iraLimitOf, deleteMember, deleteTag, usageOf, withChange, withStart, withUncategorized, withoutPeople, type YearChange, type CategoryKind, type Usage } from "./setup";
 import type { PersistState } from "./storage";
 import type { YearSetup } from "./types";
 
@@ -32,7 +32,7 @@ export const readOnly = computed(() => current.value?.setup.closed === true);
 /** The open year in the shape the calculations in derive.ts take. */
 export const ledger = computed<Ledger | null>(() => {
   const d = current.value;
-  return d && { ...d, accounts: d.setup.accounts, categories: d.setup.categories, year: d.setup.year, start: d.setup.start };
+  return d && ledgerOf(d);
 });
 
 /** The open year's IRA contribution limit. Change it on the Settings page. */
@@ -61,12 +61,12 @@ export function setMemberView(id: string): void {
   }
 }
 export const pinnedTags = signal<string[]>([]);
-/** Whether the dashboard's net worth leaves loans out. Kept on this device. */
-export const netWorthWithoutLoans = signal(false);
+/** Whether the Include loans switch is off, leaving loans out of net worth. Kept on this device as "netWorthWithoutLoans". */
+export const loansLeftOut = signal(false);
 
 export async function loadSettings(): Promise<void> {
   pinnedTags.value = (await getSetting("pinnedTags")) ?? [];
-  netWorthWithoutLoans.value = (await getSetting("netWorthWithoutLoans")) ?? false;
+  loansLeftOut.value = (await getSetting("netWorthWithoutLoans")) ?? false;
 }
 
 /** Set what went into IRAs before the open year's tracking started. Null clears it. */
@@ -90,8 +90,8 @@ export async function savePinnedTags(ids: string[]): Promise<void> {
   pinnedTags.value = ids;
 }
 
-export async function saveNetWorthWithoutLoans(without: boolean): Promise<void> {
-  netWorthWithoutLoans.value = without;
+export async function saveLoansLeftOut(without: boolean): Promise<void> {
+  loansLeftOut.value = without;
   await setSetting("netWorthWithoutLoans", without);
 }
 
@@ -188,14 +188,15 @@ function withEntry(data: YearData, e: AnyEntry): YearData {
  */
 export function saveEntry(e: AnyEntry, previousKind?: Kind): Promise<void> {
   return inTurn(async () => {
-    let data = editable();
+    const data = editable();
     const year = data.setup.year;
-    if (previousKind && previousKind !== e.kind) {
-      await deleteEntry(STORE[previousKind], year, e.entry.id);
-      data = withoutEntry(data, previousKind, e.entry.id);
-    }
+    const kindChanged = previousKind !== undefined && previousKind !== e.kind;
+    const next = withEntry(kindChanged ? withoutEntry(data, previousKind, e.entry.id) : data, e);
+    // Checked before anything is written, so a refused change leaves storage as it was.
+    assertClosedStayEmpty(data, next);
+    if (kindChanged) await deleteEntry(STORE[previousKind], year, e.entry.id);
     await putEntry(STORE[e.kind], year, e.entry);
-    current.value = withEntry(data, e);
+    current.value = next;
   });
 }
 
@@ -209,8 +210,10 @@ export async function duplicate(e: AnyEntry): Promise<AnyEntry> {
 export function removeEntry(kind: Kind, id: string): Promise<void> {
   return inTurn(async () => {
     const data = editable();
+    const next = withoutEntry(data, kind, id);
+    assertClosedStayEmpty(data, next);
     await deleteEntry(STORE[kind], data.setup.year, id);
-    current.value = withoutEntry(data, kind, id);
+    current.value = next;
   });
 }
 
@@ -322,7 +325,7 @@ export async function closeYear(): Promise<CloseResult> {
   const result = await inTurn(async () => {
     const data = editable();
     const { setup } = data;
-    const next = nextYearSetup(setup, { ...data, accounts: setup.accounts, categories: setup.categories });
+    const next = nextYearSetup(setup, ledgerOf(data));
     const exists = (await listYears()).some((y) => y.year === next.year);
     await putSetup({ ...setup, closed: true });
     if (!exists) await replaceYear(emptyYearFile(next));

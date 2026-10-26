@@ -28,6 +28,8 @@ export function EntryForm({ initial, onClose }: Props) {
   const errors = useSignal<DraftErrors>({});
   const tried = useSignal(false); // show errors only after the first save attempt
   const saved = useSignal<string | null>(null);
+  /** Why the last save or delete was refused (say, it would change a closed account), or null. */
+  const failed = useSignal<string | null>(null);
   // The transfer category follows the accounts until the user picks one themselves.
   const catPicked = useSignal(initial.id !== undefined);
   const itemRef = useRef<HTMLInputElement>(null);
@@ -76,7 +78,7 @@ export function EntryForm({ initial, onClose }: Props) {
       errors.value = r.errors;
       return;
     }
-    await saveEntry(r.entry, editing ? initial.kind : undefined);
+    if (!(await attemptStore(() => saveEntry(r.entry, editing ? initial.kind : undefined)))) return;
     if (editing) return onClose();
     // Ready for the next entry: keep kind, date and accounts, clear the rest.
     draft.value = { ...dr, item: "", amount: "", notes: "", tags: [], offsets: "",
@@ -89,8 +91,19 @@ export function EntryForm({ initial, onClose }: Props) {
 
   async function onDelete() {
     if (!initial.id || !confirm(`Delete “${initial.item}”? This can't be undone.`)) return;
-    await removeEntry(initial.kind, initial.id);
-    onClose();
+    if (await attemptStore(() => removeEntry(initial.kind, initial.id!))) onClose();
+  }
+
+  /** Run a save or delete; a refusal shows under the buttons. True if it worked. */
+  async function attemptStore(run: () => Promise<void>): Promise<boolean> {
+    try {
+      await run();
+      failed.value = null;
+      return true;
+    } catch (err) {
+      failed.value = err instanceof Error ? err.message : String(err);
+      return false;
+    }
   }
 
   function onKeyDown(e: KeyboardEvent) {
@@ -199,6 +212,7 @@ export function EntryForm({ initial, onClose }: Props) {
         {editing && <button type="button" class="danger" onClick={onDelete}>Delete</button>}
         {saved.value && <span class="saved" role="status">{saved.value}</span>}
       </div>
+      {failed.value && <p class="form-error" role="alert">{failed.value}</p>}
     </form>
   );
 }

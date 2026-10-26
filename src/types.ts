@@ -18,6 +18,8 @@ export interface Account {
   /**
    * Net-worth sign: a credit card that owes money opens negative, and so does a loan.
    * A loan taken out on or after the day tracking starts opens at 0: its amount is added on its start date.
+   * An investment opens at 0 (its balance is this year's contributions), and an asset always does:
+   * what either is worth comes from `valuations`.
    */
   opening: Cents;
   /** Credit limit, credit cards only. */

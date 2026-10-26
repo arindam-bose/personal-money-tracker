@@ -314,7 +314,7 @@ function CloseForm(props: { account: Account; setup: YearSetup; onDone: () => vo
       <div class="fields">
         <label class="field w-date">
           <span class="field-label">Closed on</span>
-          <input type="date" value={date.value} min={yearStart(setup)} max={`${setup.year}-12-31`}
+          <input type="date" value={date.value} min={yearStart(setup)} max={updateDay(setup)}
             onInput={(e) => (date.value = e.currentTarget.value)} />
         </label>
       </div>
@@ -434,8 +434,8 @@ function AccountForm(props: { account?: Account; first?: boolean; onDone: () => 
       ...(a?.valuations ? { valuations: a.valuations } : {}),
       ...(a?.closedOn ? { closedOn: a.closedOn } : {}),
     };
-    const ok = await attempt((s) => {
-      const saved = saveAccount(s, account);
+    const ok = await attempt((s, u) => {
+      const saved = saveAccount(s, account, u);
       if (!isAsset || a || opening.value.trim() === "") return saved;
       const added = saved.accounts.find((x) => !s.accounts.some((y) => y.id === x.id))!;
       return saveValuation(saved, added.id, updateDay(s), amount);

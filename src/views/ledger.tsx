@@ -205,7 +205,13 @@ export function LedgerView() {
 
   async function onDuplicate(e: AnyEntry) {
     if (readOnly.value) return;
-    const copy = await duplicate(e);
+    let copy: AnyEntry;
+    try {
+      copy = await duplicate(e);
+    } catch (err) {
+      // Say, a copy that would change a closed account.
+      return void alert(err instanceof Error ? err.message : String(err));
+    }
     const key = rowKey(copy);
     // Make sure the copy is among the rows shown.
     const at = rows.value.findIndex((r) => rowKey(r) === key);
@@ -322,7 +328,8 @@ export function LedgerView() {
         </select>
         <select value={f.account} onChange={(e) => setFilter("account", e.currentTarget.value)} aria-label="Account">
           <option value="">All accounts</option>
-          {setup.accounts.map((a) => <option value={a.id}>{a.name}</option>)}
+          {/* Assets never have entries, so they'd always filter to nothing. */}
+          {setup.accounts.filter((a) => a.type !== "asset").map((a) => <option value={a.id}>{a.name}</option>)}
         </select>
         <select value={f.cat} onChange={(e) => setFilter("cat", e.currentTarget.value)} aria-label="Category">
           <option value="">All categories</option>

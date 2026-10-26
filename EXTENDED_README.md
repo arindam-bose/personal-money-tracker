@@ -73,7 +73,8 @@ The rules that everything else relies on:
   category never touches an entry.
 - **Balances use the net-worth sign.** A card or loan that owes money has a negative
   balance. For every account: `balance = opening + money in − money out`, and a
-  loan also adds its interest (below).
+  loan also adds its interest (below). What an investment or asset is worth is
+  separate: its latest value update, not its balance.
 - **Nothing computed is stored.** Balances, totals and budget progress are worked
   out from the entries each time (a year is ~1,000 rows; this is fast).
 

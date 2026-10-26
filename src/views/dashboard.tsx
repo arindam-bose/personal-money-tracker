@@ -4,16 +4,16 @@
 
 import { useSignal, useSignalEffect } from "@preact/signals";
 import {
-  MONTH_NAMES, accountsOverview, budgetView, earningsByCategory, localToday, monthProgress, netEarningCategories, remainingRetirement, shortDate, spendingOffsetCategories, spendByCategory, summarize, tagTotal,
+  MONTH_NAMES, accountsOverview, hasLoanAccount, budgetView, earningsByCategory, localToday, monthProgress, netEarningCategories, remainingRetirement, shortDate, spendingOffsetCategories, spendByCategory, summarize, tagTotal,
 } from "../derive";
 import { formatCents, formatPercent } from "../money";
-import { current, iraLimit, ledger, netWorthWithoutLoans, pinnedTags, saveNetWorthWithoutLoans, savePinnedTags } from "../state";
+import { current, iraLimit, ledger, loansLeftOut, pinnedTags, saveLoansLeftOut, savePinnedTags } from "../state";
 
 /** The switch for whether net worth counts loans. One setting, shared by the Dashboard and Reports. */
 export function IncludeLoans() {
   return (
     <label class="hero-toggle" title="Untick to see net worth without what loans and mortgages owe">
-      <input type="checkbox" checked={!netWorthWithoutLoans.value} onChange={(e) => saveNetWorthWithoutLoans(!e.currentTarget.checked)} />
+      <input type="checkbox" checked={!loansLeftOut.value} onChange={(e) => saveLoansLeftOut(!e.currentTarget.checked)} />
       <span>Include loans</span>
     </label>
   );
@@ -76,9 +76,9 @@ export function DashboardView() {
   const periodName = month ? `${MONTH_NAMES[month - 1]} ${setup.year}` : pastYear ? `${setup.year}` : `${setup.year} so far`;
   const asOf = month ? `End of ${MONTH_NAMES[month - 1]}` : pastYear ? `End of ${setup.year}` : "Today";
   // Loans can be left out of net worth, to see it without them. The switch only shows once there's a loan.
-  const hasLoans = accounts.loans.length > 0;
-  const withoutLoans = hasLoans && netWorthWithoutLoans.value;
-  const worth = withoutLoans ? accounts.netWorth + accounts.loanDebt : accounts.netWorth;
+  const hasLoans = hasLoanAccount(setup.accounts);
+  const withoutLoans = hasLoans && loansLeftOut.value;
+  const worth = withoutLoans ? accounts.netWorthWithoutLoans : accounts.netWorth;
   // Investments and assets only add to it once they have a value.
   const valued = (type: Account["type"]) => setup.accounts.some((a) => a.type === type && accounts.valuations.has(a.id));
   // Clicking a category opens the ledger with the same period and person.
@@ -359,7 +359,7 @@ function AccountsTable(props: { overview: ReturnType<typeof accountsOverview>; a
         )}
         <tr class="total">
           <td>Net worth{props.withoutLoans && <span class="muted small"> without loans</span>}</td>
-          <td class="num">{formatCents(props.withoutLoans ? o.netWorth + o.loanDebt : o.netWorth)}</td>
+          <td class="num">{formatCents(props.withoutLoans ? o.netWorthWithoutLoans : o.netWorth)}</td>
         </tr>
       </tbody>
     </table>

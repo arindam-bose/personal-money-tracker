@@ -152,6 +152,11 @@ export function validateYearFile(raw: unknown): ValidationResult {
     const day = closedOn.get(id as string);
     if (day && (r.date as string) > day) err(`${label} "${r.id}" on ${String(r.date)} uses "${String(id)}", which was closed on ${day}.`);
   };
+  // A loan only takes transfers: payments in, and money drawn out.
+  const loanIds = new Set(accounts.filter(isObj).filter((a) => a.type === "loan").map((a) => a.id as string));
+  const loan = (label: string, r: Obj, id: unknown) => {
+    if (loanIds.has(id as string)) err(`${label} "${r.id}" uses loan "${String(id)}": a loan only takes transfers.`);
+  };
   const asset = (label: string, r: Obj, id: unknown) => {
     if (assetIds.has(id as string)) err(`${label} "${r.id}" uses asset "${String(id)}": assets only change by updating their value.`);
   };
@@ -237,6 +242,7 @@ export function validateYearFile(raw: unknown): ValidationResult {
     checkEntry(r, "Expense");
     if (!accountIds.has(r.account as string)) err(`Expense "${r.id}" uses unknown account "${String(r.account)}".`);
     asset("Expense", r, r.account);
+    loan("Expense", r, r.account);
     afterClose("Expense", r, r.account);
     if (!expenseCats.has(r.cat as string)) err(`Expense "${r.id}" uses unknown category "${String(r.cat)}".`);
     if (!Array.isArray(r.tags)) err(`Expense "${r.id}" tags must be a list.`);
@@ -249,6 +255,7 @@ export function validateYearFile(raw: unknown): ValidationResult {
     checkEntry(r, "Earning");
     if (!accountIds.has(r.account as string)) err(`Earning "${r.id}" uses unknown account "${String(r.account)}".`);
     asset("Earning", r, r.account);
+    loan("Earning", r, r.account);
     afterClose("Earning", r, r.account);
     if (!earningCats.has(r.cat as string)) err(`Earning "${r.id}" uses unknown category "${String(r.cat)}".`);
     if (r.offsets != null && !expenseCats.has(r.offsets as string)) err(`Earning "${r.id}" offsets unknown category "${String(r.offsets)}".`);

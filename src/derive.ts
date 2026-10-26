@@ -5,7 +5,7 @@
 // against the totals Notion computed (tests/derive.test.ts, tests/real-data.test.ts).
 
 import type {
-  Account, Budgets, Cents, EarningRole, ExpenseRole, IsoDate, TransferRole, Valuation, YearFile,
+  Account, Budgets, Cents, Earning, EarningRole, Expense, ExpenseRole, IsoDate, Transfer, TransferRole, Valuation, YearFile, YearSetup,
 } from "./types";
 import { monthShare } from "./year";
 
@@ -33,6 +33,12 @@ function rolesOf(ledger: Ledger): Roles {
     earning: new Map(earning.map((c) => [c.id, c.role])),
     transfer: new Map(transfer.map((c) => [c.id, c.role])),
   };
+}
+
+/** A stored year (its setup and entries) as a ledger, with the year and start loans need. */
+export function ledgerOf(data: { setup: YearSetup; expenses: Expense[]; earnings: Earning[]; transfers: Transfer[] }): Ledger {
+  const { setup, expenses, earnings, transfers } = data;
+  return { accounts: setup.accounts, categories: setup.categories, expenses, earnings, transfers, year: setup.year, start: setup.start };
 }
 
 /**
@@ -269,6 +275,11 @@ export function earningsByCategory(ledger: Ledger, month?: number): Map<string, 
  * loan interest runs to `today`, or to the end of the year if that comes first.
  */
 export function balances(ledger: Ledger, through?: IsoDate, today = localToday()): Map<string, Cents> {
+  return balancesAndLoans(ledger, through, today).bal;
+}
+
+/** balances, plus each loan's status, so callers that need both work each loan out once. */
+function balancesAndLoans(ledger: Ledger, through: IsoDate | undefined, today: IsoDate) {
   const bal = new Map(ledger.accounts.map((a) => [a.id, a.opening]));
   const add = (id: string, amount: Cents) => bal.set(id, (bal.get(id) ?? 0) + amount);
   const keep = (date: IsoDate) => through === undefined || date <= through;
@@ -279,13 +290,28 @@ export function balances(ledger: Ledger, through?: IsoDate, today = localToday()
     add(t.from, -t.amount);
     add(t.to, t.amount);
   }
-  for (const a of ledger.accounts) if (a.type === "loan") bal.set(a.id, loanStatus(ledger, a, through, today).balance);
-  return bal;
+  const loans = new Map<string, LoanStatus>();
+  for (const a of ledger.accounts) {
+    if (a.type !== "loan") continue;
+    const s = loanStatus(ledger, a, through, today);
+    loans.set(a.id, s);
+    bal.set(a.id, s.balance);
+  }
+  return { bal, loans };
 }
 
 /** The same day n months later, or the month's last day if it's shorter: "2026-01-31" plus 1 -> "2026-02-28". */
 function monthsAfter(date: IsoDate, n: number): IsoDate {
   return monthsBefore(date, -n);
+}
+
+/** A loan's interest days from `from` through `to`: each monthly anniversary of the day it began. */
+export function loanDueDates(loanStart: IsoDate, from: IsoDate, to: IsoDate): IsoDate[] {
+  const out: IsoDate[] = [];
+  for (let n = 1, due = monthsAfter(loanStart, 1); due <= to; due = monthsAfter(loanStart, ++n)) {
+    if (due >= from) out.push(due);
+  }
+  return out;
 }
 
 export interface LoanStatus {
@@ -321,11 +347,7 @@ export function loanStatus(ledger: Ledger, account: Account, through?: IsoDate, 
     const yearEnd = `${ledger.year}-12-31`;
     const end = through ?? (today < yearEnd ? today : yearEnd);
     if (loanStart >= from && loanStart <= end && loanAmount) add(loanStart, -loanAmount);
-    if (rate) {
-      for (let n = 1, due = monthsAfter(loanStart, 1); due <= end; due = monthsAfter(loanStart, ++n)) {
-        if (due >= from) dueDates.push(due);
-      }
-    }
+    if (rate) dueDates.push(...loanDueDates(loanStart, from, end));
   }
 
   let balance = account.opening, interest = 0;
@@ -364,6 +386,14 @@ export function isClosed(account: Account, through?: IsoDate): boolean {
   return account.closedOn !== undefined && (through === undefined || account.closedOn <= through);
 }
 
+/**
+ * Whether the year has a loan account, open or closed. It decides, the same way on every page,
+ * whether the Include loans switch and the loan figures show.
+ */
+export function hasLoanAccount(accounts: Account[]): boolean {
+  return accounts.some((a) => a.type === "loan");
+}
+
 /** Account types whose value comes from the user's updates rather than from entries. */
 export function hasValuations(type: Account["type"]): boolean {
   return type === "investment" || type === "asset";
@@ -392,6 +422,8 @@ export interface AccountsOverview {
   loans: LoanOverview[];
   /** Available cash − card debt − loan debt + investments worth + assets worth. */
   netWorth: Cents;
+  /** The same with loans left out, for the Include loans switch. */
+  netWorthWithoutLoans: Cents;
   /** Contributions made this year, per investment account. */
   invested: Map<string, Cents>;
   /** Accounts closed by then. They're at 0, so they only matter for what's listed. */
@@ -405,7 +437,7 @@ export interface AccountsOverview {
 }
 
 export function accountsOverview(ledger: Ledger, through?: IsoDate, today = localToday()): AccountsOverview {
-  const bal = balances(ledger, through, today);
+  const { bal, loans: loanStatuses } = balancesAndLoans(ledger, through, today);
   const balOf = (a: Account) => bal.get(a.id) ?? 0;
 
   let availableCash = 0, cardDebt = 0, cardLimit = 0, loanDebt = 0, investmentsWorth = 0, assetsWorth = 0;
@@ -451,7 +483,7 @@ export function accountsOverview(ledger: Ledger, through?: IsoDate, today = loca
       }
       case "loan":
         loanDebt -= balOf(a);
-        if (!closed.has(a.id)) loans.push({ account: a, owed: Math.max(0, -balOf(a)), interest: loanStatus(ledger, a, through, today).interest });
+        if (!closed.has(a.id)) loans.push({ account: a, owed: Math.max(0, -balOf(a)), interest: loanStatuses.get(a.id)!.interest });
         break;
     }
   }
@@ -462,6 +494,7 @@ export function accountsOverview(ledger: Ledger, through?: IsoDate, today = loca
     cards,
     loanDebt, loans,
     netWorth: availableCash - cardDebt - loanDebt + investmentsWorth + assetsWorth,
+    netWorthWithoutLoans: availableCash - cardDebt + investmentsWorth + assetsWorth,
     invested, valuations, investmentsWorth, assetsWorth,
   };
 }
@@ -537,6 +570,8 @@ export interface BalancePoint {
   assetsWorth: Cents;
   /** Available cash − card debt − loan debt + investments and assets worth (AccountsOverview.netWorth). */
   netWorth: Cents;
+  /** The same with loans left out (AccountsOverview.netWorthWithoutLoans). */
+  netWorthWithoutLoans: Cents;
   /** Contributions to investment accounts so far this year. */
   invested: Cents;
   /** Net savings so far this year: moved into savings minus taken out (Summary.netSavings to date). */
@@ -557,7 +592,7 @@ export function balanceSeries(ledger: Ledger, dates: IsoDate[]): BalancePoint[] 
       if (role === "savings_in") saved += t.amount;
       if (role === "savings_out") saved -= t.amount;
     }
-    return { date, availableCash: o.availableCash, cardDebt: o.cardDebt, loanDebt: o.loanDebt, investmentsWorth: o.investmentsWorth, assetsWorth: o.assetsWorth, netWorth: o.netWorth, invested, saved };
+    return { date, availableCash: o.availableCash, cardDebt: o.cardDebt, loanDebt: o.loanDebt, investmentsWorth: o.investmentsWorth, assetsWorth: o.assetsWorth, netWorth: o.netWorth, netWorthWithoutLoans: o.netWorthWithoutLoans, invested, saved };
   });
 }
 

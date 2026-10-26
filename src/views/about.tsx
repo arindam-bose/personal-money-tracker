@@ -96,13 +96,15 @@ export function AboutCard() {
           </p>
           <h3>The pages</h3>
           <ul>
-            <li><b>Dashboard</b>: the month or year at a glance, with budgets, balances and card use.</li>
+            <li><b>Dashboard</b>: the month or year at a glance, with your net worth, budgets, balances and card use.</li>
             <li><b>Ledger</b>: every earning, expense and transfer, with filters and quick keyboard entry.
               Transfers (paying a card, moving money to savings) aren't spending, so they're shown apart.</li>
             <li><b>Budget</b>: a monthly target for each spending category, with what's left.</li>
             <li><b>Reports</b>: charts of where your money went, month by month and week by week.</li>
             <li><b>Accounts</b>: your accounts, categories, tags and the people in your household.
-              Earnings in <b>Lowers spending</b> categories (refunds, points, money paid back) lower net spending.</li>
+              Earnings in <b>Lowers spending</b> categories (refunds, points, money paid back) lower net spending.
+              Update what investments and assets are worth now and then, and close an account the day it's sold,
+              paid off or shut.</li>
             <li><b>Settings</b>: import a year or start one from scratch; back up, and close a finished
               year, which starts the next one from its closing balances. Also each year's IRA limit,
               deleting a year, erasing everything, light or dark mode, the offline copy and updates,

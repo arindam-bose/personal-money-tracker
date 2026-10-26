@@ -6,7 +6,7 @@ import type { YearData } from "./db";
 import { newId, slug } from "./entries";
 import { membersOf } from "./members";
 import { isDate, isDateInYear, isRate } from "./validate";
-import { balances, hasValuations, loanStatus, shortDate, valuationOf } from "./derive";
+import { balances, hasValuations, ledgerOf, loanDueDates, loanStatus, localToday, shortDate, valuationOf } from "./derive";
 import { formatCents } from "./money";
 import { dayBefore, yearStart } from "./year";
 import type {
@@ -22,6 +22,8 @@ export type CategoryKind = "expense" | "earning" | "transfer";
 /** How many entries use each account, category, tag and member. Used to block unsafe deletes. */
 export interface Usage {
   accounts: Map<string, number>;
+  /** By account id, the expenses and earnings only: what a loan can't take. */
+  spends: Map<string, number>;
   categories: Map<string, number>;
   tags: Map<string, number>;
   /** By member id; entries of the default member (no `member` set) count under "". */
@@ -29,7 +31,7 @@ export interface Usage {
 }
 
 export function usageOf(data: Pick<YearData, "expenses" | "earnings" | "transfers">): Usage {
-  const u: Usage = { accounts: new Map(), categories: new Map(), tags: new Map(), members: new Map() };
+  const u: Usage = { accounts: new Map(), spends: new Map(), categories: new Map(), tags: new Map(), members: new Map() };
   const add = (m: Map<string, number>, id: string | null | undefined) => {
     if (id) m.set(id, (m.get(id) ?? 0) + 1);
   };
@@ -38,11 +40,13 @@ export function usageOf(data: Pick<YearData, "expenses" | "earnings" | "transfer
   }
   for (const e of data.expenses) {
     add(u.accounts, e.account);
+    add(u.spends, e.account);
     add(u.categories, e.cat);
     e.tags.forEach((t) => add(u.tags, t));
   }
   for (const i of data.earnings) {
     add(u.accounts, i.account);
+    add(u.spends, i.account);
     add(u.categories, i.cat);
     add(u.categories, i.offsets); // a refund aimed at a spending category uses it too
   }
@@ -85,10 +89,23 @@ function upsert<T extends { id: string }>(list: T[], item: T): T[] {
 
 // --- Accounts ---
 
-/** Add or update an account. Pass an account without an id (id: "") to add one. */
-export function saveAccount(setup: YearSetup, account: Account): YearSetup {
+/**
+ * Add or update an account. Pass an account without an id (id: "") to add one. With the year's
+ * `usage`, an account can't change to a type its entries don't fit: no entry can use an asset,
+ * and a loan only takes transfers.
+ */
+export function saveAccount(setup: YearSetup, account: Account, usage?: Usage): YearSetup {
   const name = cleanName(account.name, "account");
   const id = account.id || idFor("a", name, new Set(setup.accounts.map((a) => a.id)));
+  const before = setup.accounts.find((a) => a.id === id);
+  if (usage && before && before.type !== account.type) {
+    const n = account.type === "asset" ? usage.accounts.get(id) ?? 0 : account.type === "loan" ? usage.spends.get(id) ?? 0 : 0;
+    if (n) {
+      const what = account.type === "asset" ? `${n === 1 ? "an entry" : `${n} entries`}, and an asset can't have any`
+        : `${n === 1 ? "an expense or earning" : `${n} expenses and earnings`}, and a loan only takes transfers`;
+      throw new SetupError(`${before.name} has ${what}. Move ${n === 1 ? "it" : "them"} to another account first.`);
+    }
+  }
   assertUniqueName(setup.accounts, name, id, "account");
   if (!Number.isSafeInteger(account.opening)) throw new SetupError("The opening balance must be an amount like 1234.56.");
   const clean: Account = { id, name, type: account.type, ref: account.ref.trim(), opening: account.opening };
@@ -194,12 +211,16 @@ export function deleteValuation(setup: YearSetup, id: string, date: IsoDate): Ye
  * worth nothing from then. A bank, cash, card or loan account must be at 0 at the end of that
  * day, or its money would vanish: move it out with a transfer first.
  */
-export function closeAccount(data: Pick<YearData, "setup" | "expenses" | "earnings" | "transfers">, id: string, date: IsoDate): YearSetup {
+export function closeAccount(
+  data: Pick<YearData, "setup" | "expenses" | "earnings" | "transfers">, id: string, date: IsoDate, today = localToday(),
+): YearSetup {
   const { setup } = data;
   const account = setup.accounts.find((a) => a.id === id);
   if (!account) throw new SetupError("That account no longer exists.");
   if (!isDateInYear(date, setup.year)) throw new SetupError(`Pick a day in ${setup.year}.`);
   if (date < yearStart(setup)) throw new SetupError(`Tracking starts on ${shortDate(yearStart(setup))}. Pick that day or later.`);
+  // Not ahead of time: until the day comes, the account is still open and counts.
+  if (date > today) throw new SetupError(`Close it on the day it happens: pick today or earlier.`);
   const later = [
     ...data.expenses.filter((e) => e.account === id), ...data.earnings.filter((e) => e.account === id),
     ...data.transfers.filter((t) => t.from === id || t.to === id),
@@ -212,14 +233,35 @@ export function closeAccount(data: Pick<YearData, "setup" | "expenses" | "earnin
     throw new SetupError(`${account.name} has a ${account.type === "asset" ? "value" : "balance"} update on or after ${shortDate(date)}. Delete it first, or close it later.`);
   }
   if (!hasValuations(account.type)) {
-    const ledger = { ...data, accounts: setup.accounts, categories: setup.categories, year: setup.year, start: setup.start };
-    const left = balances(ledger, date).get(id) ?? 0;
+    const left = balances(ledgerOf(data), date).get(id) ?? 0;
     if (left !== 0) {
-      const what = left < 0 ? `still owes ${formatCents(-left)}` : `still has ${formatCents(left)}`;
-      throw new SetupError(`${account.name} ${what} on ${shortDate(date)}. Move it with a transfer first, so it isn't lost from your net worth.`);
+      throw new SetupError(`${account.name} ${leftText(left)} on ${shortDate(date)}. Move it with a transfer first, so it isn't lost from your net worth.`);
     }
   }
   return { ...setup, accounts: upsert(setup.accounts, { ...account, closedOn: date }) };
+}
+
+/** "still has $12.00" or "still owes $12.00", for a balance that should be 0. */
+function leftText(balance: Cents): string {
+  return balance < 0 ? `still owes ${formatCents(-balance)}` : `still has ${formatCents(balance)}`;
+}
+
+/**
+ * Refuse an entry change that would move a closed bank, cash, card or loan account off the 0 it
+ * closed at: its money would be left out of net worth and the next year. Entries after the day it
+ * closed are already refused (checkDraft); this covers editing or deleting the ones before.
+ */
+export function assertClosedStayEmpty(before: Pick<YearData, "setup" | "expenses" | "earnings" | "transfers">,
+  after: Pick<YearData, "setup" | "expenses" | "earnings" | "transfers">): void {
+  const closed = after.setup.accounts.filter((a) => a.closedOn && !hasValuations(a.type));
+  if (!closed.length) return;
+  const was = ledgerOf(before), now = ledgerOf(after);
+  for (const a of closed) {
+    const left = balances(now, a.closedOn).get(a.id) ?? 0;
+    if (left !== (balances(was, a.closedOn).get(a.id) ?? 0)) {
+      throw new SetupError(`${a.name} was closed on ${shortDate(a.closedOn!)}, and this would mean it ${leftText(left)} then. Reopen it first.`);
+    }
+  }
 }
 
 /** Undo closing an account. */
@@ -451,7 +493,9 @@ function assetsFrom(accounts: Account[], start: IsoDate): Account[] {
   return accounts.map((a) => {
     if (a.type !== "asset" || !a.valuations?.some((v) => v.date < start)) return a;
     const later = a.valuations.filter((v) => v.date >= start);
-    const carried = later.some((v) => v.date === start) ? [] : [{ date: start, amount: valuationOf(a, start)!.amount }];
+    // Nothing to carry if it already has a value that day, or closes that very day.
+    const carried = later.some((v) => v.date === start) || (a.closedOn !== undefined && a.closedOn <= start)
+      ? [] : [{ date: start, amount: valuationOf(a, start)!.amount }];
     return { ...a, valuations: [...carried, ...later] };
   });
 }
@@ -459,17 +503,24 @@ function assetsFrom(accounts: Account[], start: IsoDate): Account[] {
 /**
  * The accounts with each loan's opening moved to a new start day. A loan that now begins on or
  * after it opens at 0. One that now began before it opens at what it owed that morning: nothing
- * is in the ledger before the new start, so that's its amount and interest so far. Moving the
- * start earlier can't undo interest, so a loan that already began before keeps its opening.
+ * is in the ledger before the new start, so moving later adds the amount and interest since, and
+ * moving earlier takes off the interest added between the two days (to the nearest cent: each
+ * month's interest was rounded).
  */
 function loansFrom(data: Pick<YearData, "setup" | "expenses" | "earnings" | "transfers">, start: IsoDate): Account[] {
   const { setup } = data;
-  const old = { ...data, accounts: setup.accounts, categories: setup.categories, year: setup.year, start: setup.start };
+  const old = ledgerOf(data);
   return setup.accounts.map((a) => {
     if (a.type !== "loan" || !a.loanStart) return a;
     if (a.loanStart >= start) return { ...a, opening: 0 };
-    if (start > yearStart(setup)) return { ...a, opening: loanStatus(old, a, dayBefore(start)).balance };
-    return a;
+    const was = yearStart(setup);
+    if (start > was) return { ...a, opening: loanStatus(old, a, dayBefore(start)).balance };
+    // Interest was only added while something was owed.
+    if (start === was || !a.rate || a.opening >= 0) return a;
+    // Undo each month's interest the opening already included.
+    let owed = -a.opening;
+    for (let n = loanDueDates(a.loanStart, start, dayBefore(was)).length; n > 0; n--) owed = Math.round(owed / (1 + a.rate / 1200));
+    return { ...a, opening: -owed };
   });
 }
 
