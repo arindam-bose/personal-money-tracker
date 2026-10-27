@@ -53,36 +53,30 @@ export function ReportsView() {
       {member && <p class="muted member-note">{member.name}’s entries only. Account balances are shared, so they’re under All people.</p>}
       <MoneyFlowCard ledger={l} year={year} />
       <CashFlowCard ledger={l} months={months} />
-      <ReportTabs tabs={{
-        earning: {
-          label: "Earning reports",
-          body: <>
-            <CategoryCard ledger={l} months={months} kind="earning" />
-            <WeeklyEarningCard ledger={l} year={year} start={start} lastDate={lastDate} />
-          </>,
-        },
-        expense: {
-          label: "Expense reports",
-          body: <>
-            <CategoryCard ledger={l} months={months} kind="expense" />
-            <WeeklyCard ledger={l} year={year} start={start} lastDate={lastDate} />
-            <CardUsageCard ledger={l} />
-          </>,
-        },
+      <ReportTabs title="Earning reports" id="earning" tabs={{
+        category: { label: "Earnings by category", body: <CategoryCard ledger={l} months={months} kind="earning" /> },
+        weekly: { label: "Weekly earnings", body: <WeeklyEarningCard ledger={l} year={year} start={start} lastDate={lastDate} /> },
       }} />
+      <ReportTabs title="Expense reports" id="expense" tabs={{
+        category: { label: "Spending by category", body: <CategoryCard ledger={l} months={months} kind="expense" /> },
+        weekly: { label: "Weekly spending", body: <WeeklyCard ledger={l} year={year} start={start} lastDate={lastDate} /> },
+      }} />
+      <CardUsageCard ledger={l} />
       {!member && <BalancesCard ledger={l} year={year} start={start} lastDate={balancesEnd} />}
     </div>
   );
 }
 
-const TAB_KEY = "reports-tab";
-
-/** Earning and expense reports, one set at a time. The tab lasts until the browser tab is closed. */
-function ReportTabs(props: { tabs: Record<string, { label: string; body: ComponentChildren }> }) {
+/**
+ * A titled section of reports, one shown at a time under tabs (Earning reports, Expense reports).
+ * Each section's tab lasts until the browser tab is closed.
+ */
+function ReportTabs(props: { title: string; id: string; tabs: Record<string, { label: string; body: ComponentChildren }> }) {
   const keys = Object.keys(props.tabs);
+  const key = `reports-tab-${props.id}`;
   const tab = useSignal((() => {
     try {
-      const saved = sessionStorage.getItem(TAB_KEY);
+      const saved = sessionStorage.getItem(key);
       return saved && keys.includes(saved) ? saved : keys[0]!;
     } catch {
       return keys[0]!;
@@ -90,23 +84,24 @@ function ReportTabs(props: { tabs: Record<string, { label: string; body: Compone
   })());
   useSignalEffect(() => {
     try {
-      sessionStorage.setItem(TAB_KEY, tab.value);
+      sessionStorage.setItem(key, tab.value);
     } catch {
       // Not kept; the tabs still work.
     }
   });
   return (
-    <section class="report-tabs">
-      <div class="tab-bar" role="tablist">
+    <section class="report-tabs" aria-labelledby={`${props.id}-title`}>
+      <h2 class="section-title" id={`${props.id}-title`}>{props.title}</h2>
+      <div class="tab-bar" role="tablist" aria-labelledby={`${props.id}-title`}>
         {keys.map((k) => (
-          <button type="button" role="tab" id={`tab-${k}`} aria-selected={tab.value === k} aria-controls={`panel-${k}`}
+          <button type="button" role="tab" id={`${props.id}-tab-${k}`} aria-selected={tab.value === k} aria-controls={`${props.id}-panel-${k}`}
             class={tab.value === k ? "active" : ""} onClick={() => (tab.value = k)}>
             {props.tabs[k]!.label}
           </button>
         ))}
       </div>
       {/* Only the open tab is drawn, so hidden charts cost nothing. */}
-      <div class="tab-panel" role="tabpanel" id={`panel-${tab.value}`} aria-labelledby={`tab-${tab.value}`}>
+      <div class="tab-panel" role="tabpanel" id={`${props.id}-panel-${tab.value}`} aria-labelledby={`${props.id}-tab-${tab.value}`}>
         {props.tabs[tab.value]!.body}
       </div>
     </section>
@@ -452,11 +447,13 @@ function WeeklyEarningCard({ ledger: l, year, start, lastDate }: { ledger: Ledge
 function CardUsageCard({ ledger: l }: { ledger: Ledger }) {
   const colors = seriesColors();
   const surface = token("--surface");
-  // Colours follow each card's place in the account list, so a card keeps its colour; past the
-  // sixth, cards share "Other cards". Slices and rows run largest first.
+  // The six cards that paid the most get a slice; any smaller ones share "Other cards", so the
+  // fold only ever hides the smallest. Colours go by the named cards' order in the account
+  // list, so they don't swap as amounts change. Slices and rows run largest first.
   const cards = cardSpending(l);
-  const named = cards.slice(0, TOP_CATEGORIES).map((c, i) => ({ id: c.account.id, name: c.account.name, spent: c.spent, color: colors[i]! }));
-  const others = cards.slice(TOP_CATEGORIES).reduce((a, c) => a + c.spent, 0);
+  const biggest = new Set([...cards].filter((c) => c.spent > 0).sort((a, b) => b.spent - a.spent).slice(0, TOP_CATEGORIES));
+  const named = cards.filter((c) => biggest.has(c)).map((c, i) => ({ id: c.account.id, name: c.account.name, spent: c.spent, color: colors[i]! }));
+  const others = cards.filter((c) => !biggest.has(c)).reduce((a, c) => a + c.spent, 0);
   const slices = [...named, ...(others ? [{ id: "", name: "Other cards", spent: others, color: token("--series-other") }] : [])]
     .filter((c) => c.spent > 0).sort((a, b) => b.spent - a.spent);
   const total = slices.reduce((a, c) => a + c.spent, 0);

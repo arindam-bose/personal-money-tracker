@@ -946,12 +946,17 @@ tr.row-transfer td {
   gap: 16px;
 }
 
-/* Earning / Expense reports: tabs above their cards. */
+/* Earning / Expense reports: a heading, tabs, then the open tab's card. */
+.section-title {
+  font-size: 18px;
+  margin: 12px 0 4px;
+}
+
 .tab-bar {
   display: flex;
   gap: 4px;
   border-bottom: 1px solid var(--border);
-  margin-bottom: 16px;
+  margin-bottom: 12px;
 }
 
 .tab-bar button {
