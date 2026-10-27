@@ -191,22 +191,54 @@ function CashFlowCard({ ledger: l, months }: { ledger: Ledger; months: MonthRang
   const sums = inRange(monthlySummaries(l), months);
   const labels = inRange(MONTH_SHORT, months);
   const [c1, c2] = seriesColors();
+  const surface = token("--surface");
+  // Net is part of the whole (net earnings of Earned, net spending of Spent), so each bar shows
+  // the net amount solid, topped up in a lighter shade to the whole: the bar's height is the whole.
+  // Net spending dips below zero in a month refunds outweigh spending; the bar can't show that,
+  // so it's drawn as zero there, and the tooltip and table give the real figure.
+  const pair = (stack: string, color: string, net: string, whole: string, nets: number[], wholes: number[]) => {
+    const shown = nets.map((n, m) => Math.max(0, Math.min(n, wholes[m]!)));
+    // Only the top segment of each bar gets rounded corners.
+    const top = (value: number, isTop: boolean) => ({ value, itemStyle: { borderRadius: isTop ? [4, 4, 0, 0] : 0 } });
+    return [
+      { name: net, type: "bar", stack, data: shown.map((v, m) => top(v, v >= wholes[m]!)),
+        itemStyle: { color, borderColor: surface, borderWidth: 1 }, barMaxWidth: 24, barGap: "15%" },
+      { name: whole, type: "bar", stack, data: shown.map((v, m) => top(wholes[m]! - v, true)),
+        itemStyle: { color, opacity: 0.4, borderColor: surface, borderWidth: 1 }, barMaxWidth: 24 },
+    ];
+  };
+  const dot = (color: string, faded: boolean) =>
+    `<span style="display:inline-block;width:10px;height:10px;border-radius:2px;margin-right:6px;background:${color};opacity:${faded ? 0.4 : 1}"></span>`;
+  const row = (marker: string, name: string, cents: number) =>
+    `<div style="display:flex;justify-content:space-between;gap:16px"><span>${marker}${name}</span><b>${formatCents(cents)}</b></div>`;
   const option: ChartOption = {
     ...baseOption(),
-    tooltip: { ...(baseOption().tooltip as object), trigger: "axis", axisPointer: { type: "shadow" }, valueFormatter: money },
+    tooltip: {
+      ...(baseOption().tooltip as object), trigger: "axis", axisPointer: { type: "shadow" },
+      // The real figures, not the segments: the lighter segment is only the difference.
+      formatter: (params: { dataIndex: number }[]) => {
+        const m = params[0]!.dataIndex;
+        const s = sums[m]!;
+        return `<div style="margin-bottom:4px">${labels[m]}</div>`
+          + row(dot(c1!, true), "Earned", s.earned) + row(dot(c1!, false), "Net earned", s.netEarnings)
+          + row(dot(c2!, true), "Spent", s.spent) + row(dot(c2!, false), "Net spending", s.netSpent);
+      },
+    },
+    legend: { ...(baseOption().legend as object), data: ["Earned", "Net earned", "Spent", "Net spending"] },
     xAxis: { type: "category", data: labels, ...axisStyle(), splitLine: { show: false } },
     yAxis: { type: "value", ...axisStyle(), axisLine: { show: false }, axisLabel: { color: token("--muted"), formatter: formatCompact } },
     series: [
-      { name: "Earned", type: "bar", data: sums.map((s) => s.earned), itemStyle: { color: c1, borderRadius: [4, 4, 0, 0] }, barMaxWidth: 24, barGap: "15%" },
-      { name: "Spent", type: "bar", data: sums.map((s) => s.spent), itemStyle: { color: c2, borderRadius: [4, 4, 0, 0] }, barMaxWidth: 24 },
+      ...pair("earned", c1!, "Net earned", "Earned", sums.map((s) => s.netEarnings), sums.map((s) => s.earned)),
+      ...pair("spent", c2!, "Net spending", "Spent", sums.map((s) => s.netSpent), sums.map((s) => s.spent)),
     ],
   };
+  const keys = ["earned", "netEarnings", "spent", "netSpent", "surplus"] as const;
   return (
-    <Card title="Monthly cash flow" subtitle="Everything earned and spent each month (refunds count as earnings, as in Notion).">
-      <Chart option={option} height={300} label="Earned and spent per month" />
-      <TableView head={["Month", "Earned", "Spent", "Surplus"]}
-        rows={sums.map((s, i) => [labels[i]!, formatCents(s.earned), formatCents(s.spent), formatCents(s.surplus)])}
-        foot={["Total", ...(["earned", "spent", "surplus"] as const).map((k) => formatCents(sums.reduce((a, s) => a + s[k], 0)))]} />
+    <Card title="Monthly cash flow" subtitle="Earned and spent each month. The solid part of each bar is the net amount: net earned within Earned, net spending within Spent.">
+      <Chart option={option} height={300} label="Earned and net earned, spent and net spending, per month" />
+      <TableView head={["Month", "Earned", "Net earned", "Spent", "Net spending", "Surplus"]}
+        rows={sums.map((s, i) => [labels[i]!, ...keys.map((k) => formatCents(s[k]))])}
+        foot={["Total", ...keys.map((k) => formatCents(sums.reduce((a, s) => a + s[k], 0)))]} />
     </Card>
   );
 }
