@@ -282,8 +282,21 @@ function AccountsTable(props: { overview: ReturnType<typeof accountsOverview>; a
   const bal = (a: Account) => o.balances.get(a.id) ?? 0;
   // Archived accounts show while they hold money or a value; closed ones only before the day they closed.
   const live = props.accounts.filter((a) => !o.closed.has(a.id) && (!a.archived || bal(a) !== 0 || o.valuations.has(a.id)));
-  const group = (types: Account["type"][]) => live.filter((a) => types.includes(a.type));
   const cardStatus = new Map(o.cards.map((c) => [c.account.id, c]));
+  // Each group largest first: cash by balance, cards by how much of the limit is used, investments
+  // and assets by their latest value. Cards without a limit and anything not valued yet go last.
+  const worth = (a: Account) => o.valuations.get(a.id)?.amount ?? -Infinity;
+  const SORT_BY: Partial<Record<Account["type"], (a: Account) => number>> = {
+    checking: bal, savings: bal, cash: bal,
+    credit: (a) => cardStatus.get(a.id)?.utilization ?? -Infinity,
+    investment: worth, asset: worth,
+  };
+  const group = (types: Account["type"][]) =>
+    live.filter((a) => types.includes(a.type)).sort((a, b) => {
+      // Compared, not subtracted: two unvalued accounts would give -Infinity - -Infinity = NaN.
+      const x = SORT_BY[a.type]!(a), y = SORT_BY[b.type]!(b);
+      return x > y ? -1 : x < y ? 1 : 0;
+    });
 
   return (
     <table class="acct-table">
