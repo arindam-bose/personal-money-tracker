@@ -261,6 +261,11 @@ export function LedgerView() {
 
   const { setup } = data;
   const accountName = new Map(setup.accounts.map((a) => [a.id, a.name]));
+  /** The account, or "From → To" for a transfer. */
+  const accountText = (e: AnyEntry) =>
+    e.kind === "transfer"
+      ? `${accountName.get(e.entry.from) ?? "?"} → ${accountName.get(e.entry.to) ?? "?"}`
+      : accountName.get(e.entry.account) ?? "?";
   const catName = new Map(
     [...setup.categories.expense, ...setup.categories.earning, ...setup.categories.transfer].map((c) => [c.id, c.name]),
   );
@@ -400,15 +405,12 @@ export function LedgerView() {
                 <span class="item" title={e.entry.item}>{e.entry.item}</span>
                 {e.entry.notes && <span class="notes" title={e.entry.notes}>{e.entry.notes}</span>}
               </td>
-              <td class="c-cat">
+              <td class="c-cat" title={catName.get(e.entry.cat) ?? "?"}>
                 <span class={`kind-dot dot-${e.kind}`} aria-hidden="true" />
                 {catName.get(e.entry.cat) ?? "?"}
               </td>
-              <td class="c-account">
-                {e.kind === "transfer"
-                  ? `${accountName.get(e.entry.from) ?? "?"} → ${accountName.get(e.entry.to) ?? "?"}`
-                  : accountName.get(e.entry.account) ?? "?"}
-              </td>
+              {/* The title shows the whole name when the column is too narrow for it. */}
+              <td class="c-account" title={accountText(e)}>{accountText(e)}</td>
               {household && <td class="c-person">{memberName(e.entry.member)}</td>}
               <td class="c-tags">
                 {e.kind === "expense" && e.entry.tags.map((t) => <span class="chip">{tagName.get(t) ?? t}</span>)}

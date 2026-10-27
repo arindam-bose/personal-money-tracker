@@ -331,11 +331,13 @@ table.entries tbody tr:hover {
   background: var(--row-hover);
 }
 
+/* Item has no width: it takes what's left. The other text columns are shares of the table, not
+   pixels, so Item grows with the screen; fixed widths here once added up to the whole table. */
 .c-date { width: 64px; color: var(--muted); }
-.c-cat { width: 180px; }
-.c-account { width: 320px; }
-.c-tags { width: 200px; }
-.c-person { width: 110px; }
+.c-cat { width: 13%; }
+.c-account { width: 21%; }
+.c-tags { width: 7%; }
+.c-person { width: 6%; }
 .c-amount { width: 120px; }
 .c-act { width: 36px; padding-left: 6px !important; padding-right: 0 !important; }
 
