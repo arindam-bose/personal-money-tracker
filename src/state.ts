@@ -196,7 +196,9 @@ export function saveEntry(e: AnyEntry, previousKind?: Kind): Promise<void> {
     assertClosedStayEmpty(data, next);
     if (kindChanged) await deleteEntry(STORE[previousKind], year, e.entry.id);
     await putEntry(STORE[e.kind], year, e.entry);
-    current.value = next;
+    const setup = touched(data.setup);
+    await putSetup(setup);
+    current.value = { ...next, setup };
   });
 }
 
@@ -213,8 +215,15 @@ export function removeEntry(kind: Kind, id: string): Promise<void> {
     const next = withoutEntry(data, kind, id);
     assertClosedStayEmpty(data, next);
     await deleteEntry(STORE[kind], data.setup.year, id);
-    current.value = next;
+    const setup = touched(data.setup);
+    await putSetup(setup);
+    current.value = { ...next, setup };
   });
+}
+
+/** The setup stamped with now as when the entries last changed. */
+function touched(setup: YearSetup): YearSetup {
+  return { ...setup, lastChangedAt: new Date().toISOString() };
 }
 
 async function saveSetup(setup: YearSetup): Promise<void> {
@@ -253,9 +262,11 @@ export function updateSetup(change: (setup: YearSetup, usage: Usage) => YearSetu
 
 /** Save a change (new setup plus the entries it touched) in one transaction, then show it. */
 async function saveChange(data: YearData, change: YearChange): Promise<YearData> {
-  const { setup, expenses = [], earnings = [], transfers = [] } = change;
+  const { expenses = [], earnings = [], transfers = [] } = change;
+  // Entries moved off a deleted category, tag or person count as a change to the ledger.
+  const setup = expenses.length || earnings.length || transfers.length ? touched(change.setup) : change.setup;
   await putSetupAndEntries(setup, { expenses, earnings, transfers });
-  return withChange(data, change);
+  return withChange(data, { ...change, setup });
 }
 
 /** Delete a category; its entries move to Uncategorized. Returns how many entries moved. */

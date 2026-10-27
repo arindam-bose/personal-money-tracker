@@ -263,6 +263,10 @@ kbd {
 .add-earning { border-left: 3px solid var(--earning); }
 .add-transfer { border-left: 3px solid var(--transfer); }
 
+.last-updated {
+  margin: -6px 0 10px;
+}
+
 .filters {
   display: flex;
   flex-wrap: wrap;

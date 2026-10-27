@@ -195,4 +195,9 @@ export interface FileSettings {
 export type YearSetup = Pick<YearFile, "year" | "start" | "closed" | "accounts" | "categories" | "tags" | "members" | "budgets" | "iraLimit" | "iraBeforeStart"> & {
   /** When this year was last exported to JSON (ISO timestamp), for the backup reminder. */
   lastBackupAt?: string;
+  /**
+   * When an entry was last added, changed or deleted on this device (ISO timestamp), for the
+   * ledger's "Last updated". Like lastBackupAt, it stays here: backups don't carry it.
+   */
+  lastChangedAt?: string;
 };

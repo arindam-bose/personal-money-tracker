@@ -295,6 +295,12 @@ export function LedgerView() {
         )}
       </div>
 
+      {setup.lastChangedAt && (
+        <p class="muted small last-updated">
+          Last updated {new Date(setup.lastChangedAt).toLocaleString(undefined, { dateStyle: "medium", timeStyle: "short" })}
+        </p>
+      )}
+
       {form.value && (
         <EntryForm key={form.value.id ?? `new-${form.value.kind}`} initial={form.value} onClose={() => (form.value = null)} />
       )}

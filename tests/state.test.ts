@@ -1,7 +1,7 @@
 import { beforeEach, describe, expect, it } from "vitest";
 import { exportYear, importYear } from "../src/backup";
 import { getSetting, listYears, loadYear, putEntry, putSetup, setSetting } from "../src/db";
-import { current, ensureTag, eraseEverything, openYear, pinnedTags, removeYear, setBudget, years } from "../src/state";
+import { current, ensureTag, eraseEverything, openYear, pinnedTags, removeEntry, removeYear, removeTag, saveEntry, setBudget, years } from "../src/state";
 import { freshDb, sample } from "./helpers";
 
 beforeEach(async () => {
@@ -38,6 +38,35 @@ describe("state changes", () => {
     current.value = { ...current.value!, setup: { ...current.value!.setup, closed: false } };
     await setBudget("default", "ce_food", 6);
     expect(current.value!.setup.budgets.default.ce_food).toBe(6);
+  });
+});
+
+describe("last updated", () => {
+  const stamp = async () => (await loadYear(2026))!.setup.lastChangedAt;
+
+  it("starts unknown after an import, and backups don't carry it", async () => {
+    expect(await stamp()).toBeUndefined();
+    await saveEntry({ kind: "expense", entry: current.value!.expenses[0]! });
+    expect(await exportYear(2026)).not.toHaveProperty("lastChangedAt");
+  });
+
+  it("is stamped by saving and deleting entries, in storage and on screen", async () => {
+    const before = Date.now();
+    await saveEntry({ kind: "expense", entry: { ...current.value!.expenses[0]!, item: "Changed" } });
+    const saved = await stamp();
+    expect(Date.parse(saved!)).toBeGreaterThanOrEqual(before);
+    expect(current.value!.setup.lastChangedAt).toBe(saved);
+    await new Promise((r) => setTimeout(r, 5));
+    await removeEntry("expense", current.value!.expenses[0]!.id);
+    expect(Date.parse((await stamp())!)).toBeGreaterThan(Date.parse(saved!));
+  });
+
+  it("isn't stamped by setup changes that leave entries alone, but is when they move entries", async () => {
+    await setBudget("default", "ce_food", 1);
+    expect(await stamp()).toBeUndefined();
+    const used = current.value!.expenses.find((e) => e.tags.length)!.tags[0]!;
+    await removeTag(used);
+    expect(await stamp()).toBeDefined();
   });
 });
 
