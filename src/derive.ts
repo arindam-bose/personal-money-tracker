@@ -520,8 +520,17 @@ export function remainingRetirement(ledger: Ledger, annualLimit: Cents, before: 
 
 /** Gross spending per expense category id, for each month (index 0 = January). */
 export function spendingByMonth(ledger: Ledger): Map<string, Cents[]> {
-  const out = new Map<string, Cents[]>(ledger.categories.expense.map((c) => [c.id, new Array<Cents>(12).fill(0)]));
-  for (const e of ledger.expenses) {
+  return byCategoryAndMonth(ledger.categories.expense, ledger.expenses);
+}
+
+/** Earnings per category per month, January to December, like spendingByMonth. */
+export function earningsByMonth(ledger: Ledger): Map<string, Cents[]> {
+  return byCategoryAndMonth(ledger.categories.earning, ledger.earnings);
+}
+
+function byCategoryAndMonth(categories: { id: string }[], entries: { cat: string; date: IsoDate; amount: Cents }[]): Map<string, Cents[]> {
+  const out = new Map<string, Cents[]>(categories.map((c) => [c.id, new Array<Cents>(12).fill(0)]));
+  for (const e of entries) {
     let row = out.get(e.cat);
     if (!row) out.set(e.cat, (row = new Array<Cents>(12).fill(0)));
     row[Number(e.date.slice(5, 7)) - 1]! += e.amount;
@@ -566,6 +575,40 @@ export function weeklySpending(ledger: Ledger, year: number): WeekSpend[] {
     if (week) week.bySource[spendSource(accountType.get(e.account) ?? "checking")] += e.amount;
   }
   return weeks;
+}
+
+export interface WeekEarn {
+  start: IsoDate;
+  end: IsoDate;
+  /** Earnings in categories that count toward net earnings. */
+  net: Cents;
+  /** Everything else earned: refunds, points, money paid back, one-offs. */
+  other: Cents;
+}
+
+/** Earnings per week of the year, split into net earnings and the rest. */
+export function weeklyEarnings(ledger: Ledger, year: number): WeekEarn[] {
+  const weeks: WeekEarn[] = weeksOf(year).map((w) => ({ ...w, net: 0, other: 0 }));
+  const net = netEarningCategories(ledger);
+  for (const e of ledger.earnings) {
+    const week = weeks.find((w) => e.date >= w.start && e.date <= w.end);
+    if (week) week[net.has(e.cat) ? "net" : "other"] += e.amount;
+  }
+  return weeks;
+}
+
+/**
+ * What was spent on each credit card, in the order the cards are listed. Every card is
+ * there, at 0 if unused, so a card keeps its place (and its colour) whatever the others do.
+ */
+export function cardSpending(ledger: Ledger): { account: Account; spent: Cents }[] {
+  const cards = ledger.accounts.filter((a) => a.type === "credit").map((account) => ({ account, spent: 0 }));
+  const byId = new Map(cards.map((c) => [c.account.id, c]));
+  for (const e of ledger.expenses) {
+    const card = byId.get(e.account);
+    if (card) card.spent += e.amount;
+  }
+  return cards;
 }
 
 export interface BalancePoint {

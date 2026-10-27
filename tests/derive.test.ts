@@ -4,7 +4,7 @@
 import { describe, expect, it } from "vitest";
 import {
   accountsOverview, balanceSeries, budgetTarget, countsInNetEarnings, earningsByCategory, forMember, monthsBefore, budgetView, monthProgress, balances, moneyFlow, monthlySummaries, remainingRetirement, spendingOffsetCategories,
-  spendByCategory, spendingByMonth, summarize, tagTotal, weeklySpending, weeksOf, type MoneyFlow, type Summary,
+  spendByCategory, spendingByMonth, summarize, tagTotal, weeklySpending, weeksOf, earningsByMonth, weeklyEarnings, cardSpending, type MoneyFlow, type Summary,
 } from "../src/derive";
 import { sample } from "./helpers";
 
@@ -203,6 +203,24 @@ describe("report series", () => {
     expect(weeks[0]!.bySource).toEqual({ bank: 150000, card: 8550, cash: 0 }); // rent Jan 1, groceries Jan 3
     const total = weeks.reduce((s, w) => s + w.bySource.bank + w.bySource.card + w.bySource.cash, 0);
     expect(total).toBe(summarize(ledger).spent);
+  });
+
+  it("earnings per category per month add up to what was earned", () => {
+    const total = [...earningsByMonth(ledger).values()].flat().reduce((a, b) => a + b, 0);
+    expect(total).toBe(summarize(ledger).earned);
+  });
+
+  it("weekly earnings split into net and the rest, adding up to the year", () => {
+    const weeks = weeklyEarnings(ledger, 2026);
+    const sum = summarize(ledger);
+    expect(weeks.reduce((a, w) => a + w.net, 0)).toBe(sum.netEarnings);
+    expect(weeks.reduce((a, w) => a + w.other, 0)).toBe(sum.earned - sum.netEarnings);
+  });
+
+  it("card spending lists every card in order and adds up to what cards paid", () => {
+    const cards = cardSpending(ledger);
+    expect(cards.map((c) => c.account.id)).toEqual(ledger.accounts.filter((a) => a.type === "credit").map((a) => a.id));
+    expect(cards.reduce((a, c) => a + c.spent, 0)).toBe(summarize(ledger).spentBySource.card);
   });
 
   it("account totals over time", () => {

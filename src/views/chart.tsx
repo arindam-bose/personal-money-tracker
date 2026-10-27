@@ -1,14 +1,14 @@
 // A thin Preact wrapper around ECharts. Only the chart types we use are bundled.
 // Colours come from the CSS tokens in style.css, so charts follow light/dark mode.
 
-import { BarChart, LineChart, SankeyChart } from "echarts/charts";
-import { GridComponent, LegendComponent, TooltipComponent } from "echarts/components";
+import { BarChart, LineChart, PieChart, SankeyChart } from "echarts/charts";
+import { GridComponent, LegendComponent, TitleComponent, TooltipComponent } from "echarts/components";
 import * as echarts from "echarts/core";
 import { SVGRenderer } from "echarts/renderers";
 import { useEffect, useRef } from "preact/hooks";
 import { theme } from "../theme";
 
-echarts.use([BarChart, LineChart, SankeyChart, GridComponent, LegendComponent, TooltipComponent, SVGRenderer]);
+echarts.use([BarChart, LineChart, PieChart, SankeyChart, GridComponent, LegendComponent, TitleComponent, TooltipComponent, SVGRenderer]);
 
 export type ChartOption = echarts.EChartsCoreOption;
 
@@ -60,15 +60,21 @@ interface Props {
   height: number;
   /** What the chart shows, for screen readers. The table view below each chart has the numbers. */
   label: string;
+  /** Called with the clicked data item, e.g. a pie slice, for charts that open the ledger. */
+  onPick?: (item: { dataIndex: number; name: string }) => void;
 }
 
-export function Chart({ option, height, label }: Props) {
+export function Chart({ option, height, label, onPick }: Props) {
   const el = useRef<HTMLDivElement>(null);
   const chart = useRef<echarts.ECharts | null>(null);
+  // The latest handler, read at click time, so the listener is added once.
+  const pick = useRef(onPick);
+  pick.current = onPick;
 
   useEffect(() => {
     const c = echarts.init(el.current!, null, { renderer: "svg" });
     chart.current = c;
+    c.on("click", (p) => pick.current?.({ dataIndex: p.dataIndex, name: p.name }));
     const resize = new ResizeObserver(() => c.resize());
     resize.observe(el.current!);
     return () => {

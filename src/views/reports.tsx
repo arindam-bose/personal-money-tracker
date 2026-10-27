@@ -2,12 +2,13 @@
 // the rest of the app. Every chart has a table with the same numbers under it.
 // With more than one person, they can show one person's entries; balances stay in "All people".
 
+import { useSignal, useSignalEffect } from "@preact/signals";
 import type { ComponentChildren } from "preact";
 import {
-  MONTH_SHORT, balanceSeries, hasLoanAccount, moneyFlow, monthlySummaries, shortDate, spendingByMonth, weeklySpending,
+  MONTH_SHORT, balanceSeries, cardSpending, earningsByMonth, hasLoanAccount, moneyFlow, monthlySummaries, shortDate, spendingByMonth, weeklyEarnings, weeklySpending,
   type FlowGroup, type Ledger,
 } from "../derive";
-import { formatCents, formatCompact } from "../money";
+import { formatCents, formatCompact, formatPercent } from "../money";
 import { membersOf } from "../setup";
 import { current, ledger, loansLeftOut } from "../state";
 import { IncludeLoans } from "./dashboard";
@@ -52,10 +53,63 @@ export function ReportsView() {
       {member && <p class="muted member-note">{member.name}’s entries only. Account balances are shared, so they’re under All people.</p>}
       <MoneyFlowCard ledger={l} year={year} />
       <CashFlowCard ledger={l} months={months} />
-      <CategoryCard ledger={l} months={months} />
-      <WeeklyCard ledger={l} year={year} start={start} lastDate={lastDate} />
+      <ReportTabs tabs={{
+        earning: {
+          label: "Earning reports",
+          body: <>
+            <CategoryCard ledger={l} months={months} kind="earning" />
+            <WeeklyEarningCard ledger={l} year={year} start={start} lastDate={lastDate} />
+          </>,
+        },
+        expense: {
+          label: "Expense reports",
+          body: <>
+            <CategoryCard ledger={l} months={months} kind="expense" />
+            <WeeklyCard ledger={l} year={year} start={start} lastDate={lastDate} />
+            <CardUsageCard ledger={l} />
+          </>,
+        },
+      }} />
       {!member && <BalancesCard ledger={l} year={year} start={start} lastDate={balancesEnd} />}
     </div>
+  );
+}
+
+const TAB_KEY = "reports-tab";
+
+/** Earning and expense reports, one set at a time. The tab lasts until the browser tab is closed. */
+function ReportTabs(props: { tabs: Record<string, { label: string; body: ComponentChildren }> }) {
+  const keys = Object.keys(props.tabs);
+  const tab = useSignal((() => {
+    try {
+      const saved = sessionStorage.getItem(TAB_KEY);
+      return saved && keys.includes(saved) ? saved : keys[0]!;
+    } catch {
+      return keys[0]!;
+    }
+  })());
+  useSignalEffect(() => {
+    try {
+      sessionStorage.setItem(TAB_KEY, tab.value);
+    } catch {
+      // Not kept; the tabs still work.
+    }
+  });
+  return (
+    <section class="report-tabs">
+      <div class="tab-bar" role="tablist">
+        {keys.map((k) => (
+          <button type="button" role="tab" id={`tab-${k}`} aria-selected={tab.value === k} aria-controls={`panel-${k}`}
+            class={tab.value === k ? "active" : ""} onClick={() => (tab.value = k)}>
+            {props.tabs[k]!.label}
+          </button>
+        ))}
+      </div>
+      {/* Only the open tab is drawn, so hidden charts cost nothing. */}
+      <div class="tab-panel" role="tabpanel" id={`panel-${tab.value}`} aria-labelledby={`tab-${tab.value}`}>
+        {props.tabs[tab.value]!.body}
+      </div>
+    </section>
   );
 }
 
@@ -253,13 +307,15 @@ function CashFlowCard({ ledger: l, months }: { ledger: Ledger; months: MonthRang
   );
 }
 
-// --- Spending by category: stacked chart + heatmap table ---
+// --- Spending (or earnings) by category: stacked chart + heatmap table ---
 
-function CategoryCard({ ledger: l, months }: { ledger: Ledger; months: MonthRange }) {
-  // Each category's spending for the months shown only.
-  const byMonth = new Map([...spendingByMonth(l)].map(([id, list]) => [id, inRange(list, months)]));
+function CategoryCard({ ledger: l, months, kind }: { ledger: Ledger; months: MonthRange; kind: "expense" | "earning" }) {
+  // Each category's totals for the months shown only.
+  const all = kind === "expense" ? spendingByMonth(l) : earningsByMonth(l);
+  const byMonth = new Map([...all].map(([id, list]) => [id, inRange(list, months)]));
   const labels = inRange(MONTH_SHORT, months);
-  const names = new Map(l.categories.expense.map((c) => [c.id, c.name]));
+  const names = new Map(l.categories[kind].map((c) => [c.id, c.name]));
+  const what = kind === "expense" ? "spending" : "earnings";
   const yearTotal = (id: string) => byMonth.get(id)!.reduce((a, b) => a + b, 0);
   const ranked = [...byMonth.keys()].filter((id) => yearTotal(id) > 0).sort((a, b) => yearTotal(b) - yearTotal(a));
   // Colours follow the category's rank for the whole year, so they never change with the view.
@@ -271,7 +327,7 @@ function CategoryCard({ ledger: l, months }: { ledger: Ledger; months: MonthRang
   const stacks = [
     ...top.map((id, i) => ({ name: names.get(id) ?? id, color: colors[i]!, data: byMonth.get(id)! })),
     ...(rest.length ? [{
-      name: "Other", color: token("--series-other"),
+      name: "Everything else", color: token("--series-other"),
       data: labels.map((_, m) => rest.reduce((a, id) => a + byMonth.get(id)![m]!, 0)),
     }] : []),
   ];
@@ -291,8 +347,9 @@ function CategoryCard({ ledger: l, months }: { ledger: Ledger; months: MonthRang
   const max = Math.max(1, ...ranked.flatMap((id) => byMonth.get(id)!));
   const heat = token("--heat");
   return (
-    <Card title="Spending by category" subtitle={`The ${top.length} biggest categories of the year, plus everything else. Click a cell in the table to see its entries.`}>
-      <Chart option={option} height={320} label="Monthly spending stacked by category" />
+    <Card title={kind === "expense" ? "Spending by category" : "Earnings by category"}
+      subtitle={`The ${top.length} biggest categories of the year${rest.length ? ", plus everything else" : ""}. Click a cell in the table to see its entries.`}>
+      <Chart option={option} height={320} label={`Monthly ${what} stacked by category`} />
       <div class="heatmap-wrap">
         <table class="data-table heatmap">
           <thead>
@@ -311,7 +368,7 @@ function CategoryCard({ ledger: l, months }: { ledger: Ledger; months: MonthRang
                   const a = v / max;
                   return (
                     <td class="num cell" style={{ background: v ? `rgba(${heat}, ${0.08 + a * 0.82})` : undefined, color: a > 0.5 ? "#fff" : undefined }}
-                      onClick={() => v && showInLedger({ cat: id, kind: "expense", month: String(m + 1), member: viewedMember()?.id ?? "" })}
+                      onClick={() => v && showInLedger({ cat: id, kind, month: String(m + 1), member: viewedMember()?.id ?? "" })}
                       title={v ? `${names.get(id)}, ${labels[i]}: ${formatCents(v)}` : undefined}>
                       {v ? formatCompact(v) : ""}
                     </td>
@@ -357,6 +414,90 @@ function WeeklyCard({ ledger: l, year, start, lastDate }: { ledger: Ledger; year
       <TableView head={["Week of", "Bank", "Card", "Cash", "Total"]}
         rows={weeks.map((w) => [label(w.start), formatCents(w.bySource.bank), formatCents(w.bySource.card), formatCents(w.bySource.cash),
           formatCents(w.bySource.bank + w.bySource.card + w.bySource.cash)])} />
+    </Card>
+  );
+}
+
+// --- Weekly earnings: net and the rest ---
+
+function WeeklyEarningCard({ ledger: l, year, start, lastDate }: { ledger: Ledger; year: number; start: string; lastDate: string }) {
+  const weeks = weeklyEarnings(l, year).filter((w) => w.end >= start && w.start <= lastDate);
+  const [c1] = seriesColors();
+  const surface = token("--surface");
+  const label = (from: string) => shortDate(from < start ? start : from);
+  // The same shading as Monthly cash flow: net earned solid, the rest lighter on top.
+  const option: ChartOption = {
+    ...baseOption(),
+    tooltip: { ...(baseOption().tooltip as object), trigger: "axis", axisPointer: { type: "shadow" }, valueFormatter: money },
+    xAxis: { type: "category", data: weeks.map((w) => label(w.start)), ...axisStyle(), splitLine: { show: false } },
+    yAxis: { type: "value", ...axisStyle(), axisLine: { show: false }, axisLabel: { color: token("--muted"), formatter: formatCompact } },
+    series: [
+      { name: "Net earned", type: "bar", stack: "week", barMaxWidth: 24, data: weeks.map((w) => w.net),
+        itemStyle: { color: c1, borderColor: surface, borderWidth: 1 } },
+      { name: "Other earnings", type: "bar", stack: "week", barMaxWidth: 24, data: weeks.map((w) => w.other),
+        itemStyle: { color: c1, opacity: 0.4, borderColor: surface, borderWidth: 1, borderRadius: [4, 4, 0, 0] } },
+    ],
+  };
+  return (
+    <Card title="Weekly earnings" subtitle="Monday to Sunday. Net earned is solid; refunds, points, money paid back and one-offs are lighter on top.">
+      <Chart option={option} height={300} label="Earnings per week, net and other" />
+      <TableView head={["Week of", "Net earned", "Other earnings", "Total"]}
+        rows={weeks.map((w) => [label(w.start), formatCents(w.net), formatCents(w.other), formatCents(w.net + w.other)])} />
+    </Card>
+  );
+}
+
+// --- Credit card usage: a ring of what each card paid ---
+
+function CardUsageCard({ ledger: l }: { ledger: Ledger }) {
+  const colors = seriesColors();
+  const surface = token("--surface");
+  // Colours follow each card's place in the account list, so a card keeps its colour; past the
+  // sixth, cards share "Other cards". Slices and rows run largest first.
+  const cards = cardSpending(l);
+  const named = cards.slice(0, TOP_CATEGORIES).map((c, i) => ({ id: c.account.id, name: c.account.name, spent: c.spent, color: colors[i]! }));
+  const others = cards.slice(TOP_CATEGORIES).reduce((a, c) => a + c.spent, 0);
+  const slices = [...named, ...(others ? [{ id: "", name: "Other cards", spent: others, color: token("--series-other") }] : [])]
+    .filter((c) => c.spent > 0).sort((a, b) => b.spent - a.spent);
+  const total = slices.reduce((a, c) => a + c.spent, 0);
+  const member = viewedMember()?.id ?? "";
+
+  if (!total) {
+    return (
+      <Card title="Credit card usage" subtitle="What each credit card paid for this year.">
+        <p class="muted">{cards.length ? "No spending on credit cards yet." : "No credit card accounts. Add one on the Accounts page."}</p>
+      </Card>
+    );
+  }
+  const option: ChartOption = {
+    ...baseOption(),
+    tooltip: {
+      ...(baseOption().tooltip as object), trigger: "item",
+      formatter: (p: { marker: string; name: string; value: number }) =>
+        `${p.marker}${p.name}<br><b>${formatCents(p.value)}</b> · ${formatPercent(p.value / total)}`,
+    },
+    legend: { ...(baseOption().legend as object), top: undefined, bottom: 0, left: "center" },
+    // The total in the middle of the ring.
+    title: {
+      text: formatCompact(total), subtext: "On credit cards", left: "center", top: "35%", itemGap: 4,
+      textStyle: { fontSize: 34, fontWeight: 600, color: token("--text") }, subtextStyle: { fontSize: 13, color: token("--muted") },
+    },
+    series: [{
+      type: "pie", radius: ["58%", "68%"], center: ["50%", "44%"], label: { show: false },
+      itemStyle: { borderColor: surface, borderWidth: 2 }, emphasis: { scale: true, scaleSize: 4 },
+      data: slices.map((c) => ({ name: c.name, value: c.spent, itemStyle: { color: c.color } })),
+    }],
+  };
+  return (
+    <Card title="Credit card usage" subtitle="What each credit card paid for this year. Click a card to see its entries.">
+      <Chart option={option} height={340} label={`Spending by credit card, ${formatCents(total)} in all`}
+        onPick={({ dataIndex }) => {
+          const id = slices[dataIndex]?.id;
+          if (id) showInLedger({ account: id, kind: "expense", member });
+        }} />
+      <TableView head={["Card", "Spent", "Share"]}
+        rows={slices.map((c) => [c.name, formatCents(c.spent), formatPercent(c.spent / total)])}
+        foot={["Total", formatCents(total), formatPercent(1)]} />
     </Card>
   );
 }
