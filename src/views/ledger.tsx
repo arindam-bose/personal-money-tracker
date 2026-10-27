@@ -3,7 +3,7 @@
 
 import { useComputed, useSignal, useSignalEffect } from "@preact/signals";
 import { useEffect, useRef } from "preact/hooks";
-import { MONTH_NAMES, inMonth, localToday, monthsBefore, shortDate } from "../derive";
+import { MONTH_NAMES, dateTime, inMonth, localToday, monthsBefore, shortDate } from "../derive";
 import { draftFrom, emptyDraft, type AnyEntry, type Draft, type Kind } from "../entries";
 import { formatCents } from "../money";
 import { membersOf } from "../setup";
@@ -297,7 +297,7 @@ export function LedgerView() {
 
       {setup.lastChangedAt && (
         <p class="muted small last-updated">
-          Last updated {new Date(setup.lastChangedAt).toLocaleString(undefined, { dateStyle: "medium", timeStyle: "short" })}
+          Last updated {dateTime(setup.lastChangedAt)}
         </p>
       )}
 

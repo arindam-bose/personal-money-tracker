@@ -15,6 +15,11 @@ describe("validateYearFile", () => {
     expect(validateYearFile(sample())).toMatchObject({ ok: true });
   });
 
+  it("checks the last-updated time when there is one", () => {
+    expect(errorsAfter((f) => (f.lastChangedAt = "2026-10-26T22:16:00.000Z"))).toEqual([]);
+    expect(errorsAfter((f) => (f.lastChangedAt = "yesterday"))).toEqual([`"lastChangedAt" must be a date and time, like "2026-10-26T22:16:00.000Z".`]);
+  });
+
   it("rejects files that aren't money-tracker files", () => {
     expect(validateYearFile([])).toMatchObject({ ok: false });
     expect(validateYearFile({ app: "other" })).toMatchObject({ ok: false });

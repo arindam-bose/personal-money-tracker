@@ -67,6 +67,11 @@ export function localToday(now = new Date()): IsoDate {
   return `${now.getFullYear()}-${String(now.getMonth() + 1).padStart(2, "0")}-${String(now.getDate()).padStart(2, "0")}`;
 }
 
+/** An ISO timestamp in the viewer's locale, e.g. "Oct 26, 2026, 11:16 PM", or "…11:16:42 PM" with seconds. */
+export function dateTime(iso: string, seconds = false): string {
+  return new Date(iso).toLocaleString(undefined, { dateStyle: "medium", timeStyle: seconds ? "medium" : "short" });
+}
+
 /** "2026-03-09" -> "Mar 9". */
 export function shortDate(iso: IsoDate): string {
   return `${MONTH_SHORT[Number(iso.slice(5, 7)) - 1]} ${Number(iso.slice(8, 10))}`;

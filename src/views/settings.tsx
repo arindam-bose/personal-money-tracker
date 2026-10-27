@@ -7,10 +7,10 @@ import { useEffect } from "preact/hooks";
 import { downloadYear, importYear, readJsonFile, saveYearFile } from "../backup";
 import { demoFileName, demoYear } from "../demo";
 import { formatCents, parseCents } from "../money";
-import { localToday, shortDate } from "../derive";
+import { dateTime, localToday, shortDate } from "../derive";
 import { closingBalances, nextYearSetup } from "../rollover";
 import {
-  closeYear, current, type YearSummary, eraseEverything, iraLimit, ledger, loadSettings, openYear, persistState, readOnly, removeYear, reopenYear, saveIraBeforeStart, saveIraLimit, startYear, years,
+  closeYear, current, type YearSummary, eraseEverything, iraLimit, ledger, loadSettings, openYear, persistState, readOnly, refreshYears, removeYear, reopenYear, saveIraBeforeStart, saveIraLimit, startYear, years,
 } from "../state";
 import { IRA_LIMITS, iraLimitOf } from "../setup";
 import { AboutCard } from "./about";
@@ -48,14 +48,24 @@ function replaceQuestion(fileName: string, stored: YearSummary, file: YearFile):
   const exported = Number.isNaN(at.getTime())
     ? "with no export date"
     : `exported ${at.toLocaleDateString(undefined, { day: "numeric", month: "short", year: "numeric" })}`;
+  const here = stored.setup.lastChangedAt;
+  const there = file.lastChangedAt;
+  // A file without one was saved before files carried it, so anything changed here is newer.
+  const newerHere = here !== undefined && (there === undefined || Date.parse(here) > Date.parse(there));
   return [
     `Replace all your ${file.year} data with "${fileName}"?`,
     "",
-    `In the tracker now: ${entryBreakdown(stored)}. ${backupText(stored.setup.lastBackupAt)}.`,
-    `In the file: ${entryBreakdown({ expenses: file.expenses.length, earnings: file.earnings.length, transfers: file.transfers.length })}, ${exported}.`,
+    `In the tracker now: ${entryBreakdown(stored)}. ${changedText(here)}. ${backupText(stored.setup.lastBackupAt)}.`,
+    `In the file: ${entryBreakdown({ expenses: file.expenses.length, earnings: file.earnings.length, transfers: file.transfers.length })}, ${exported}. ${changedText(there)}.`,
+    ...(newerHere ? ["", "The tracker has newer changes than this file: replacing it loses them."] : []),
     "",
     "This can't be undone.",
   ].join("\n");
+}
+
+/** With seconds: two backups taken minutes apart must still read differently. */
+function changedText(iso: string | undefined): string {
+  return iso ? `Last updated ${dateTime(iso, true)}` : "No last-updated time";
 }
 
 function backupText(iso: string | undefined): string {
@@ -114,6 +124,9 @@ export function SettingsView() {
         return;
       }
       const { year } = check.file;
+      // Reloaded first: the list is from when the year was opened, and the question compares
+      // entry counts and last-updated times with what's stored now.
+      await refreshYears();
       const stored = years.value.find((y) => y.setup.year === year);
       if (stored && !confirm(replaceQuestion(file.name, stored, check.file))) return;
       await importYear(data);

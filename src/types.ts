@@ -160,6 +160,11 @@ export interface YearFile {
    */
   start?: IsoDate;
   exportedAt: string;
+  /**
+   * When an entry was last added, changed or deleted (ISO timestamp): the ledger's "Last updated".
+   * Of two backups of a year, the later one holds the newer data. Left out until the first change.
+   */
+  lastChangedAt?: string;
   /** Set by "Close year"; a closed year is read-only. Left out while the year is open. */
   closed?: boolean;
   accounts: Account[];
@@ -192,12 +197,7 @@ export interface FileSettings {
 }
 
 /** The parts of a YearFile that are set up once, not entered day to day. */
-export type YearSetup = Pick<YearFile, "year" | "start" | "closed" | "accounts" | "categories" | "tags" | "members" | "budgets" | "iraLimit" | "iraBeforeStart"> & {
+export type YearSetup = Pick<YearFile, "year" | "start" | "closed" | "accounts" | "categories" | "tags" | "members" | "budgets" | "iraLimit" | "iraBeforeStart" | "lastChangedAt"> & {
   /** When this year was last exported to JSON (ISO timestamp), for the backup reminder. */
   lastBackupAt?: string;
-  /**
-   * When an entry was last added, changed or deleted on this device (ISO timestamp), for the
-   * ledger's "Last updated". Like lastBackupAt, it stays here: backups don't carry it.
-   */
-  lastChangedAt?: string;
 };

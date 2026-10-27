@@ -314,6 +314,11 @@ second, so backups from different days and devices sit side by side.
 
 A backup holds everything needed to rebuild the year on a clean device:
 
+- `lastChangedAt`, when an entry was last added, changed or deleted (the ledger's
+  "Last updated"; stamped by `saveEntry`, `removeEntry` and setup changes that move
+  entries, in `state.ts`). Of two backups of a year, the later one is newer; importing
+  over a year shows both times and warns when the tracker's is later. Left out until
+  the first change.
 - `closed: true` for a closed year, so it comes back read-only (left out while open).
 - `iraLimit`, the year's IRA limit: the one set on the Settings page, or else the IRS
   limit for that year. Every backup writes it; in older files without it, the IRS
@@ -324,7 +329,7 @@ A backup holds everything needed to rebuild the year on a clean device:
   importing applies them only when the device has none saved yet; restoring an
   old year never undoes today's pins.
 
-All three are optional on import, so older backups still import. `tests/transfer.test.ts`
+All four are optional on import, so older backups still import. `tests/transfer.test.ts`
 moves a year that uses every optional field to a clean device and back; its file
 is typed `Required<YearFile>`, so a field added later must be added there too. What is left out on
 purpose: `lastBackupAt` (an import counts as a backup at `exportedAt`), the year

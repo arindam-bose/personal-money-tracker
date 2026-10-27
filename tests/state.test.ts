@@ -44,10 +44,16 @@ describe("state changes", () => {
 describe("last updated", () => {
   const stamp = async () => (await loadYear(2026))!.setup.lastChangedAt;
 
-  it("starts unknown after an import, and backups don't carry it", async () => {
+  it("is unknown for a file without one, then backed up and restored with the year", async () => {
     expect(await stamp()).toBeUndefined();
-    await saveEntry({ kind: "expense", entry: current.value!.expenses[0]! });
     expect(await exportYear(2026)).not.toHaveProperty("lastChangedAt");
+    await saveEntry({ kind: "expense", entry: current.value!.expenses[0]! });
+    const saved = await stamp();
+    const backup = (await exportYear(2026))!;
+    expect(backup.lastChangedAt).toBe(saved);
+    await freshDb();
+    await importYear(JSON.parse(JSON.stringify(backup)));
+    expect(await stamp()).toBe(saved);
   });
 
   it("is stamped by saving and deleting entries, in storage and on screen", async () => {

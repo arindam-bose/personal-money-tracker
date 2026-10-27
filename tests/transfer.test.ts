@@ -20,6 +20,7 @@ function everything(): Required<YearFile> {
   return {
     ...f,
     start: "2026-01-15",
+    lastChangedAt: "2026-10-26T22:16:00.000Z",
     closed: true,
     accounts: [
       ...f.accounts.map((a, i) => (i === 0 ? { ...a, archived: true } : a.type === "investment"
