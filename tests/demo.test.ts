@@ -81,8 +81,9 @@ describe("the demo file", () => {
     const f = demoYear(2026, NOW);
     expect(await importYear(f)).toMatchObject({ ok: true });
     const back = (await exportYear(2026))!;
-    expect(back.expenses).toHaveLength(f.expenses.length);
-    expect(back.accounts).toEqual(f.accounts);
+    // Byte for byte what the app's own backup of it would be, so the demo is just like one.
+    const text = (y: typeof f) => JSON.stringify({ ...y, exportedAt: "" }, null, 1);
+    expect(text(back)).toBe(text(f));
     expect(demoFileName(2026)).toBe("money-tracker-demo-2026.json");
   });
 });

@@ -20,7 +20,7 @@
 import { localToday } from "./derive";
 import { DEFAULT_MEMBER } from "./members";
 import { emptyYearFile } from "./rollover";
-import { blankSetup } from "./setup";
+import { blankSetup, iraLimitOf } from "./setup";
 import type { Account, Earning, Expense, IsoDate, Transfer, YearFile } from "./types";
 
 /** One entry before it gets its id: the demo builds them month by month, then numbers them by date. */
@@ -153,6 +153,8 @@ export function demoYear(year: number, now = new Date()): YearFile {
         [`${year}-07`]: { "ce_food-drinks": 110000, ce_housing: 270000, ce_transport: 80000 },
         [`${year}-12`]: { ce_shopping: 50000 },
       },
+      // Written out, as every backup writes it, so the demo file is just like one.
+      iraLimit: iraLimitOf({ year }),
     }, now),
     expenses: number(expenses, "e"),
     earnings: number(earnings, "i"),
