@@ -283,8 +283,8 @@ function AccountsTable(props: { overview: ReturnType<typeof accountsOverview>; a
   // Archived accounts show while they hold money or a value; closed ones only before the day they closed.
   const live = props.accounts.filter((a) => !o.closed.has(a.id) && (!a.archived || bal(a) !== 0 || o.valuations.has(a.id)));
   const cardStatus = new Map(o.cards.map((c) => [c.account.id, c]));
-  // Each group largest first: cash by balance, cards by how much of the limit is used, investments
-  // and assets by their latest value. Cards without a limit and anything not valued yet go last.
+  // Each group largest first: cash by balance, cards by how much of the limit is used, loans by
+  // what's owed, investments and assets by their latest value. Cards without a limit and anything not valued yet go last.
   const worth = (a: Account) => o.valuations.get(a.id)?.amount ?? -Infinity;
   const SORT_BY: Partial<Record<Account["type"], (a: Account) => number>> = {
     checking: bal, savings: bal, cash: bal,
@@ -330,7 +330,7 @@ function AccountsTable(props: { overview: ReturnType<typeof accountsOverview>; a
           <td>Card debt · {formatPercent(o.utilization)} of limits</td>
           <td class="num">{formatCents(o.cardDebt)}</td>
         </tr>
-        {o.loans.filter((l) => !l.account.archived || l.owed !== 0).map((l) => (
+        {o.loans.filter((l) => !l.account.archived || l.owed !== 0).sort((a, b) => b.owed - a.owed).map((l) => (
           <tr>
             <td>{l.account.name}</td>
             <td class="num">
