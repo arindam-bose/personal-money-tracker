@@ -23,6 +23,9 @@ const TOP_CATEGORIES = 6;
 /** How many credit cards get their own slice in Credit card usage; the rest fold into "Other cards". */
 const TOP_CARDS = 10;
 
+/** A stacked bar segment, rounded at the top only when it's the bar's top segment. */
+const stackSegment = (value: number, isTop: boolean) => ({ value, itemStyle: { borderRadius: isTop ? [4, 4, 0, 0] : 0 } });
+
 /** Tooltip values in dollars and cents. */
 const money = (v: unknown) => formatCents(Number(v));
 
@@ -250,12 +253,10 @@ function CashFlowCard({ ledger: l, months }: { ledger: Ledger; months: MonthRang
   // so it's drawn as zero there, and the tooltip and table give the real figure.
   const pair = (stack: string, color: string, net: string, whole: string, nets: number[], wholes: number[]) => {
     const shown = nets.map((n, m) => Math.max(0, Math.min(n, wholes[m]!)));
-    // Only the top segment of each bar gets rounded corners.
-    const top = (value: number, isTop: boolean) => ({ value, itemStyle: { borderRadius: isTop ? [4, 4, 0, 0] : 0 } });
     return [
-      { name: net, type: "bar", stack, data: shown.map((v, m) => top(v, v >= wholes[m]!)),
+      { name: net, type: "bar", stack, data: shown.map((v, m) => stackSegment(v, v >= wholes[m]!)),
         itemStyle: { color, borderColor: surface, borderWidth: 1 }, barMaxWidth: 24, barGap: "15%" },
-      { name: whole, type: "bar", stack, data: shown.map((v, m) => top(wholes[m]! - v, true)),
+      { name: whole, type: "bar", stack, data: shown.map((v, m) => stackSegment(wholes[m]! - v, true)),
         itemStyle: { color, opacity: 0.4, borderColor: surface, borderWidth: 1 }, barMaxWidth: 24 },
     ];
   };
@@ -430,10 +431,10 @@ function WeeklyEarningCard({ ledger: l, year, start, lastDate }: { ledger: Ledge
     xAxis: { type: "category", data: weeks.map((w) => label(w.start)), ...axisStyle(), splitLine: { show: false } },
     yAxis: { type: "value", ...axisStyle(), axisLine: { show: false }, axisLabel: { color: token("--muted"), formatter: formatCompact } },
     series: [
-      { name: "Net earned", type: "bar", stack: "week", barMaxWidth: 24, data: weeks.map((w) => w.net),
+      { name: "Net earned", type: "bar", stack: "week", barMaxWidth: 24, data: weeks.map((w) => stackSegment(w.net, w.other === 0)),
         itemStyle: { color: c1, borderColor: surface, borderWidth: 1 } },
-      { name: "Other earnings", type: "bar", stack: "week", barMaxWidth: 24, data: weeks.map((w) => w.other),
-        itemStyle: { color: c1, opacity: 0.4, borderColor: surface, borderWidth: 1, borderRadius: [4, 4, 0, 0] } },
+      { name: "Other earnings", type: "bar", stack: "week", barMaxWidth: 24, data: weeks.map((w) => stackSegment(w.other, true)),
+        itemStyle: { color: c1, opacity: 0.4, borderColor: surface, borderWidth: 1 } },
     ],
   };
   return (
@@ -451,11 +452,14 @@ function CardUsageCard({ ledger: l }: { ledger: Ledger }) {
   const colors = seriesColors(10);
   const surface = token("--surface");
   // The ten cards that paid the most get a slice; any smaller ones share "Other cards", so the
-  // fold only ever hides the smallest. Colours go by the named cards' order in the account
-  // list, so they don't swap as amounts change. Slices and rows run largest first.
+  // fold only ever hides the smallest. With ten cards or fewer, a card's colour is its place in
+  // the account list, used or not, so colours never swap as amounts change. With more, the
+  // colours go by the named cards' order. Slices and rows run largest first.
   const cards = cardSpending(l);
   const biggest = new Set([...cards].filter((c) => c.spent > 0).sort((a, b) => b.spent - a.spent).slice(0, TOP_CARDS));
-  const named = cards.filter((c) => biggest.has(c)).map((c, i) => ({ id: c.account.id, name: c.account.name, spent: c.spent, color: colors[i]! }));
+  const named = cards.filter((c) => biggest.has(c)).map((c, i) => ({
+    id: c.account.id, name: c.account.name, spent: c.spent, color: colors[cards.length <= TOP_CARDS ? cards.indexOf(c) : i]!,
+  }));
   const others = cards.filter((c) => !biggest.has(c)).reduce((a, c) => a + c.spent, 0);
   const slices = [...named, ...(others ? [{ id: "", name: "Other cards", spent: others, color: token("--series-other") }] : [])]
     .filter((c) => c.spent > 0).sort((a, b) => b.spent - a.spent);

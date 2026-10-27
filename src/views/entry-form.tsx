@@ -113,8 +113,8 @@ export function EntryForm({ initial, onClose }: Props) {
     if (e.key === "Escape") {
       e.preventDefault();
       onClose();
-    } else if (e.key === "Enter" && ((e.target as HTMLElement).tagName === "SELECT" || (e.target as HTMLElement).classList.contains("search-select-button"))) {
-      // Enter in a dropdown saves too (browsers only do this for text fields).
+    } else if (e.key === "Enter" && (e.target as HTMLElement).tagName === "SELECT") {
+      // Enter in a dropdown saves too (browsers only do this for text fields; SearchSelect does it itself).
       e.preventDefault();
       (e.currentTarget as HTMLFormElement).requestSubmit();
     }

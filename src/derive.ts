@@ -560,6 +560,14 @@ export function weeksOf(year: number): { start: IsoDate; end: IsoDate }[] {
   return weeks;
 }
 
+const WEEK_MS = 7 * 24 * 60 * 60 * 1000;
+
+/** Which of weeksOf's weeks a date falls in, or -1: counted from the first Monday, not searched for. */
+function weekIndex(weeks: { start: IsoDate }[], date: IsoDate): number {
+  const i = Math.floor((Date.parse(date) - Date.parse(weeks[0]!.start)) / WEEK_MS);
+  return i < weeks.length ? i : -1;
+}
+
 export interface WeekSpend {
   start: IsoDate;
   end: IsoDate;
@@ -571,7 +579,7 @@ export function weeklySpending(ledger: Ledger, year: number): WeekSpend[] {
   const weeks: WeekSpend[] = weeksOf(year).map((w) => ({ ...w, bySource: { bank: 0, card: 0, cash: 0 } }));
   const accountType = new Map(ledger.accounts.map((a) => [a.id, a.type]));
   for (const e of ledger.expenses) {
-    const week = weeks.find((w) => e.date >= w.start && e.date <= w.end);
+    const week = weeks[weekIndex(weeks, e.date)];
     if (week) week.bySource[spendSource(accountType.get(e.account) ?? "checking")] += e.amount;
   }
   return weeks;
@@ -591,7 +599,7 @@ export function weeklyEarnings(ledger: Ledger, year: number): WeekEarn[] {
   const weeks: WeekEarn[] = weeksOf(year).map((w) => ({ ...w, net: 0, other: 0 }));
   const net = netEarningCategories(ledger);
   for (const e of ledger.earnings) {
-    const week = weeks.find((w) => e.date >= w.start && e.date <= w.end);
+    const week = weeks[weekIndex(weeks, e.date)];
     if (week) week[net.has(e.cat) ? "net" : "other"] += e.amount;
   }
   return weeks;

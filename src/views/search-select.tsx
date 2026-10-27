@@ -1,7 +1,7 @@
 // A dropdown with a search box: looks like a <select>, but opens a list you can type into.
 // Used where lists get long (accounts, categories, tags). Keyboard: Down, Space or typing
-// opens it; arrows move; Enter picks; Esc or Tab closes. Enter on the closed button is left to
-// the page, so in the entry form it still saves, as on a plain dropdown.
+// opens it; arrows move; Enter picks; Esc or Tab closes. Enter on the closed button saves the
+// form it's in, as on a plain dropdown; outside a form it opens the list.
 
 import { useSignal } from "@preact/signals";
 import { Fragment } from "preact";
@@ -60,12 +60,14 @@ export function SearchSelect(props: {
     if (c.value !== props.value) props.onChange(c.value);
   }
 
-  // A click anywhere else closes it. Focus moves to the search box by hand: browsers
-  // ignore autofocus on elements added after the page has loaded.
+  // A click anywhere else closes it. Clicks on a <label> around it are left to the button, which
+  // the label clicks: closing here too would have the button open it straight back up. Focus
+  // moves to the search box by hand: browsers ignore autofocus on elements added after load.
   useEffect(() => {
     if (!open.value) return;
     search.current?.focus();
-    const outside = (e: MouseEvent) => !root.current?.contains(e.target as Node) && close(false);
+    const zone = root.current?.closest("label") ?? root.current;
+    const outside = (e: MouseEvent) => !zone?.contains(e.target as Node) && close(false);
     document.addEventListener("mousedown", outside);
     return () => document.removeEventListener("mousedown", outside);
   }, [open.value]);
@@ -76,7 +78,12 @@ export function SearchSelect(props: {
   }, [active.value, open.value]);
 
   function onButtonKey(e: KeyboardEvent) {
-    if (e.key === "ArrowDown" || e.key === "ArrowUp" || e.key === " ") {
+    const form = button.current?.closest("form");
+    if (e.key === "Enter" && form) {
+      // Saves, instead of the button's own Enter, which would open the list.
+      e.preventDefault();
+      form.requestSubmit();
+    } else if (e.key === "ArrowDown" || e.key === "ArrowUp" || e.key === " ") {
       e.preventDefault();
       show();
     } else if (e.key.length === 1 && !e.ctrlKey && !e.metaKey && !e.altKey) {

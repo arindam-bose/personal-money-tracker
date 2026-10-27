@@ -210,6 +210,14 @@ describe("report series", () => {
     expect(total).toBe(summarize(ledger).earned);
   });
 
+  it("puts an entry on a Sunday in that week, and one on Monday in the next", () => {
+    const at = (date: string) => weeklySpending({ ...ledger, expenses: [{ ...ledger.expenses[0]!, date, amount: 100 }] }, 2026)
+      .findIndex((w) => w.bySource.bank + w.bySource.card + w.bySource.cash === 100);
+    expect(at("2026-01-04")).toBe(0); // Sunday: still the week of Dec 29
+    expect(at("2026-01-05")).toBe(1); // Monday
+    expect(at("2026-12-31")).toBe(52);
+  });
+
   it("weekly earnings split into net and the rest, adding up to the year", () => {
     const weeks = weeklyEarnings(ledger, 2026);
     const sum = summarize(ledger);

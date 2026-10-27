@@ -1,6 +1,6 @@
 import { beforeEach, describe, expect, it } from "vitest";
 import { exportYear, importYear, markBackedUp } from "../src/backup";
-import { deleteEntry, deleteYear, getSetting, listYears, loadYear, putEntry, putSetup, setSetting } from "../src/db";
+import { deleteYear, getSetting, listYears, loadYear, putEntryChange, putSetup, setSetting } from "../src/db";
 import { nextYearSetup } from "../src/rollover";
 import { iraLimitOf } from "../src/setup";
 import type { YearFile } from "../src/types";
@@ -65,21 +65,29 @@ describe("import and export", () => {
 });
 
 describe("single entries", () => {
-  it("adds, edits and deletes an entry, keeping date order", async () => {
+  it("adds, edits and deletes an entry with its setup, keeping date order", async () => {
     await importYear(sample());
-    await putEntry("expenses", 2026, {
+    const setup = (await loadYear(2026))!.setup;
+    await putEntryChange({ ...setup, lastChangedAt: "2026-01-02T10:00:00.000Z" }, { put: { kind: "expenses", entry: {
       id: "e_new", date: "2026-01-02", item: "Snack", amount: 300,
       account: "a_wallet", cat: "ce_food", tags: [], notes: "",
-    });
-    let ids = (await loadYear(2026))!.expenses.map((e) => e.id);
-    expect(ids.slice(0, 3)).toEqual(["e0001", "e_new", "e0002"]);
+    } } });
+    let stored = (await loadYear(2026))!;
+    expect(stored.expenses.map((e) => e.id).slice(0, 3)).toEqual(["e0001", "e_new", "e0002"]);
+    expect(stored.setup.lastChangedAt).toBe("2026-01-02T10:00:00.000Z");
 
-    await putEntry("expenses", 2026, { ...sample().expenses[0]!, amount: 1 });
+    await putEntryChange(setup, { put: { kind: "expenses", entry: { ...sample().expenses[0]!, amount: 1 } } });
     expect((await loadYear(2026))!.expenses[0]!.amount).toBe(1);
 
-    await deleteEntry("expenses", 2026, "e_new");
-    ids = (await loadYear(2026))!.expenses.map((e) => e.id);
-    expect(ids).not.toContain("e_new");
+    // Moving to another kind: the delete and the put land together.
+    const moved = { ...sample().expenses[1]!, cat: "ci_salary" };
+    await putEntryChange(setup, { remove: { kind: "expenses", id: moved.id }, put: { kind: "earnings", entry: moved } });
+    stored = (await loadYear(2026))!;
+    expect(stored.expenses.map((e) => e.id)).not.toContain(moved.id);
+    expect(stored.earnings.map((e) => e.id)).toContain(moved.id);
+
+    await putEntryChange(setup, { remove: { kind: "expenses", id: "e_new" } });
+    expect((await loadYear(2026))!.expenses.map((e) => e.id)).not.toContain("e_new");
   });
 });
 

@@ -82,6 +82,9 @@ function withoutLegacyPeople(data: Obj): Obj {
   return { ...rest, categories, expenses: withoutKey(rest.expenses, "owed"), earnings: withoutKey(rest.earnings, "person") };
 }
 
+/** A full date and time with its zone, as toISOString writes it: "2026-10-26T22:16:00.000Z". */
+const ISO_TIMESTAMP = /^\d{4}-\d{2}-\d{2}T\d{2}:\d{2}(:\d{2}(\.\d+)?)?(Z|[+-]\d{2}:\d{2})$/;
+
 export function validateYearFile(raw: unknown): ValidationResult {
   const errors: string[] = [];
   const err = (msg: string) => errors.push(msg);
@@ -108,7 +111,7 @@ export function validateYearFile(raw: unknown): ValidationResult {
   if (!isObj(data.categories)) err(`"categories" is missing.`);
   if (!isObj(data.budgets) || !isObj(data.budgets.default)) err(`"budgets.default" is missing.`);
   if (data.closed !== undefined && typeof data.closed !== "boolean") err(`"closed" must be true or false.`);
-  if (data.lastChangedAt !== undefined && !(typeof data.lastChangedAt === "string" && !Number.isNaN(Date.parse(data.lastChangedAt)))) {
+  if (data.lastChangedAt !== undefined && !(typeof data.lastChangedAt === "string" && ISO_TIMESTAMP.test(data.lastChangedAt) && !Number.isNaN(Date.parse(data.lastChangedAt)))) {
     err(`"lastChangedAt" must be a date and time, like "2026-10-26T22:16:00.000Z".`);
   }
   if (data.iraLimit !== undefined && !(isCents(data.iraLimit) && data.iraLimit >= 0)) err(`"iraLimit" is not whole cents.`);

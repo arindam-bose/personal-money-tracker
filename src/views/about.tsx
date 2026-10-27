@@ -100,7 +100,8 @@ export function AboutCard() {
             <li><b>Ledger</b>: every earning, expense and transfer, with filters and quick keyboard entry.
               Transfers (paying a card, moving money to savings) aren't spending, so they're shown apart.</li>
             <li><b>Budget</b>: a monthly target for each spending category, with what's left.</li>
-            <li><b>Reports</b>: charts of where your money went, month by month and week by week.</li>
+            <li><b>Reports</b>: where the money went, monthly cash flow, earnings and spending by category and by week,
+              and what each credit card paid for.</li>
             <li><b>Accounts</b>: your accounts, categories, tags and the people in your household.
               Earnings in <b>Lowers spending</b> categories (refunds, points, money paid back) lower net spending.
               Update what investments and assets are worth now and then, and close an account the day it's sold,

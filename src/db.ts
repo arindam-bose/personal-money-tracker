@@ -202,17 +202,19 @@ export async function putSetupAndEntries(setup: YearSetup, entries: { [K in Entr
   await committed(tx);
 }
 
-export async function putEntry<K extends EntryKind>(kind: K, year: number, entry: EntryTypes[K]): Promise<void> {
+/**
+ * One ledger change in one transaction: the setup (with its new lastChangedAt), an entry to put
+ * and/or one to delete. All of it is saved, or none, so the entry and its time never disagree.
+ */
+export async function putEntryChange(
+  setup: YearSetup,
+  change: { put?: { kind: EntryKind; entry: EntryTypes[EntryKind] }; remove?: { kind: EntryKind; id: string } },
+): Promise<void> {
   const db = await openDb();
-  const tx = db.transaction(kind, "readwrite");
-  tx.objectStore(kind).put({ ...entry, year });
-  await committed(tx);
-}
-
-export async function deleteEntry(kind: EntryKind, year: number, id: string): Promise<void> {
-  const db = await openDb();
-  const tx = db.transaction(kind, "readwrite");
-  tx.objectStore(kind).delete([year, id]);
+  const tx = db.transaction(["years", ...ENTRY_KINDS], "readwrite");
+  tx.objectStore("years").put(setup);
+  if (change.remove) tx.objectStore(change.remove.kind).delete([setup.year, change.remove.id]);
+  if (change.put) tx.objectStore(change.put.kind).put({ ...change.put.entry, year: setup.year });
   await committed(tx);
 }
 

@@ -3,7 +3,7 @@
 // update the signal, so what you see is always what is stored.
 
 import { computed, signal } from "@preact/signals";
-import { deleteEntry, deleteYear, eraseAll, getSetting, listYears, loadYear, putEntry, putSetup, putSetupAndEntries, replaceYear, setSetting, type YearData } from "./db";
+import { deleteYear, eraseAll, getSetting, listYears, loadYear, putEntryChange, putSetup, putSetupAndEntries, replaceYear, setSetting, type YearData } from "./db";
 import { ledgerOf, type Ledger } from "./derive";
 import { ID_PREFIX, STORE, duplicateEntry, newId, slug, type AnyEntry, type Kind } from "./entries";
 import { emptyYearFile, nextYearSetup } from "./rollover";
@@ -189,15 +189,15 @@ function withEntry(data: YearData, e: AnyEntry): YearData {
 export function saveEntry(e: AnyEntry, previousKind?: Kind): Promise<void> {
   return inTurn(async () => {
     const data = editable();
-    const year = data.setup.year;
     const kindChanged = previousKind !== undefined && previousKind !== e.kind;
     const next = withEntry(kindChanged ? withoutEntry(data, previousKind, e.entry.id) : data, e);
     // Checked before anything is written, so a refused change leaves storage as it was.
     assertClosedStayEmpty(data, next);
-    if (kindChanged) await deleteEntry(STORE[previousKind], year, e.entry.id);
-    await putEntry(STORE[e.kind], year, e.entry);
     const setup = touched(data.setup);
-    await putSetup(setup);
+    await putEntryChange(setup, {
+      put: { kind: STORE[e.kind], entry: e.entry },
+      ...(kindChanged ? { remove: { kind: STORE[previousKind], id: e.entry.id } } : {}),
+    });
     current.value = { ...next, setup };
   });
 }
@@ -214,9 +214,8 @@ export function removeEntry(kind: Kind, id: string): Promise<void> {
     const data = editable();
     const next = withoutEntry(data, kind, id);
     assertClosedStayEmpty(data, next);
-    await deleteEntry(STORE[kind], data.setup.year, id);
     const setup = touched(data.setup);
-    await putSetup(setup);
+    await putEntryChange(setup, { remove: { kind: STORE[kind], id } });
     current.value = { ...next, setup };
   });
 }

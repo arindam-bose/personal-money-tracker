@@ -1,6 +1,6 @@
 import { beforeEach, describe, expect, it } from "vitest";
 import { exportYear, importYear } from "../src/backup";
-import { getSetting, listYears, loadYear, putEntry, putSetup, setSetting } from "../src/db";
+import { getSetting, listYears, loadYear, putEntryChange, setSetting } from "../src/db";
 import { current, ensureTag, eraseEverything, openYear, pinnedTags, removeEntry, removeYear, removeTag, saveEntry, setBudget, years } from "../src/state";
 import { freshDb, sample } from "./helpers";
 
@@ -67,6 +67,16 @@ describe("last updated", () => {
     expect(Date.parse((await stamp())!)).toBeGreaterThan(Date.parse(saved!));
   });
 
+  it("moves an entry to another kind in one go: gone from the old list, in the new one, stamped", async () => {
+    const e = current.value!.expenses[0]!;
+    const asEarning = { id: e.id, date: e.date, item: e.item, amount: e.amount, notes: e.notes, cat: current.value!.setup.categories.earning[0]!.id, account: e.account };
+    await saveEntry({ kind: "earning", entry: asEarning }, "expense");
+    const stored = (await loadYear(2026))!;
+    expect(stored.expenses.some((x) => x.id === e.id)).toBe(false);
+    expect(stored.earnings.find((x) => x.id === e.id)).toMatchObject({ item: e.item, amount: e.amount });
+    expect(stored.setup.lastChangedAt).toBeDefined();
+  });
+
   it("isn't stamped by setup changes that leave entries alone, but is when they move entries", async () => {
     await setBudget("default", "ce_food", 1);
     expect(await stamp()).toBeUndefined();
@@ -81,8 +91,8 @@ describe("years saved before people were dropped", () => {
   async function storeOldShape(closed: boolean) {
     const { setup, expenses } = (await loadYear(2026))!;
     const earning = setup.categories.earning.map((c) => (c.id === "ci_payback" ? { ...c, role: "reimbursement" } : c));
-    await putSetup({ ...setup, closed, categories: { ...setup.categories, earning }, people: [{ id: "p_sam", name: "Sam" }] } as never);
-    await putEntry("expenses", 2026, { ...expenses[2]!, owed: { person: "p_sam", amount: 3000 } } as never);
+    await putEntryChange({ ...setup, closed, categories: { ...setup.categories, earning }, people: [{ id: "p_sam", name: "Sam" }] } as never,
+      { put: { kind: "expenses", entry: { ...expenses[2]!, owed: { person: "p_sam", amount: 3000 } } as never } });
   }
 
   it("cleans an open year and saves it that way", async () => {

@@ -53,7 +53,7 @@ this started). TypeScript is strict, including `noUncheckedIndexedAccess`.
 | `src/members.ts` | The default member and `membersOf`, apart so `entries.ts` can use them without an import loop. |
 | `src/rollover.ts` | What the next year starts with when a year is closed. |
 | `src/state.ts` | The open year as Preact signals, and the actions that change it. |
-| `src/views/` | One Preact view per page, plus `chart.tsx` (the ECharts wrapper) and `people.tsx` (the person picker). |
+| `src/views/` | One Preact view per page, plus `chart.tsx` (the ECharts wrapper), `people.tsx` (the person picker) and `search-select.tsx` (the dropdown with a search box, used for accounts, categories, tags and the ledger filters). |
 | `tools/` | Python: Notion export to JSON (`notion_import.py`), and a checker (`verify.py`). |
 | `tests/` | Vitest. `fixtures/` holds synthetic data only. |
 | `data/` | Your real data and Notion exports. Git-ignored; never commit it. |
@@ -350,7 +350,7 @@ already exists, it is left alone. A closed year can be reopened.
 | Dashboard | `views/dashboard.tsx` | Month or year view; figures and simple HTML bars. |
 | Ledger | `views/ledger.tsx`, `views/entry-form.tsx` | One table for all three kinds; filters kept per tab in `sessionStorage`. |
 | Budget | `views/budget.tsx` | Enter moves down a column; saves on Enter or blur. |
-| Reports | `views/reports.tsx` | Loaded on demand (see Charts). |
+| Reports | `views/reports.tsx` | Loaded on demand (see Charts). Earning and Expense reports are tabbed sections; each remembers its tab in `sessionStorage`. |
 | Accounts | `views/accounts.tsx` | Accounts can be deleted only when no entry uses them. Categories always (entries move to Uncategorized), and tags always (they come off their entries). |
 | Settings | `views/settings.tsx`, `views/about.tsx` | Import, export, close/reopen, delete a year, start from scratch, the year's IRA settings, appearance, offline, erase everything, the demo file, about. |
 
@@ -376,17 +376,20 @@ when they were made: the ledger shows the newest first within a day. Imported id
 ## Charts
 
 `views/chart.tsx` wraps ECharts 6 and registers only the parts used (sankey, bar,
-line; grid, legend, tooltip; SVG renderer). The Reports page is a separate chunk
+line, pie; grid, legend, title, tooltip; SVG renderer). A chart type or component
+used without being registered draws nothing, silently: register it there first. The Reports page is a separate chunk
 loaded when first opened, so ECharts (~200 kB gzipped) never slows the rest of
 the app.
 
-Chart colours are CSS tokens (`--series-1` … `--series-6` in `style.css`), with
+Chart colours are CSS tokens (`--series-1` … `--series-10` in `style.css`), with
 separate light and dark steps. The palette was checked for colour-blind
 separation against the app's light (`#ffffff`) and dark (`#1f1f21`) surfaces.
 Three light-mode colours are below 3:1 contrast, so every chart has a table view
-under it. Colours follow the category's rank over the whole year, so they don't
-change between views; past six categories the rest fold into "Other". Animation
-is off under `prefers-reduced-motion`.
+under it. Charts use the first six (`seriesColors()`): colours follow the category's
+rank over the whole year, so they don't change between views, and past six the rest
+fold into "Everything else". Only Credit card usage takes ten (`seriesColors(10)`):
+past six some pairs sit close, so it also labels every slice. Animation is off
+under `prefers-reduced-motion`.
 
 ## The Notion importer
 
