@@ -6,7 +6,7 @@ import { useEffect, useRef } from "preact/hooks";
 import { MONTH_NAMES, dateTime, inMonth, localToday, monthsBefore, shortDate } from "../derive";
 import { draftFrom, emptyDraft, type AnyEntry, type Draft, type Kind } from "../entries";
 import { formatCents } from "../money";
-import { membersOf } from "../setup";
+import { membersOf, uncategorizedId } from "../setup";
 import { current, duplicate, readOnly } from "../state";
 import type { YearSetup } from "../types";
 import { yearStart } from "../year";
@@ -199,7 +199,8 @@ export function LedgerView() {
     if (year === undefined || readOnly.value || current.value!.setup.accounts.length === 0) return;
     // Filtered to one person: the new entry is theirs, so it stays in view once saved.
     const member = live.value.member === membersOf(current.value!.setup)[0]!.id ? "" : live.value.member;
-    form.value = { ...emptyDraft(kind, defaultDate(current.value!.setup)), member };
+    // New entries start as Uncategorized, so a quick entry can be saved and sorted out later.
+    form.value = { ...emptyDraft(kind, defaultDate(current.value!.setup)), member, cat: uncategorizedId(current.value!.setup, kind) ?? "" };
     window.scrollTo({ top: 0 });
   }
 

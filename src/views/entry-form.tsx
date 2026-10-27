@@ -8,7 +8,7 @@ import {
   checkDraft, earningRole, suggestTransferCategory,
   type AnyEntry, type Draft, type DraftErrors, type DraftField, type Kind,
 } from "../entries";
-import { membersOf } from "../setup";
+import { membersOf, uncategorizedId } from "../setup";
 import { current, ensureTag, nextEntryId, removeEntry, saveEntry } from "../state";
 import type { Account, YearSetup } from "../types";
 import { yearStart } from "../year";
@@ -35,6 +35,8 @@ export function EntryForm({ initial, onClose }: Props) {
   const itemRef = useRef<HTMLInputElement>(null);
   const editing = initial.id !== undefined;
   const d = draft.value;
+  /** A new entry's category until one is picked: the kind's Uncategorized. */
+  const defaultCat = (kind: Kind) => uncategorizedId(setup, kind) ?? "";
 
   useEffect(() => itemRef.current?.focus(), []);
 
@@ -42,7 +44,7 @@ export function EntryForm({ initial, onClose }: Props) {
     let next = { ...draft.value, [field]: value };
     if (next.kind === "transfer" && !catPicked.value && (field === "from" || field === "to" || field === "kind")) {
       const byId = (id: string) => setup.accounts.find((a) => a.id === id);
-      next = { ...next, cat: suggestTransferCategory(byId(next.from), byId(next.to), setup) ?? "" };
+      next = { ...next, cat: suggestTransferCategory(byId(next.from), byId(next.to), setup) ?? defaultCat("transfer") };
     }
     draft.value = next;
     saved.value = null;
@@ -54,7 +56,7 @@ export function EntryForm({ initial, onClose }: Props) {
     // Categories differ per kind; carry over the account sensibly.
     const old = draft.value;
     draft.value = {
-      ...old, kind, cat: "",
+      ...old, kind, cat: defaultCat(kind),
       from: kind === "transfer" ? old.from || old.account : old.from,
       account: kind !== "transfer" ? old.account || old.from : old.account,
     };
@@ -82,7 +84,7 @@ export function EntryForm({ initial, onClose }: Props) {
     if (editing) return onClose();
     // Ready for the next entry: keep kind, date and accounts, clear the rest.
     draft.value = { ...dr, item: "", amount: "", notes: "", tags: [], offsets: "",
-      cat: dr.kind === "transfer" ? dr.cat : "" };
+      cat: dr.kind === "transfer" ? dr.cat : defaultCat(dr.kind) };
     tried.value = false;
     errors.value = {};
     saved.value = `Saved “${r.entry.entry.item}”.`;
