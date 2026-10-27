@@ -146,7 +146,7 @@ export function DashboardView() {
         <Tile label="Savings" value={formatCents(sum.netSavings)}
           detail={`${formatPercent(sum.savingsRate)} of paychecks`} />
         <Tile label="Investment" value={formatCents(sum.investment)}
-          detail={`${formatPercent(sum.investmentRate)} of paychecks · retirement ${formatPercent(sum.investment ? sum.investRetirement / sum.investment : null)}, taxable ${formatPercent(sum.investment ? sum.investTaxable / sum.investment : null)}`} />
+          detail={[`${formatPercent(sum.investmentRate)} of paychecks`, `Retirement ${formatPercent(sum.investment ? sum.investRetirement / sum.investment : null)}`, `Taxable ${formatPercent(sum.investment ? sum.investTaxable / sum.investment : null)}`]} />
         <Tile label="Credit card payments" value={formatCents(sum.ccPayments)} detail="Transfers, not counted in spending" />
         <Tile label="Charity" value={formatCents(sum.charity)} detail={`${formatPercent(sum.charityRate)} of paychecks`} />
         <Tile label="Loan payments" value={formatCents(sum.loanPayments)} detail="Transfers to loans, not counted in spending" />
