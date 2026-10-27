@@ -201,8 +201,8 @@ export function slug(name: string): string {
   return name.toLowerCase().replace(/[^a-z0-9]+/g, "-").replace(/^-|-$/g, "");
 }
 
-/** Added to the item of a duplicated entry: "Transfer to savings" -> "Transfer to savings-new". */
-export const DUPLICATE_SUFFIX = "-new";
+/** Added to the item of a duplicated entry: "Transfer to savings" -> "Transfer to savings (new)". */
+export const DUPLICATE_SUFFIX = " (new)";
 
 /**
  * A copy of an entry under a new id, with every value the same except the item, which

@@ -202,7 +202,7 @@ export function saveEntry(e: AnyEntry, previousKind?: Kind): Promise<void> {
   });
 }
 
-/** Save a copy of an entry with "-new" added to its item. Returns the copy. */
+/** Save a copy of an entry with " (new)" added to its item. Returns the copy. */
 export async function duplicate(e: AnyEntry): Promise<AnyEntry> {
   const copy = duplicateEntry(e, nextEntryId(e.kind));
   await saveEntry(copy);

@@ -124,18 +124,18 @@ describe("ids", () => {
 });
 
 describe("duplicateEntry", () => {
-  it("copies every value under a new id, adding -new to the item", () => {
+  it("copies every value under a new id, adding (new) to the item", () => {
     const transfer = { kind: "transfer" as const, entry: file.transfers[1]! }; // "To savings"
     expect(duplicateEntry(transfer, "x_copy")).toEqual({
       kind: "transfer",
-      entry: { ...file.transfers[1], id: "x_copy", item: "To savings-new" },
+      entry: { ...file.transfers[1], id: "x_copy", item: "To savings (new)" },
     });
   });
 
   it("copies tags instead of sharing them", () => {
     const original = { kind: "expense" as const, entry: file.expenses[2]! }; // dinner for two
     const copy = duplicateEntry(original, "e_copy");
-    expect(copy.entry).toMatchObject({ item: "Dinner for two-new", amount: 6000 });
+    expect(copy.entry).toMatchObject({ item: "Dinner for two (new)", amount: 6000 });
     if (copy.kind !== "expense") throw new Error("kind changed");
     expect(copy.entry.tags).not.toBe(original.entry.tags);
     expect(original.entry.item).toBe("Dinner for two"); // the original is untouched
@@ -143,6 +143,6 @@ describe("duplicateEntry", () => {
 
   it("keeps offset targets on earnings", () => {
     const refund = { kind: "earning" as const, entry: file.earnings[2]! };
-    expect(duplicateEntry(refund, "i_copy").entry).toMatchObject({ item: "Grocery refund-new", offsets: "ce_food" });
+    expect(duplicateEntry(refund, "i_copy").entry).toMatchObject({ item: "Grocery refund (new)", offsets: "ce_food" });
   });
 });

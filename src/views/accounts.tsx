@@ -174,7 +174,7 @@ function AccountsCard({ setup, usage }: { setup: YearSetup; usage: Usage }) {
                           </button>
                         )}
                         <button type="button" onClick={() => (editing.value = a.id)}>Edit</button>
-                        <button type="button" onClick={() => copy(a)} title={`Add a copy named “${a.name}_new”`}>Duplicate</button>
+                        <button type="button" onClick={() => copy(a)} title={`Add a copy named “${a.name} (new)”`}>Duplicate</button>
                         {a.closedOn ? (
                           <button type="button" onClick={() => reopen(a)} title="Undo closing it: it counts again, and takes entries after that day">Reopen</button>
                         ) : (

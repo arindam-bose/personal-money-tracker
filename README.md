@@ -67,7 +67,7 @@ entry, a loan, investments and a car, and accounts that were closed.
   the Accounts page. Then each entry can be logged for one person, and the
   Dashboard, Ledger and Reports can show **All people** or one person at a time.
   Accounts and budgets stay shared by everyone.
-  **Duplicate** an account to start a similar one (the copy is named "…_new").
+  **Duplicate** an account to start a similar one (the copy is named "… (new)").
 - **Settings**: import a year, or start one from scratch (from January 1 or any
   later day); back up, and close a finished year, which starts the next one from
   its closing balances. Also each year's IRA limit; **Delete…** to remove one
@@ -83,7 +83,7 @@ entry, a loan, investments and a car, and accounts that were closed.
 | <kbd>/</kbd> | Search |
 | <kbd>Enter</kbd> | Save the form, or edit the selected row |
 | <kbd>Esc</kbd> | Close the form |
-| <kbd>D</kbd> | Duplicate the selected row (the copy's name ends in "-new") |
+| <kbd>D</kbd> | Duplicate the selected row (the copy's name ends in "(new)") |
 
 ---
 

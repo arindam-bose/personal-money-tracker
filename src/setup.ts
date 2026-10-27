@@ -151,7 +151,7 @@ export function withLoanPayments(setup: YearSetup): YearSetup {
 }
 
 /**
- * Copy an account, named "<name>_new" ("_new2", "_new3"… if that's taken), right below the
+ * Copy an account, named "<name> (new)" ("(new 2)", "(new 3)"… if that's taken), right below the
  * original. Everything else is copied as is, opening balance included; the copy is never archived
  * and has no balance updates (it doesn't hold the original's investments).
  * Returns the new setup and the copy's id.
@@ -161,8 +161,8 @@ export function duplicateAccount(setup: YearSetup, id: string): { setup: YearSet
   if (at < 0) throw new SetupError("That account no longer exists.");
   const { archived: _a, valuations: _v, closedOn: _c, ...original } = setup.accounts[at]!;
   const taken = new Set(setup.accounts.map((a) => a.name.toLowerCase()));
-  let name = `${original.name}_new`;
-  for (let n = 2; taken.has(name.toLowerCase()); n++) name = `${original.name}_new${n}`;
+  let name = `${original.name} (new)`;
+  for (let n = 2; taken.has(name.toLowerCase()); n++) name = `${original.name} (new ${n})`;
   const copy: Account = { ...original, id: idFor("a", name, new Set(setup.accounts.map((a) => a.id))), name };
   const accounts = [...setup.accounts.slice(0, at + 1), copy, ...setup.accounts.slice(at + 1)];
   return { setup: { ...setup, accounts }, id: copy.id };

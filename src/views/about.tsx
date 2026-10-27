@@ -117,7 +117,7 @@ export function AboutCard() {
               <tr><td><kbd>/</kbd></td><td>Search</td></tr>
               <tr><td><kbd>Enter</kbd></td><td>Save the form, or edit the selected row</td></tr>
               <tr><td><kbd>Esc</kbd></td><td>Close the form</td></tr>
-              <tr><td><kbd>D</kbd></td><td>Duplicate the selected row (the copy's name ends in "-new")</td></tr>
+              <tr><td><kbd>D</kbd></td><td>Duplicate the selected row (the copy's name ends in "(new)")</td></tr>
             </tbody>
           </table>
         </DialogFact>

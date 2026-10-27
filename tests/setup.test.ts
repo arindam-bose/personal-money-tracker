@@ -22,15 +22,15 @@ describe("usageOf", () => {
 });
 
 describe("accounts", () => {
-  it("duplicates an account as <name>_new, right below it", () => {
+  it("duplicates an account as <name> (new), right below it", () => {
     const card = setup.accounts.find((a) => a.id === "a_card")!;
     const r = duplicateAccount({ ...setup, accounts: setup.accounts.map((a) => (a.id === "a_card" ? { ...a, archived: true } : a)) }, "a_card");
     const at = r.setup.accounts.findIndex((a) => a.id === "a_card");
-    expect(r.setup.accounts[at + 1]).toEqual({ ...card, id: r.id, name: `${card.name}_new` });
+    expect(r.setup.accounts[at + 1]).toEqual({ ...card, id: r.id, name: `${card.name} (new)` });
     expect(r.setup.accounts).toHaveLength(setup.accounts.length + 1);
     // A second copy can't take the same name.
     const again = duplicateAccount(r.setup, "a_card");
-    expect(again.setup.accounts.find((a) => a.id === again.id)!.name).toBe(`${card.name}_new2`);
+    expect(again.setup.accounts.find((a) => a.id === again.id)!.name).toBe(`${card.name} (new 2)`);
     expect(new Set(again.setup.accounts.map((a) => a.id)).size).toBe(again.setup.accounts.length);
   });
 
