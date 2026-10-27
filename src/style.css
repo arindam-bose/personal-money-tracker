@@ -271,8 +271,10 @@ kbd {
   margin-bottom: 10px;
 }
 
+/* The search gets a row of its own, as wide as the ledger; the filters and sort wrap below it. */
 .filters input[type="search"] {
-  width: 200px;
+  flex: 1 0 100%;
+  box-sizing: border-box;
 }
 
 .totals {
