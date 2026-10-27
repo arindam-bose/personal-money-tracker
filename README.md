@@ -56,7 +56,9 @@ entry, a loan, investments and a car, and accounts that were closed.
   An **Asset** account (a house, a car) has no entries: **Update value** sets
   what it's worth, which counts in net worth and carries into the next year.
   **Close…** an account on the day you sold, paid off or shut it: from then it's
-  left out of net worth and the next year.
+  left out of net worth and the next year. To keep an account that's still open
+  out of the way, **Hide** it instead: new entries stop offering it, but it still
+  counts in net worth and carries into the next year.
   A **Loan / mortgage** account takes the day it began, the amount borrowed and
   the interest rate. Interest is added monthly on what's still owed, each payment
   is a transfer into the loan (in **Loan Payments**), and what it owes comes off

@@ -170,7 +170,7 @@ export function duplicateAccount(setup: YearSetup, id: string): { setup: YearSet
 
 export function deleteAccount(setup: YearSetup, id: string, usage: Usage): YearSetup {
   const n = usage.accounts.get(id) ?? 0;
-  if (n) throw new SetupError(`This account is used by ${n} ${n === 1 ? "entry" : "entries"}. Archive it instead, to hide it from new entries.`);
+  if (n) throw new SetupError(`This account is used by ${n} ${n === 1 ? "entry" : "entries"}. Hide it instead, so new entries stop offering it.`);
   return { ...setup, accounts: setup.accounts.filter((a) => a.id !== id) };
 }
 

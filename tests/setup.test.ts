@@ -57,7 +57,7 @@ describe("accounts", () => {
   });
 
   it("deletes only unused accounts", () => {
-    expect(() => deleteAccount(setup, "a_card", usage)).toThrow("Archive it instead");
+    expect(() => deleteAccount(setup, "a_card", usage)).toThrow("Hide it instead");
     const s = saveAccount(setup, { id: "", name: "Spare", type: "cash", ref: "", opening: 0 });
     expect(deleteAccount(s, "a_spare", usage).accounts).toHaveLength(setup.accounts.length);
   });

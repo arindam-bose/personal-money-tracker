@@ -88,7 +88,7 @@ function AccountsCard({ setup, usage }: { setup: YearSetup; usage: Usage }) {
   const closing = useSignal<string | null>(null);
   const error = useSignal<string | null>(null);
   const bal = balances(ledger.value!);
-  // Open accounts first, then archived ones, then closed ones.
+  // Open accounts first, then hidden ones, then closed ones.
   const rank = (a: Account) => (a.closedOn ? 2 : a.archived ? 1 : 0);
   const sorted = [...setup.accounts].sort((a, b) => rank(a) - rank(b));
 
@@ -152,7 +152,7 @@ function AccountsCard({ setup, usage }: { setup: YearSetup; usage: Usage }) {
               <Fragment key={a.id}>
                 <tr class={a.archived || a.closedOn ? "archived" : ""}>
                   <td>
-                    {a.name}{a.archived && !a.closedOn && <span class="badge">archived</span>}
+                    {a.name}{a.archived && !a.closedOn && <span class="badge">hidden</span>}
                     {a.closedOn && <span class="badge">closed {shortDate(a.closedOn)}</span>}
                     {a.type === "loan" && <div class="tile-detail">{loanText(a)}</div>}
                     {hasValuations(a.type) && !a.closedOn && <div class="tile-detail">{worthText(a)}</div>}
@@ -180,12 +180,14 @@ function AccountsCard({ setup, usage }: { setup: YearSetup; usage: Usage }) {
                         ) : (
                           <>
                             <button type="button" onClick={() => (closing.value = closing.value === a.id ? null : a.id)}
-                              title="Sold, paid off or shut on a day: from then it's left out of net worth">
+                              title="Sold, paid off or shut down for good. Pick the day: from then it's left out of net worth and doesn't carry into next year. Move any money out first, so it ends at $0.">
                               Close…
                             </button>
                             <button type="button" onClick={() => toggleArchive(a)}
-                              title={a.archived ? "Show it again for new entries" : "Hide it from new entries; old entries keep it"}>
-                              {a.archived ? "Unarchive" : "Archive"}
+                              title={a.archived
+                                ? "Offer it again when you add entries"
+                                : "Still open, just not used: it stops being offered for new entries, but it still counts in net worth and carries into next year. Old entries keep it."}>
+                              {a.archived ? "Unhide" : "Hide"}
                             </button>
                           </>
                         )}
