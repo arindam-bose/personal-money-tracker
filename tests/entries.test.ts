@@ -2,6 +2,7 @@ import { describe, expect, it } from "vitest";
 import {
   checkDraft, draftFrom, duplicateEntry, emptyDraft, newId, slug, suggestTransferCategory, type Draft,
 } from "../src/entries";
+import { withUncategorized } from "../src/categories";
 import type { YearSetup } from "../src/types";
 import { sample } from "./helpers";
 
@@ -10,8 +11,18 @@ const setup: YearSetup = { ...file };
 const acct = (id: string) => setup.accounts.find((a) => a.id === id);
 
 function draft(kind: Draft["kind"], fields: Partial<Draft>): Draft {
-  return { ...emptyDraft(kind, "2026-03-05"), ...fields };
+  return { ...emptyDraft(kind, "2026-03-05", setup), ...fields };
 }
+
+describe("emptyDraft", () => {
+  it("starts each kind in its Uncategorized category, or none if the year has none", () => {
+    const withAll = withUncategorized(setup);
+    expect((["expense", "earning", "transfer"] as const).map((k) => emptyDraft(k, "2026-03-05", withAll).cat))
+      .toEqual(["ce_uncategorized", "ci_uncategorized", "ct_uncategorized"]);
+    const none = { categories: { expense: [], earning: [], transfer: [] } };
+    expect(emptyDraft("expense", "2026-03-05", none).cat).toBe("");
+  });
+});
 
 describe("checkDraft", () => {
   it("turns a complete expense into an entry", () => {
@@ -23,7 +34,7 @@ describe("checkDraft", () => {
   });
 
   it("explains every missing field", () => {
-    const r = checkDraft(emptyDraft("expense", "2025-12-31"), setup, "e_new");
+    const r = checkDraft(emptyDraft("expense", "2025-12-31", setup), setup, "e_new");
     expect(r.ok).toBe(false);
     if (!r.ok) expect(Object.keys(r.errors).sort()).toEqual(["account", "amount", "cat", "date", "item"]);
   });

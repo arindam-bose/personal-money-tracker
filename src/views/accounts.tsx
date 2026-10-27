@@ -8,8 +8,9 @@ import { balances, countsInNetEarnings, hasValuations, localToday, shortDate, va
 import { formatCents, parseCents, parseSignedCents } from "../money";
 import {
   deleteAccount, deleteValuation, duplicateAccount, memberUses, membersOf, reopenAccount, saveAccount, saveCategory, saveMember, saveTag, saveValuation,
-  uncategorizedId, usageOf, type CategoryKind, type Usage,
+  usageOf, type Usage,
 } from "../setup";
+import { uncategorizedId, type CategoryKind } from "../categories";
 import { current, ledger, readOnly, removeCategory, removeMember, removeTag, setClosed, setStart, updateSetup } from "../state";
 import type { Account, AccountType, EarningRole, YearSetup } from "../types";
 import { startsMidYear, yearStart } from "../year";

@@ -5,10 +5,10 @@ import { useSignal } from "@preact/signals";
 import { useEffect, useRef } from "preact/hooks";
 import type { JSX } from "preact";
 import {
-  checkDraft, earningRole, suggestTransferCategory,
+  checkDraft, defaultCategory, earningRole, suggestTransferCategory,
   type AnyEntry, type Draft, type DraftErrors, type DraftField, type Kind,
 } from "../entries";
-import { membersOf, uncategorizedId } from "../setup";
+import { membersOf } from "../setup";
 import { current, ensureTag, nextEntryId, removeEntry, saveEntry } from "../state";
 import type { Account, YearSetup } from "../types";
 import { yearStart } from "../year";
@@ -36,8 +36,7 @@ export function EntryForm({ initial, onClose }: Props) {
   const itemRef = useRef<HTMLInputElement>(null);
   const editing = initial.id !== undefined;
   const d = draft.value;
-  /** A new entry's category until one is picked: the kind's Uncategorized. */
-  const defaultCat = (kind: Kind) => uncategorizedId(setup, kind) ?? "";
+  const defaultCat = (kind: Kind) => defaultCategory(setup, kind);
 
   useEffect(() => itemRef.current?.focus(), []);
 

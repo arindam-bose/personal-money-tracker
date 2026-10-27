@@ -7,7 +7,8 @@ import { deleteYear, eraseAll, getSetting, listYears, loadYear, putEntryChange, 
 import { ledgerOf, type Ledger } from "./derive";
 import { ID_PREFIX, STORE, duplicateEntry, newId, slug, type AnyEntry, type Kind } from "./entries";
 import { emptyYearFile, nextYearSetup } from "./rollover";
-import { assertClosedStayEmpty, blankSetup, closeAccount, deleteCategory, iraLimitOf, deleteMember, deleteTag, usageOf, withChange, withStart, withUncategorized, withoutPeople, type YearChange, type CategoryKind, type Usage } from "./setup";
+import { assertClosedStayEmpty, blankSetup, closeAccount, deleteCategory, iraLimitOf, deleteMember, deleteTag, usageOf, withChange, withStart, withoutPeople, type YearChange, type Usage } from "./setup";
+import { withUncategorized, type CategoryKind } from "./categories";
 import type { PersistState } from "./storage";
 import type { YearSetup } from "./types";
 

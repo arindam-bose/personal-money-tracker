@@ -137,7 +137,7 @@ describe("setting up a loan", () => {
 
   it("takes transfers only", () => {
     const s = { ...setup(), accounts: [checking, mortgage] };
-    const expense = { ...emptyDraft("expense", "2026-04-01"), item: "x", amount: "10", account: "a_mortgage", cat: "ce_bills" };
+    const expense = { ...emptyDraft("expense", "2026-04-01", s), item: "x", amount: "10", account: "a_mortgage", cat: "ce_bills" };
     const r = checkDraft(expense, s, "e1");
     expect(r.ok === false && r.errors.account).toMatch(/only takes transfers/);
   });

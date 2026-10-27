@@ -68,7 +68,7 @@ describe("closing an account that holds money", () => {
     const d = year([move("x1", "2026-02-28", 50000, "a_old", "a_checking")]);
     expect(() => closeAccount(d, "a_old", "2026-02-01")).toThrow("entries after Feb 1 (the first on Feb 28)");
     const s = closeAccount(d, "a_old", "2026-03-01");
-    const after = { ...emptyDraft("transfer", "2026-03-02"), item: "x", amount: "1", from: "a_checking", to: "a_old", cat: "ct_general-transfer" };
+    const after = { ...emptyDraft("transfer", "2026-03-02", s), item: "x", amount: "1", from: "a_checking", to: "a_old", cat: "ct_general-transfer" };
     expect(checkDraft(after, s, "x2")).toMatchObject({ ok: false, errors: { to: "Old Savings was closed on Mar 1." } });
     expect(checkDraft({ ...after, date: "2026-03-01" }, s, "x2").ok).toBe(true);
   });

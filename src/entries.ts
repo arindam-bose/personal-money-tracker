@@ -1,6 +1,7 @@
 // The logic behind the entry form, kept apart from the UI so it can be tested:
 // drafts (what the form holds), validation, and the transfer-category suggestion.
 
+import { uncategorizedId } from "./categories";
 import { membersOf } from "./members";
 import { formatCents, parseCents } from "./money";
 import type {
@@ -49,7 +50,18 @@ export interface Draft {
 export type DraftField = keyof Draft;
 export type DraftErrors = Partial<Record<DraftField, string>>;
 
-export function emptyDraft(kind: Kind, date: string): Draft {
+/** A new entry's category until one is picked: the kind's Uncategorized. */
+export function defaultCategory(setup: Pick<YearSetup, "categories">, kind: Kind): string {
+  return uncategorizedId(setup, kind) ?? "";
+}
+
+/** A new entry of a kind, on a day, in the year's Uncategorized category. */
+export function emptyDraft(kind: Kind, date: string, setup: Pick<YearSetup, "categories">): Draft {
+  return { ...blankDraft(kind, date), cat: defaultCategory(setup, kind) };
+}
+
+/** Every field empty: the base for a new entry and for editing one. */
+function blankDraft(kind: Kind, date: string): Draft {
   return {
     kind, date, item: "", amount: "", notes: "",
     account: "", from: "", to: "", cat: "", tags: [],
@@ -65,7 +77,7 @@ function amountText(cents: number): string {
 /** Fill a draft from an existing entry, for editing. */
 export function draftFrom(e: AnyEntry): Draft {
   const base = {
-    ...emptyDraft(e.kind, e.entry.date), id: e.entry.id, item: e.entry.item, amount: amountText(e.entry.amount),
+    ...blankDraft(e.kind, e.entry.date), id: e.entry.id, item: e.entry.item, amount: amountText(e.entry.amount),
     notes: e.entry.notes, cat: e.entry.cat, member: e.entry.member ?? "",
   };
   switch (e.kind) {

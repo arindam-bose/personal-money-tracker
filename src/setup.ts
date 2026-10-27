@@ -2,6 +2,7 @@
 // the change and returns a new setup, or throws a SetupError with a message for the user.
 // Everything refers to these by id, so renaming never touches a single entry.
 
+import { uncategorizedId, withUncategorized, type CategoryKind } from "./categories";
 import type { YearData } from "./db";
 import { newId, slug } from "./entries";
 import { membersOf } from "./members";
@@ -10,14 +11,13 @@ import { balances, hasValuations, ledgerOf, loanDueDates, loanStatus, localToday
 import { formatCents } from "./money";
 import { dayBefore, yearStart } from "./year";
 import type {
-  Account, Categories, Category, Cents, IsoDate, Earning, EarningRole, Expense, ExpenseRole, Member, Tag, Transfer, TransferRole, YearSetup,
+  Account, Category, Cents, IsoDate, Earning, EarningRole, Expense, ExpenseRole, Member, Tag, Transfer, TransferRole, YearSetup,
 } from "./types";
 
 export { DEFAULT_MEMBER, membersOf } from "./members";
 
 export class SetupError extends Error {}
 
-export type CategoryKind = "expense" | "earning" | "transfer";
 
 /** How many entries use each account, category, tag and member. Used to block unsafe deletes. */
 export interface Usage {
@@ -293,33 +293,6 @@ export function saveCategory(
   // Only paycheck and income categories can be left out of net earnings; "true" is the default, so only false is kept.
   if (kind === "earning" && (role === "paycheck" || role === "income") && cat.net === false) clean.net = false;
   return { ...setup, categories: { ...setup.categories, [kind]: upsert(list, clean) } };
-}
-
-/**
- * Where a deleted category's entries go: one per kind, always there, never deleted.
- * Its roles keep moved entries out of the headline figures: not paychecks, not in net
- * earnings, not savings or investing.
- */
-export const UNCATEGORIZED: { [K in CategoryKind]: Categories[K][number] } = {
-  expense: { id: "ce_uncategorized", name: "Uncategorized" },
-  earning: { id: "ci_uncategorized", name: "Uncategorized", role: "income", net: false },
-  transfer: { id: "ct_uncategorized", name: "Uncategorized", role: "general" },
-};
-
-/** The id of a kind's Uncategorized category: ours, or one the user already had by that name. */
-export function uncategorizedId(setup: Pick<YearSetup, "categories">, kind: CategoryKind): string | undefined {
-  const list = setup.categories[kind] as Category<string>[];
-  const name = UNCATEGORIZED[kind].name.toLowerCase();
-  return (list.find((c) => c.id === UNCATEGORIZED[kind].id) ?? list.find((c) => c.name.toLowerCase() === name))?.id;
-}
-
-/** The setup with an Uncategorized category in every kind. The same object if nothing was missing. */
-export function withUncategorized(setup: YearSetup): YearSetup {
-  const missing = (["expense", "earning", "transfer"] as CategoryKind[]).filter((k) => !uncategorizedId(setup, k));
-  if (!missing.length) return setup;
-  const categories = { ...setup.categories };
-  for (const k of missing) (categories[k] as Category<string>[]) = [...categories[k], UNCATEGORIZED[k]];
-  return { ...setup, categories };
 }
 
 /** A change to a year: its new setup, and only the entries that changed (any list can be left out). */

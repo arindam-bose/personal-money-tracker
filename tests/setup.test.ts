@@ -1,8 +1,9 @@
 import { describe, expect, it } from "vitest";
 import {
   DEFAULT_MEMBER, SetupError, blankSetup, deleteMember, memberUses, membersOf, saveMember, withoutPeople, deleteAccount, duplicateAccount, deleteCategory, deleteTag, saveAccount, saveCategory,
-  saveTag, uncategorizedId, usageOf, withUncategorized,
+  saveTag, usageOf,
 } from "../src/setup";
+import { uncategorizedId, withUncategorized } from "../src/categories";
 import type { YearSetup } from "../src/types";
 import { validateYearFile } from "../src/validate";
 import { sample } from "./helpers";

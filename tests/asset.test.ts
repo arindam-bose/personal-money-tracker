@@ -47,9 +47,9 @@ describe("an asset", () => {
   });
 
   it("can't be used by an entry", () => {
-    const expense = { ...emptyDraft("expense", "2026-04-01"), item: "x", amount: "10", account: "a_car", cat: "ce_bills" };
+    const expense = { ...emptyDraft("expense", "2026-04-01", setup()), item: "x", amount: "10", account: "a_car", cat: "ce_bills" };
     expect(checkDraft(expense, setup(), "e1")).toMatchObject({ ok: false, errors: { account: "Pick an account." } });
-    const transfer = { ...emptyDraft("transfer", "2026-04-01"), item: "x", amount: "10", from: "a_checking", to: "a_car", cat: "ct_general-transfer" };
+    const transfer = { ...emptyDraft("transfer", "2026-04-01", setup()), item: "x", amount: "10", from: "a_checking", to: "a_car", cat: "ct_general-transfer" };
     expect(checkDraft(transfer, setup(), "x1")).toMatchObject({ ok: false, errors: { to: "Pick the account the money went to." } });
   });
 });

@@ -43,9 +43,9 @@ describe("a year that starts partway through", () => {
 
   it("won't take a new entry dated before the start", () => {
     const setup = fromFeb();
-    const before = checkDraft(emptyDraft("expense", "2026-01-31"), setup, "e_new");
+    const before = checkDraft(emptyDraft("expense", "2026-01-31", setup), setup, "e_new");
     expect(!before.ok && before.errors.date).toBe("Tracking starts on Feb 1. Pick that day or later.");
-    const onTheDay = checkDraft(emptyDraft("expense", "2026-02-01"), setup, "e_new");
+    const onTheDay = checkDraft(emptyDraft("expense", "2026-02-01", setup), setup, "e_new");
     expect(!onTheDay.ok && onTheDay.errors.date).toBeUndefined();
   });
 

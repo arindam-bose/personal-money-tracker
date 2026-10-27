@@ -50,6 +50,7 @@ this started). TypeScript is strict, including `noUncheckedIndexedAccess`.
 | `src/derive.ts` | Every computed figure. Plain functions, no UI. |
 | `src/entries.ts` | Entry-form logic: drafts, checks, transfer-category suggestion, duplicating. |
 | `src/setup.ts` | Editing accounts, categories, tags and members; a blank year's defaults; upgrading years saved with people. |
+| `src/categories.ts` | The Uncategorized category of each kind (`uncategorizedId`, `withUncategorized`), apart so both `setup.ts` and `entries.ts` can use it without importing each other. |
 | `src/members.ts` | The default member and `membersOf`, apart so `entries.ts` can use them without an import loop. |
 | `src/rollover.ts` | What the next year starts with when a year is closed. |
 | `src/state.ts` | The open year as Preact signals, and the actions that change it. |
@@ -162,7 +163,9 @@ change and the moved entries are written in one transaction (`deleteCategory`
 in `setup.ts`, `removeCategory` in `state.ts`). The roles keep moved entries out
 of the headline figures: the earning one is `income` with `net: false`, and the
 transfer one is `general`. A new year starts with it, and an open year that
-doesn't have it gets it when it's opened.
+doesn't have it gets it when it's opened. New entries start in it too: `emptyDraft`
+in `entries.ts` sets it (`defaultCategory`), and the entry form uses the same rule
+when you switch kind or it clears for the next entry. It lives in `categories.ts`.
 
 ### Members (a household)
 
