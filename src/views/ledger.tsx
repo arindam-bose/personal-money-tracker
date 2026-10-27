@@ -300,7 +300,14 @@ export function LedgerView() {
       )}
 
       <div class="filters">
-        <input ref={searchRef} type="search" placeholder="Search…  /" value={f.q} onInput={(e) => setFilter("q", e.currentTarget.value)} />
+        <div class="search">
+          <input ref={searchRef} type="search" placeholder="Search…  /" value={f.q} onInput={(e) => setFilter("q", e.currentTarget.value)} />
+          {/* Clears only the search: the other filters and the sort stay as they are. */}
+          {f.q && (
+            <button type="button" class="search-clear" aria-label="Clear search" title="Clear search"
+              onClick={() => { setFilter("q", ""); searchRef.current?.focus(); }}>×</button>
+          )}
+        </div>
         <select value={f.month} aria-label="Dates"
           onChange={(e) => (filters.value = { ...live.value, month: e.currentTarget.value, from: "", to: "" })}>
           <option value="">All dates</option>
