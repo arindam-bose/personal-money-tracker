@@ -619,7 +619,7 @@ tr.row-transfer td {
 }
 
 .tile-lines li::before {
-  content: "· ";
+  content: "• ";
 }
 
 .tile-earning { border-left: 3px solid var(--earning); }

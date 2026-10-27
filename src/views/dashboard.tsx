@@ -200,7 +200,7 @@ function netSpendingDetail(l: Ledger, offsets: number): string {
   return names.length ? `After ${formatCents(offsets)} of ${names.join(" + ")}` : "No earning category lowers spending, so nothing comes off.";
 }
 
-/** A dashboard figure. A detail given as a list shows one "· item" per line; kind adds the ledger's colour stripe. */
+/** A dashboard figure. A detail given as a list shows one "• item" per line; kind adds the ledger's colour stripe. */
 function Tile(props: { label: string; value: string; detail?: string | string[]; kind?: "earning" | "expense"; tone?: "pos" | "neg"; onRemove?: () => void }) {
   return (
     <div class={`tile card ${props.kind ? `tile-${props.kind}` : ""}`}>
