@@ -125,10 +125,10 @@ export function DashboardView() {
           </div>
           <div class={`hero-value ${worth < 0 ? "neg" : ""}`}>{formatCents(worth)}</div>
           <div class="muted">
-            Available cash {formatCents(accounts.availableCash)} − card debt {formatCents(accounts.cardDebt)}
-            {hasLoans && (withoutLoans ? <> · loans ({formatCents(accounts.loanDebt)} owed) left out</> : <> − loans owed {formatCents(accounts.loanDebt)}</>)}
-            {valued("investment") && <> + investments {formatCents(accounts.investmentsWorth)}</>}
-            {valued("asset") && <> + assets {formatCents(accounts.assetsWorth)}</>}
+            Available cash <b>{formatCents(accounts.availableCash)}</b> − card debt <b>{formatCents(accounts.cardDebt)}</b>
+            {hasLoans && (withoutLoans ? <> · loans (<b>{formatCents(accounts.loanDebt)}</b> owed) left out</> : <> − loans owed <b>{formatCents(accounts.loanDebt)}</b></>)}
+            {valued("investment") && <> + investments <b>{formatCents(accounts.investmentsWorth)}</b></>}
+            {valued("asset") && <> + assets <b>{formatCents(accounts.assetsWorth)}</b></>}
           </div>
         </section>
       )}
@@ -212,12 +212,21 @@ function Tile(props: { label: string; value: string; detail?: string | string[];
       </div>
       <div class={`tile-value ${props.tone ?? ""}`}>{props.value}</div>
       {Array.isArray(props.detail) ? (
-        <ul class="tile-detail tile-lines">{props.detail.map((d) => <li>{d}</li>)}</ul>
+        <ul class="tile-detail tile-lines">{props.detail.map((d) => <li><Figures text={d} /></li>)}</ul>
       ) : (
-        props.detail && <div class="tile-detail">{props.detail}</div>
+        props.detail && <div class="tile-detail"><Figures text={props.detail} /></div>
       )}
     </div>
   );
+}
+
+/** Dollar amounts and percentages, as formatCents and formatPercent write them, e.g. "-$1,234.56" or "13.36%". */
+const FIGURE = /(-?\$[\d,]+(?:\.\d+)?|-?\d+(?:\.\d+)?%)/;
+
+/** Text with its amounts and percentages in bold. */
+function Figures(props: { text: string }) {
+  // Splitting on a capturing group puts the figures at the odd indexes.
+  return <>{props.text.split(FIGURE).map((part, i) => (i % 2 ? <b>{part}</b> : part))}</>;
 }
 
 /** A tile-sized control to pin another tag's total to the dashboard. */
