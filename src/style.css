@@ -547,6 +547,7 @@ tr.row-transfer td {
 .w-notes { flex: 1 1 100%; }
 
 .tag-picker {
+  position: relative;
   display: flex;
   flex-wrap: wrap;
   align-items: center;
@@ -668,6 +669,118 @@ tr.row-transfer td {
   padding: 0 4px;
   font-size: 16px;
   line-height: 1;
+}
+
+/* SearchSelect: a button that looks like a <select>, and a list with a search box. */
+.search-select {
+  position: relative;
+  display: inline-block;
+  min-width: 0;
+}
+
+.field .search-select {
+  display: block;
+}
+
+.search-select-button {
+  display: block;
+  width: 100%;
+  max-width: 100%;
+  padding: 5px 26px 5px 8px;
+  text-align: left;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  position: relative;
+}
+
+.search-select-button::after {
+  content: "";
+  position: absolute;
+  right: 10px;
+  top: 50%;
+  width: 6px;
+  height: 6px;
+  border-right: 1.5px solid currentColor;
+  border-bottom: 1.5px solid currentColor;
+  transform: translateY(-70%) rotate(45deg);
+}
+
+.search-select-button:hover {
+  filter: none;
+  border-color: var(--muted);
+}
+
+.search-select-pop {
+  position: absolute;
+  top: calc(100% + 4px);
+  left: 0;
+  z-index: 30;
+  min-width: 100%;
+  width: max-content;
+  max-width: 320px;
+  box-sizing: border-box;
+  padding: 6px;
+  background: var(--surface);
+  border: 1px solid var(--border);
+  border-radius: 8px;
+  box-shadow: 0 6px 20px rgba(0, 0, 0, 0.15);
+}
+
+.search-select-pop input {
+  width: 100%;
+  box-sizing: border-box;
+}
+
+.search-select-pop ul {
+  list-style: none;
+  margin: 6px 0 0;
+  padding: 0;
+  max-height: 280px;
+  overflow-y: auto;
+}
+
+.search-select-pop li {
+  padding: 5px 8px;
+  border-radius: 4px;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  cursor: pointer;
+}
+
+.search-select-pop li.active {
+  background: var(--row-hover);
+}
+
+.search-select-pop li.chosen {
+  font-weight: 600;
+}
+
+.search-select-pop li.search-select-group {
+  font-size: 11px;
+  font-weight: 600;
+  text-transform: uppercase;
+  letter-spacing: 0.04em;
+  color: var(--muted);
+  padding: 8px 8px 2px;
+  cursor: default;
+}
+
+.search-select-pop li.search-select-none {
+  cursor: default;
+}
+
+.tag-suggest {
+  min-width: 200px;
+}
+
+.tag-suggest ul {
+  margin: 0;
+}
+
+.field.has-error .search-select-button {
+  border-color: var(--danger);
 }
 
 .pin-tile {

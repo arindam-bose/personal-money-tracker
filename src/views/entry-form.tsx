@@ -12,6 +12,7 @@ import { membersOf, uncategorizedId } from "../setup";
 import { current, ensureTag, nextEntryId, removeEntry, saveEntry } from "../state";
 import type { Account, YearSetup } from "../types";
 import { yearStart } from "../year";
+import { SearchSelect, matching } from "./search-select";
 
 const KIND_LABEL: Record<Kind, string> = { expense: "Expense", earning: "Earning", transfer: "Transfer" };
 
@@ -112,7 +113,7 @@ export function EntryForm({ initial, onClose }: Props) {
     if (e.key === "Escape") {
       e.preventDefault();
       onClose();
-    } else if (e.key === "Enter" && (e.target as HTMLElement).tagName === "SELECT") {
+    } else if (e.key === "Enter" && ((e.target as HTMLElement).tagName === "SELECT" || (e.target as HTMLElement).classList.contains("search-select-button"))) {
       // Enter in a dropdown saves too (browsers only do this for text fields).
       e.preventDefault();
       (e.currentTarget as HTMLFormElement).requestSubmit();
@@ -166,10 +167,8 @@ export function EntryForm({ initial, onClose }: Props) {
         )}
 
         <Field label="Category" error={err.cat} class="w-cat">
-          <select value={d.cat} onChange={(e) => { catPicked.value = true; set("cat", e.currentTarget.value); }}>
-            <option value="">Choose…</option>
-            {setup.categories[d.kind].map((c) => <option value={c.id}>{c.name}</option>)}
-          </select>
+          <SearchSelect value={d.cat} choices={setup.categories[d.kind].map((c) => ({ value: c.id, label: c.name }))}
+            onChange={(v) => { catPicked.value = true; set("cat", v); }} />
         </Field>
 
         {members.length > 1 && (
@@ -185,7 +184,7 @@ export function EntryForm({ initial, onClose }: Props) {
 
       {d.kind === "expense" && (
         <div class="fields">
-          <Field label="Tags" error={err.tags} class="w-tags">
+          <Field label="Tags" error={err.tags} class="w-tags" group>
             <TagPicker setup={setup} value={d.tags} onChange={(tags) => set("tags", tags)} />
           </Field>
         </div>
@@ -194,10 +193,8 @@ export function EntryForm({ initial, onClose }: Props) {
       {role === "offset" && (
         <div class="fields">
           <Field label="Reduces spending on" error={err.offsets} class="w-cat">
-            <select value={d.offsets} onChange={(e) => set("offsets", e.currentTarget.value)}>
-              <option value="">All spending</option>
-              {setup.categories.expense.map((c) => <option value={c.id}>{c.name}</option>)}
-            </select>
+            <SearchSelect value={d.offsets} onChange={(v) => set("offsets", v)}
+              choices={[{ value: "", label: "All spending" }, ...setup.categories.expense.map((c) => ({ value: c.id, label: c.name }))]} />
           </Field>
         </div>
       )}
@@ -219,13 +216,19 @@ export function EntryForm({ initial, onClose }: Props) {
   );
 }
 
-function Field(props: { label: string; error?: string; class?: string; children: JSX.Element | JSX.Element[] }) {
+/**
+ * A labelled field. `group` makes it a <div> instead of a <label>, for controls with buttons
+ * inside: clicking a label clicks its first button, which for tags removed the first chip.
+ */
+function Field(props: { label: string; error?: string; class?: string; group?: boolean; children: JSX.Element | JSX.Element[] }) {
+  const Tag = props.group ? "div" : "label";
   return (
-    <label class={`field ${props.class ?? ""} ${props.error ? "has-error" : ""}`}>
+    <Tag class={`field ${props.class ?? ""} ${props.error ? "has-error" : ""}`} role={props.group ? "group" : undefined}
+      aria-label={props.group ? props.label : undefined}>
       <span class="field-label">{props.label}</span>
       {props.children}
       {props.error && <span class="field-error">{props.error}</span>}
-    </label>
+    </Tag>
   );
 }
 
@@ -238,39 +241,55 @@ function AccountSelect(props: { accounts: Account[]; value: string; onChange: (i
     .map((type) => [type, props.accounts.filter((a) => a.type === type)] as const)
     .filter(([, list]) => list.length);
   return (
-    <select value={props.value} onChange={(e) => props.onChange(e.currentTarget.value)}>
-      <option value="">Choose…</option>
-      {groups.map(([type, list]) => (
-        <optgroup label={TYPE_LABEL[type]}>
-          {list.map((a) => <option value={a.id}>{a.name}</option>)}
-        </optgroup>
-      ))}
-    </select>
+    <SearchSelect value={props.value} onChange={props.onChange}
+      choices={groups.flatMap(([type, list]) => list.map((a) => ({ value: a.id, label: a.name, group: TYPE_LABEL[type] })))} />
   );
 }
 
 /**
  * Chosen tags as chips, plus a box to add more. Type a name and press Enter or comma:
- * an existing tag is added, a new name creates the tag. Backspace in the empty box
+ * an existing tag is added, a new name creates the tag. While typing, matching tags are
+ * listed below: arrows pick one, Enter or a click adds it. Backspace in the empty box
  * removes the last chip.
  */
 function TagPicker(props: { setup: YearSetup; value: string[]; onChange: (ids: string[]) => void }) {
   const text = useSignal("");
+  const open = useSignal(false);
+  /** The highlighted suggestion, or -1 for none: then Enter adds what was typed. */
+  const active = useSignal(-1);
   const names = new Map(props.setup.tags.map((t) => [t.id, t.name]));
+  const shown = matching(props.setup.tags.filter((t) => !props.value.includes(t.id)).map((t) => ({ value: t.id, label: t.name })), text.value);
+  const listing = open.value && shown.length > 0;
+
+  function addId(id: string) {
+    if (!props.value.includes(id)) props.onChange([...props.value, id]);
+    text.value = "";
+    active.value = -1;
+  }
 
   async function add() {
     const name = text.value.trim();
     if (!name) return;
-    const id = await ensureTag(name);
-    if (!props.value.includes(id)) props.onChange([...props.value, id]);
-    text.value = "";
+    addId(await ensureTag(name));
   }
 
   function onKeyDown(e: KeyboardEvent) {
-    if ((e.key === "Enter" || e.key === ",") && text.value.trim()) {
+    if ((e.key === "ArrowDown" || e.key === "ArrowUp") && listing) {
+      e.preventDefault();
+      active.value = Math.min(Math.max(active.value + (e.key === "ArrowDown" ? 1 : -1), -1), shown.length - 1);
+    } else if (e.key === "Enter" && listing && active.value >= 0) {
+      e.preventDefault();
+      e.stopPropagation();
+      addId(shown[active.value]!.value);
+    } else if ((e.key === "Enter" || e.key === ",") && text.value.trim()) {
       e.preventDefault();
       e.stopPropagation();
       add();
+    } else if (e.key === "Escape" && listing) {
+      // Closes the suggestions first; a second Esc closes the form.
+      e.preventDefault();
+      e.stopPropagation();
+      open.value = false;
     } else if (e.key === "Backspace" && !text.value && props.value.length) {
       props.onChange(props.value.slice(0, -1));
     }
@@ -284,11 +303,23 @@ function TagPicker(props: { setup: YearSetup; value: string[]; onChange: (ids: s
           <button type="button" aria-label={`Remove ${names.get(id) ?? id}`} onClick={() => props.onChange(props.value.filter((t) => t !== id))}>×</button>
         </span>
       ))}
-      <input type="text" list="tag-list" value={text.value} placeholder={props.value.length ? "" : "Add tags…"}
-        onInput={(e) => (text.value = e.currentTarget.value)} onKeyDown={onKeyDown} />
-      <datalist id="tag-list">
-        {props.setup.tags.filter((t) => !props.value.includes(t.id)).map((t) => <option value={t.name} />)}
-      </datalist>
+      <input type="text" value={text.value} placeholder={props.value.length ? "" : "Add tags…"} role="combobox"
+        aria-expanded={listing} aria-autocomplete="list"
+        onInput={(e) => { text.value = e.currentTarget.value; active.value = -1; open.value = true; }}
+        onFocus={() => (open.value = true)} onBlur={() => (open.value = false)} onKeyDown={onKeyDown} />
+      {listing && (
+        // Mousedown is held back so the box keeps focus; click is held back from the <label> around it.
+        <div class="search-select-pop tag-suggest" onMouseDown={(e) => e.preventDefault()} onClick={(e) => e.preventDefault()}>
+          <ul role="listbox">
+            {shown.map((c, i) => (
+              <li role="option" aria-selected={i === active.value} class={i === active.value ? "active" : ""}
+                onMouseMove={() => (active.value = i)} onClick={() => addId(c.value)}>
+                {c.label}
+              </li>
+            ))}
+          </ul>
+        </div>
+      )}
     </div>
   );
 }

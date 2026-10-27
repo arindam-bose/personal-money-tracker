@@ -11,6 +11,7 @@ import { current, duplicate, readOnly } from "../state";
 import type { YearSetup } from "../types";
 import { yearStart } from "../year";
 import { EntryForm } from "./entry-form";
+import { SearchSelect } from "./search-select";
 
 export interface Filters {
   /** "" for the whole year, "1".."12" for that month, "last-1".."last-12" for the months up to today, or "range" for from–to. */
@@ -315,21 +316,16 @@ export function LedgerView() {
               onClick={() => { setFilter("q", ""); searchRef.current?.focus(); }}>×</button>
           )}
         </div>
-        <select value={f.month} aria-label="Dates"
-          onChange={(e) => (filters.value = { ...live.value, month: e.currentTarget.value, from: "", to: "" })}>
-          <option value="">All dates</option>
-          {recentReaches(setup.year, localToday()) && (
-            <optgroup label="Up to today">
-              {Array.from({ length: 12 }, (_, i) => (
-                <option value={`last-${i + 1}`}>{i === 0 ? "Last month" : `Last ${i + 1} months`}</option>
-              ))}
-            </optgroup>
-          )}
-          <optgroup label="Month">
-            {MONTH_NAMES.map((m, i) => <option value={String(i + 1)}>{m}</option>)}
-          </optgroup>
-          <option value="range">Pick dates…</option>
-        </select>
+        <SearchSelect value={f.month} aria-label="Dates"
+          onChange={(v) => (filters.value = { ...live.value, month: v, from: "", to: "" })}
+          choices={[
+            { value: "", label: "All dates" },
+            { value: "range", label: "Pick dates…" },
+            ...(recentReaches(setup.year, localToday())
+              ? Array.from({ length: 12 }, (_, i) => ({ value: `last-${i + 1}`, label: i === 0 ? "Last month" : `Last ${i + 1} months`, group: "Up to today" }))
+              : []),
+            ...MONTH_NAMES.map((m, i) => ({ value: String(i + 1), label: m, group: "Month" })),
+          ]} />
         {f.month === "range" && (
           <>
             <input type="date" aria-label="From" title="From" value={f.from} max={f.to || undefined}
@@ -339,32 +335,23 @@ export function LedgerView() {
               onChange={(e) => setFilter("to", e.currentTarget.value)} />
           </>
         )}
-        <select value={f.kind} onChange={(e) => setFilter("kind", e.currentTarget.value as Filters["kind"])} aria-label="Kind">
-          <option value="">All kinds</option>
-          <option value="earning">Earnings</option>
-          <option value="expense">Expenses</option>
-          <option value="transfer">Transfers</option>
-        </select>
-        <select value={f.account} onChange={(e) => setFilter("account", e.currentTarget.value)} aria-label="Account">
-          <option value="">All accounts</option>
-          {/* Assets never have entries, so they'd always filter to nothing. */}
-          {setup.accounts.filter((a) => a.type !== "asset").map((a) => <option value={a.id}>{a.name}</option>)}
-        </select>
-        <select value={f.cat} onChange={(e) => setFilter("cat", e.currentTarget.value)} aria-label="Category">
-          <option value="">All categories</option>
-          <optgroup label="Earnings">{setup.categories.earning.map((c) => <option value={c.id}>{c.name}</option>)}</optgroup>
-          <optgroup label="Expenses">{setup.categories.expense.map((c) => <option value={c.id}>{c.name}</option>)}</optgroup>
-          <optgroup label="Transfers">{setup.categories.transfer.map((c) => <option value={c.id}>{c.name}</option>)}</optgroup>
-        </select>
-        <select value={f.tag} onChange={(e) => setFilter("tag", e.currentTarget.value)} aria-label="Tag">
-          <option value="">All tags</option>
-          {setup.tags.map((t) => <option value={t.id}>{t.name}</option>)}
-        </select>
+        <SearchSelect value={f.kind} aria-label="Kind" onChange={(v) => setFilter("kind", v as Filters["kind"])}
+          choices={[{ value: "", label: "All kinds" }, { value: "earning", label: "Earnings" }, { value: "expense", label: "Expenses" }, { value: "transfer", label: "Transfers" }]} />
+        {/* Assets never have entries, so they'd always filter to nothing. */}
+        <SearchSelect value={f.account} aria-label="Account" onChange={(v) => setFilter("account", v)}
+          choices={[{ value: "", label: "All accounts" }, ...setup.accounts.filter((a) => a.type !== "asset").map((a) => ({ value: a.id, label: a.name }))]} />
+        <SearchSelect value={f.cat} aria-label="Category" onChange={(v) => setFilter("cat", v)}
+          choices={[
+            { value: "", label: "All categories" },
+            ...setup.categories.earning.map((c) => ({ value: c.id, label: c.name, group: "Earnings" })),
+            ...setup.categories.expense.map((c) => ({ value: c.id, label: c.name, group: "Expenses" })),
+            ...setup.categories.transfer.map((c) => ({ value: c.id, label: c.name, group: "Transfers" })),
+          ]} />
+        <SearchSelect value={f.tag} aria-label="Tag" onChange={(v) => setFilter("tag", v)}
+          choices={[{ value: "", label: "All tags" }, ...setup.tags.map((t) => ({ value: t.id, label: t.name }))]} />
         {household && (
-          <select value={f.member} onChange={(e) => setFilter("member", e.currentTarget.value)} aria-label="Person">
-            <option value="">All people</option>
-            {members.map((m) => <option value={m.id}>{m.name}</option>)}
-          </select>
+          <SearchSelect value={f.member} aria-label="Person" onChange={(v) => setFilter("member", v)}
+            choices={[{ value: "", label: "All people" }, ...members.map((m) => ({ value: m.id, label: m.name }))]} />
         )}
         <select value={oldestFirst.value ? "oldest" : "newest"} aria-label="Sort"
           onChange={(e) => (oldestFirst.value = e.currentTarget.value === "oldest")}>

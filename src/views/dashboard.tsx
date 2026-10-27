@@ -22,6 +22,7 @@ import type { Ledger } from "../derive";
 import type { Account } from "../types";
 import { firstMonth, yearStart } from "../year";
 import { BudgetBar } from "./budget";
+import { SearchSelect } from "./search-select";
 import { showInLedger } from "./ledger";
 import { MemberPicker, viewedLedger, viewedMember } from "./people";
 
@@ -237,10 +238,8 @@ function PinTag() {
   return (
     <label class="tile card pin-tile">
       <span class="tile-label">Pin a tag total</span>
-      <select value="" onChange={(e) => e.currentTarget.value && savePinnedTags([...pinnedTags.value, e.currentTarget.value])}>
-        <option value="">Choose a tag…</option>
-        {choices.map((t) => <option value={t.id}>{t.name}</option>)}
-      </select>
+      <SearchSelect value="" placeholder="Choose a tag…" aria-label="Tag to pin"
+        choices={choices.map((t) => ({ value: t.id, label: t.name }))} onChange={(id) => savePinnedTags([...pinnedTags.value, id])} />
     </label>
   );
 }
