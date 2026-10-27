@@ -134,12 +134,12 @@ export function DashboardView() {
       )}
 
       <div class="tiles">
-        <Tile label="Earned" value={formatCents(sum.earned)}
-          detail={`Paychecks ${formatCents(sum.paycheck)} · other ${formatCents(sum.otherEarned)}`} />
-        <Tile label="Spent" value={formatCents(sum.spent)}
-          detail={`Bank ${formatCents(sum.spentBySource.bank)} · card ${formatCents(sum.spentBySource.card)} · cash ${formatCents(sum.spentBySource.cash)}`} />
-        <Tile label="Net earnings" value={formatCents(sum.netEarnings)} detail={netEarningsDetail(l)} />
-        <Tile label="Net spending" value={formatCents(sum.netSpent)}
+        <Tile label="Earned" kind="earning" value={formatCents(sum.earned)}
+          detail={[`Paychecks ${formatCents(sum.paycheck)}`, `Other ${formatCents(sum.otherEarned)}`]} />
+        <Tile label="Net earnings" kind="earning" value={formatCents(sum.netEarnings)} detail={netEarningsDetail(l)} />
+        <Tile label="Spent" kind="expense" value={formatCents(sum.spent)}
+          detail={[`Bank ${formatCents(sum.spentBySource.bank)}`, `Card ${formatCents(sum.spentBySource.card)}`, `Cash ${formatCents(sum.spentBySource.cash)}`]} />
+        <Tile label="Net spending" kind="expense" value={formatCents(sum.netSpent)}
           detail={netSpendingDetail(l, sum.offsets)} />
         <Tile label="Surplus" value={formatCents(sum.surplus)} tone={sum.surplus > 0 ? "pos" : sum.surplus < 0 ? "neg" : undefined}
           detail={`Earned ${formatCents(sum.earned)} − spent ${formatCents(sum.spent)}`} />
@@ -200,9 +200,10 @@ function netSpendingDetail(l: Ledger, offsets: number): string {
   return names.length ? `After ${formatCents(offsets)} of ${names.join(" + ")}` : "No earning category lowers spending, so nothing comes off.";
 }
 
-function Tile(props: { label: string; value: string; detail?: string; tone?: "pos" | "neg"; onRemove?: () => void }) {
+/** A dashboard figure. A detail given as a list shows one "· item" per line; kind adds the ledger's colour stripe. */
+function Tile(props: { label: string; value: string; detail?: string | string[]; kind?: "earning" | "expense"; tone?: "pos" | "neg"; onRemove?: () => void }) {
   return (
-    <div class="tile card">
+    <div class={`tile card ${props.kind ? `tile-${props.kind}` : ""}`}>
       <div class="tile-label">
         {props.label}
         {props.onRemove && (
@@ -210,7 +211,11 @@ function Tile(props: { label: string; value: string; detail?: string; tone?: "po
         )}
       </div>
       <div class={`tile-value ${props.tone ?? ""}`}>{props.value}</div>
-      {props.detail && <div class="tile-detail">{props.detail}</div>}
+      {Array.isArray(props.detail) ? (
+        <ul class="tile-detail tile-lines">{props.detail.map((d) => <li>{d}</li>)}</ul>
+      ) : (
+        props.detail && <div class="tile-detail">{props.detail}</div>
+      )}
     </div>
   );
 }

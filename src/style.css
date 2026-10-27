@@ -612,6 +612,19 @@ tr.row-transfer td {
   color: var(--muted);
 }
 
+.tile-lines {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+}
+
+.tile-lines li::before {
+  content: "· ";
+}
+
+.tile-earning { border-left: 3px solid var(--earning); }
+.tile-expense { border-left: 3px solid var(--expense); }
+
 .tile .unpin {
   border: none;
   background: none;
