@@ -20,6 +20,11 @@
   --series-4: #eda100;
   --series-5: #e87ba4;
   --series-6: #008300;
+  /* 7 to 10 are only for Credit card usage, which names up to ten cards (and labels each slice). */
+  --series-7: #6250d6;
+  --series-8: #e34948;
+  --series-9: #0aa5c9;
+  --series-10: #86a800;
   --series-other: #a3a29c;
   --chart-grid: #ecebe6;
   --chart-axis: #c3c2b7;
@@ -53,6 +58,10 @@
   --series-4: #c98500;
   --series-5: #d55181;
   --series-6: #008300;
+  --series-7: #9085e9;
+  --series-8: #e66767;
+  --series-9: #0f9cc2;
+  --series-10: #7f9e10;
   --series-other: #6b6a66;
   --chart-grid: #2c2c2e;
   --chart-axis: #3a3a3d;

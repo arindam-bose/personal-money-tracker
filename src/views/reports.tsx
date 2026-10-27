@@ -17,8 +17,11 @@ import { showInLedger } from "./ledger";
 import { MemberPicker, viewedLedger, viewedMember } from "./people";
 import { dayBefore, firstMonth, yearStart } from "../year";
 
-/** How many categories get their own colour in the stacked chart; the rest fold into "Other". */
+/** How many categories get their own colour in the stacked chart; the rest fold into "Everything else". */
 const TOP_CATEGORIES = 6;
+
+/** How many credit cards get their own slice in Credit card usage; the rest fold into "Other cards". */
+const TOP_CARDS = 10;
 
 /** Tooltip values in dollars and cents. */
 const money = (v: unknown) => formatCents(Number(v));
@@ -445,13 +448,13 @@ function WeeklyEarningCard({ ledger: l, year, start, lastDate }: { ledger: Ledge
 // --- Credit card usage: a ring of what each card paid ---
 
 function CardUsageCard({ ledger: l }: { ledger: Ledger }) {
-  const colors = seriesColors();
+  const colors = seriesColors(10);
   const surface = token("--surface");
-  // The six cards that paid the most get a slice; any smaller ones share "Other cards", so the
+  // The ten cards that paid the most get a slice; any smaller ones share "Other cards", so the
   // fold only ever hides the smallest. Colours go by the named cards' order in the account
   // list, so they don't swap as amounts change. Slices and rows run largest first.
   const cards = cardSpending(l);
-  const biggest = new Set([...cards].filter((c) => c.spent > 0).sort((a, b) => b.spent - a.spent).slice(0, TOP_CATEGORIES));
+  const biggest = new Set([...cards].filter((c) => c.spent > 0).sort((a, b) => b.spent - a.spent).slice(0, TOP_CARDS));
   const named = cards.filter((c) => biggest.has(c)).map((c, i) => ({ id: c.account.id, name: c.account.name, spent: c.spent, color: colors[i]! }));
   const others = cards.filter((c) => !biggest.has(c)).reduce((a, c) => a + c.spent, 0);
   const slices = [...named, ...(others ? [{ id: "", name: "Other cards", spent: others, color: token("--series-other") }] : [])]
@@ -476,18 +479,25 @@ function CardUsageCard({ ledger: l }: { ledger: Ledger }) {
     legend: { ...(baseOption().legend as object), top: undefined, bottom: 0, left: "center" },
     // The total in the middle of the ring.
     title: {
-      text: formatCompact(total), subtext: "On credit cards", left: "center", top: "35%", itemGap: 4,
+      text: formatCompact(total), subtext: "On credit cards", left: "center", top: "39%", itemGap: 4,
       textStyle: { fontSize: 34, fontWeight: 600, color: token("--text") }, subtextStyle: { fontSize: 13, color: token("--muted") },
     },
     series: [{
-      type: "pie", radius: ["58%", "68%"], center: ["50%", "44%"], label: { show: false },
+      type: "pie", radius: ["50%", "60%"], center: ["50%", "46%"],
+      // Every slice is named beside the ring: with up to ten cards, some colours are close.
+      label: {
+        show: true, color: token("--muted"), fontSize: 12,
+        formatter: (p: { name: string; value: number }) => `${p.name}  ${formatCompact(p.value)}`,
+      },
+      labelLine: { length: 10, length2: 12, lineStyle: { color: token("--chart-axis") } },
+      avoidLabelOverlap: true,
       itemStyle: { borderColor: surface, borderWidth: 2 }, emphasis: { scale: true, scaleSize: 4 },
       data: slices.map((c) => ({ name: c.name, value: c.spent, itemStyle: { color: c.color } })),
     }],
   };
   return (
     <Card title="Credit card usage" subtitle="What each credit card paid for this year. Click a card to see its entries.">
-      <Chart option={option} height={340} label={`Spending by credit card, ${formatCents(total)} in all`}
+      <Chart option={option} height={400} label={`Spending by credit card, ${formatCents(total)} in all`}
         onPick={({ dataIndex }) => {
           const id = slices[dataIndex]?.id;
           if (id) showInLedger({ account: id, kind: "expense", member });

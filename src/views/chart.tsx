@@ -18,10 +18,13 @@ export function token(name: string): string {
   return getComputedStyle(document.documentElement).getPropertyValue(name).trim();
 }
 
-/** Series colours in their fixed order. Reading theme makes callers re-render on a theme switch. */
-export function seriesColors(): string[] {
+/**
+ * Series colours in their fixed order: six for most charts, up to ten where a chart also labels
+ * every mark (past six, some pairs get close). Reading theme makes callers re-render on a theme switch.
+ */
+export function seriesColors(count: 6 | 10 = 6): string[] {
   void theme.value;
-  return [1, 2, 3, 4, 5, 6].map((i) => token(`--series-${i}`));
+  return Array.from({ length: count }, (_, i) => token(`--series-${i + 1}`));
 }
 
 /** Shared look: system font, muted axes, hairline grid, tooltip in the page colours. */
