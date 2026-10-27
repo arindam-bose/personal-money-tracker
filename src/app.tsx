@@ -111,6 +111,10 @@ export function App() {
       <main>
         <View />
       </main>
+      <footer class="footer">
+        © 2026 - Made with love by <a href="https://arindambose.com/" target="_blank" rel="noopener noreferrer">Arindam Bose</a>,
+        powered by <a href="https://claude.ai/" target="_blank" rel="noopener noreferrer">Claude</a>
+      </footer>
     </>
   );
 }

@@ -133,10 +133,29 @@ a {
   padding: 4px 10px;
 }
 
+/* A column as tall as the window, so the footer sits at the bottom even on a short page. */
+#app {
+  display: flex;
+  flex-direction: column;
+  min-height: 100vh;
+}
+
 main {
+  flex: 1 0 auto;
+  width: 100%;
+  box-sizing: border-box;
   max-width: 1280px;
   margin: 24px auto;
   padding: 0 24px;
+}
+
+.footer {
+  padding: 16px 24px;
+  border-top: 1px solid var(--border);
+  background: var(--surface);
+  color: var(--muted);
+  font-size: 13px;
+  text-align: center;
 }
 
 .panel {
