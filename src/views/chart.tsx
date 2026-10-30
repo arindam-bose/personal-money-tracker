@@ -4,11 +4,12 @@
 import { BarChart, LineChart, PieChart, SankeyChart } from "echarts/charts";
 import { GridComponent, LegendComponent, TitleComponent, TooltipComponent } from "echarts/components";
 import * as echarts from "echarts/core";
+import { LabelLayout } from "echarts/features";
 import { SVGRenderer } from "echarts/renderers";
 import { useEffect, useRef } from "preact/hooks";
 import { theme } from "../theme";
 
-echarts.use([BarChart, LineChart, PieChart, SankeyChart, GridComponent, LegendComponent, TitleComponent, TooltipComponent, SVGRenderer]);
+echarts.use([BarChart, LineChart, PieChart, SankeyChart, GridComponent, LegendComponent, TitleComponent, TooltipComponent, LabelLayout, SVGRenderer]);
 
 export type ChartOption = echarts.EChartsCoreOption;
 

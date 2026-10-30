@@ -380,7 +380,7 @@ when they were made: the ledger shows the newest first within a day. Imported id
 ## Charts
 
 `views/chart.tsx` wraps ECharts 6 and registers only the parts used (sankey, bar,
-line, pie; grid, legend, title, tooltip; SVG renderer). A chart type or component
+line, pie; grid, legend, title, tooltip; label layout, which moves overlapping labels apart; SVG renderer). A chart type or component
 used without being registered draws nothing, silently: register it there first. The Reports page is a separate chunk
 loaded when first opened, so ECharts (~200 kB gzipped) never slows the rest of
 the app.
