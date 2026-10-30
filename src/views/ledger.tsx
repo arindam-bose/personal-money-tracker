@@ -5,7 +5,7 @@ import { useComputed, useSignal, useSignalEffect } from "@preact/signals";
 import { useEffect, useRef } from "preact/hooks";
 import { MONTH_NAMES, dateTime, inMonth, localToday, monthsBefore, shortDate } from "../derive";
 import { draftFrom, emptyDraft, type AnyEntry, type Draft, type Kind } from "../entries";
-import { formatCents } from "../money";
+import { amountRange, formatCents } from "../money";
 import { membersOf } from "../setup";
 import { current, duplicate, readOnly } from "../state";
 import type { YearSetup } from "../types";
@@ -25,7 +25,7 @@ export interface Filters {
   tag: string;
   /** Member id, or "" for everyone. */
   member: string;
-  /** Text search in item and notes. */
+  /** Text search in item and notes; one that reads as an amount also finds entries of that amount. */
   q: string;
 }
 
@@ -118,8 +118,8 @@ function dateWindow(f: Filters, today: string): [string, string] | null {
   return null;
 }
 
-/** `window` is dateWindow(f), worked out once for all rows. */
-function matches(e: AnyEntry, f: Filters, window: [string, string] | null, defaultMember: string): boolean {
+/** `window` is dateWindow(f) and `amounts` is amountRange(f.q), worked out once for all rows. */
+function matches(e: AnyEntry, f: Filters, window: [string, string] | null, amounts: [number, number] | null, defaultMember: string): boolean {
   if (f.member && (e.entry.member ?? defaultMember) !== f.member) return false;
   const date = e.entry.date;
   if (window) {
@@ -134,7 +134,9 @@ function matches(e: AnyEntry, f: Filters, window: [string, string] | null, defau
   if (f.tag && !(e.kind === "expense" && e.entry.tags.includes(f.tag))) return false;
   if (f.q) {
     const q = f.q.toLowerCase();
-    if (!e.entry.item.toLowerCase().includes(q) && !e.entry.notes.toLowerCase().includes(q)) return false;
+    const amount = e.entry.amount;
+    const byAmount = amounts !== null && amount >= amounts[0] && amount <= amounts[1];
+    if (!byAmount && !e.entry.item.toLowerCase().includes(q) && !e.entry.notes.toLowerCase().includes(q)) return false;
   }
   return true;
 }
@@ -182,8 +184,9 @@ export function LedgerView() {
   const rows = useComputed(() => {
     const f = live.value;
     const window = dateWindow(f, localToday());
+    const amounts = amountRange(f.q);
     const defaultMember = membersOf(current.value?.setup ?? {})[0]!.id;
-    const out = allEntries().filter((e) => matches(e, f, window, defaultMember));
+    const out = allEntries().filter((e) => matches(e, f, window, amounts, defaultMember));
     return oldestFirst.value ? out.reverse() : out;
   });
   const totals = useComputed(() => {

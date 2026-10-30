@@ -1,5 +1,20 @@
 import { describe, expect, it } from "vitest";
-import { formatCents, formatPercent, parseCents, parseSignedCents } from "../src/money";
+import { amountRange, formatCents, formatPercent, parseCents, parseSignedCents } from "../src/money";
+
+describe("amountRange", () => {
+  it.each([
+    ["45", [4500, 4599]],
+    ["45.", [4500, 4599]],
+    ["45.6", [4560, 4569]],
+    ["45.67", [4567, 4567]],
+    ["$1,234", [123400, 123499]],
+    ["45.678", null],
+    ["coffee", null],
+    ["", null],
+  ])("%s -> %j", (text, want) => {
+    expect(amountRange(text)).toEqual(want);
+  });
+});
 
 describe("parseCents", () => {
   it.each([

@@ -21,6 +21,17 @@ export function parseCents(text: string): Cents | null {
   return dollars * 100 + cents;
 }
 
+/**
+ * The amounts a search for this text finds, lowest and highest in cents, or null if it isn't an amount.
+ * Like the digits read on a receipt, it matches as far as it was typed: "45" -> 45.00–45.99, "45.6" -> 45.60–45.69, "45.67" -> just 45.67.
+ */
+export function amountRange(text: string): [Cents, Cents] | null {
+  const low = parseCents(text);
+  if (low === null) return null;
+  const decimals = text.split(".")[1]?.trim().length ?? 0;
+  return [low, low + (decimals === 0 ? 99 : decimals === 1 ? 9 : 0)];
+}
+
 const compact = new Intl.NumberFormat("en-US", { style: "currency", currency: "USD", notation: "compact", maximumFractionDigits: 1 });
 
 /** Short form for axes and tight spaces: 123456 -> "$1.2K", 250000000 -> "$2.5M". */

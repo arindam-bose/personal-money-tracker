@@ -42,7 +42,8 @@ entry, a loan, investments and a car, and accounts that were closed.
 - **Ledger**: every earning, expense and transfer in one list, 100 at a time,
   newest or oldest first. Filter by month, the last 1 to 12 months, or dates you
   pick, and by kind, account, category, tag or person; every filter list can be
-  searched by typing. Quick keyboard entry. "Last updated" shows when an entry
+  searched by typing. The search box finds words in the item or notes, or an
+  amount: 45 finds $45.00 to $45.99, 45.67 finds just that. Quick keyboard entry. "Last updated" shows when an entry
   last changed, and backups carry it.
   Transfers (paying a card, moving money to savings) are shown apart, because
   they aren't spending.
