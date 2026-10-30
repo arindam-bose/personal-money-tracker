@@ -6,7 +6,7 @@ import { useSignal, useSignalEffect } from "@preact/signals";
 import type { YearData } from "../db";
 import { ledgerOf, ratio, summarize, type Summary } from "../derive";
 import { formatCents, formatCompact, formatPercent } from "../money";
-import { current, loadAllYears, years } from "../state";
+import { current, loadAllYears, years, type YearSummary } from "../state";
 import { Chart, axisStyle, baseOption, seriesColors, token, type ChartOption } from "./chart";
 
 /** The Dashboard's tiles, in its order. Colours match Reports: earning, spending, savings, investing, loans. */
@@ -27,16 +27,19 @@ const MEASURES: { key: keyof Summary; label: string; color: (c: string[]) => str
 const inProgress = (d: YearData) => !d.setup.closed && d.setup.year >= new Date().getFullYear();
 
 export function YearsView() {
-  const loaded = useSignal<YearData[] | null>(null);
-  // Reload when years are added or removed, or the open year changes.
+  // Each load remembers the list of years it was for: one made before the list changed is never shown.
+  const loaded = useSignal<{ list: YearSummary[]; data: YearData[] } | null>(null);
+  // Reload when years are added or removed, or the open year changes. A load overtaken by a newer one is dropped.
   useSignalEffect(() => {
-    void years.value;
+    const list = years.value;
     void current.value;
-    loadAllYears().then((all) => (loaded.value = all));
+    let overtaken = false;
+    loadAllYears().then((data) => { if (!overtaken) loaded.value = { list, data }; });
+    return () => { overtaken = true; };
   });
 
-  const all = loaded.value;
-  if (years.value.length < 2) {
+  const all = loaded.value?.list === years.value ? loaded.value.data : null;
+  if (years.value.length < 2 || (all && all.length < 2)) {
     return (
       <section class="panel">
         <h2>Over the years</h2>
