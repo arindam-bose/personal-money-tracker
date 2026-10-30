@@ -605,6 +605,7 @@ function BalancesCard({ ledger: l, year, start, lastDate }: { ledger: Ledger; ye
   const withoutLoans = hasLoans && loansLeftOut.value;
   const series = balanceSeries(l, points).map((p) => (withoutLoans ? { ...p, netWorth: p.netWorthWithoutLoans } : p));
   const [c1, c2, c3, c4, c5, c6] = seriesColors();
+  // Colours match Where the money went: savings c3, investing c4, loans c6.
   // Once an investment account has a balance update, what it's worth gets a line; contributions go dashed beside it.
   const hasWorth = l.accounts.some((a) => a.type === "investment" && a.valuations?.length);
   const hasAssets = l.accounts.some((a) => a.type === "asset" && a.valuations?.length);
@@ -613,10 +614,10 @@ function BalancesCard({ ledger: l, year, start, lastDate }: { ledger: Ledger; ye
     { key: "cardDebt", name: "Card debt", color: c2 },
     ...(hasLoans ? [{ key: "loanDebt", name: "Loans owed", color: c6 }] as const : []),
     { key: "netWorth", name: "Net worth", color: c5 },
-    ...(hasWorth ? [{ key: "investmentsWorth", name: "Investments worth", color: c3 }] as const : []),
-    { key: "invested", name: "Invested this year", color: c3, dashed: hasWorth },
+    ...(hasWorth ? [{ key: "investmentsWorth", name: "Investments worth", color: c4 }] as const : []),
+    { key: "invested", name: "Invested this year", color: c4, dashed: hasWorth },
     ...(hasAssets ? [{ key: "assetsWorth", name: "Assets worth", color: token("--series-other") }] as const : []),
-    { key: "saved", name: "Saved this year", color: c4 },
+    { key: "saved", name: "Saved this year", color: c3 },
   ] as const;
   const label = (d: string) => (d === opening ? "Start" : shortDate(d));
   const option: ChartOption = {
