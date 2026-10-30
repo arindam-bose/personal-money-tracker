@@ -66,8 +66,8 @@ export function ReportsView() {
       <ReportTabs title="Expense reports" id="expense" tabs={{
         category: { label: "Spending by category", body: <CategoryCard ledger={l} months={months} kind="expense" /> },
         weekly: { label: "Weekly spending", body: <WeeklyCard ledger={l} year={year} start={start} lastDate={lastDate} /> },
+        cards: { label: "Credit card usage", body: <CardUsageCard ledger={l} /> },
       }} />
-      <CardUsageCard ledger={l} />
       {!member && <BalancesCard ledger={l} year={year} start={start} lastDate={balancesEnd} />}
     </div>
   );
