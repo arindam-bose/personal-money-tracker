@@ -52,9 +52,6 @@ entry, a loan, investments and a car, and accounts that were closed.
 - **Reports**: where the money went, monthly cash flow (surplus months green,
   deficit months red), earning and expense reports by category and by week,
   what each credit card paid for, and savings and investment month by month.
-- **Over the years**: once two or more years are stored, each Dashboard figure
-  for every year side by side, with a table and the change from the year
-  before. It's always everyone together; the year still under way is marked *.
 - **Accounts**: your accounts, categories and tags. Tick **Net** on the earning
   categories that make up net earnings. Earnings in **Lowers spending**
   categories (refunds, points, money paid back) lower net spending instead.
@@ -72,6 +69,9 @@ entry, a loan, investments and a car, and accounts that were closed.
   the interest rate. Interest is added monthly on what's still owed, each payment
   is a transfer into the loan (in **Loan Payments**), and what it owes comes off
   net worth. Untick **Include loans** on the dashboard or the Balances over time chart to see them without it.
+- **Over the years**: once two or more years are stored, each Dashboard figure
+  for every year side by side, with a table and the change from the year
+  before. It's always everyone together; the year still under way is marked *.
 - **A household**: everything belongs to **Person A** until you add someone on
   the Accounts page. Then each entry can be logged for one person, and the
   Dashboard, Ledger and Reports can show **All people** or one person at a time.

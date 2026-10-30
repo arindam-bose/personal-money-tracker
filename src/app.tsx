@@ -39,9 +39,9 @@ const PAGES = {
   ledger: { label: "Ledger", view: LedgerView },
   budget: { label: "Budget", view: BudgetView },
   reports: { label: "Reports", view: chartPage(() => import("./views/reports").then((m) => m.ReportsView)) },
+  accounts: { label: "Accounts", view: AccountsView },
   // Only in the menu with two or more years.
   years: { label: "Over the years", view: chartPage(() => import("./views/years").then((m) => m.YearsView)) },
-  accounts: { label: "Accounts", view: AccountsView },
   settings: { label: "Settings", view: SettingsView },
 } as const;
 type Page = keyof typeof PAGES;
