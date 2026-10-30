@@ -74,6 +74,12 @@ function amountText(cents: number): string {
   return formatCents(cents).replace(/[$,]/g, "");
 }
 
+/** A typed amount tidied to two decimals once it is valid: "5000" -> "5000.00". Anything else stays as typed. */
+export function tidyAmount(text: string): string {
+  const cents = parseCents(text);
+  return cents === null || cents === 0 ? text : amountText(cents);
+}
+
 /** Fill a draft from an existing entry, for editing. */
 export function draftFrom(e: AnyEntry): Draft {
   const base = {

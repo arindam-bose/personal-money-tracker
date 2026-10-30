@@ -5,7 +5,7 @@ import { useSignal } from "@preact/signals";
 import { useEffect, useRef } from "preact/hooks";
 import type { JSX } from "preact";
 import {
-  checkDraft, defaultCategory, earningRole, suggestTransferCategory,
+  checkDraft, defaultCategory, earningRole, suggestTransferCategory, tidyAmount,
   type AnyEntry, type Draft, type DraftErrors, type DraftField, type Kind,
 } from "../entries";
 import { membersOf } from "../setup";
@@ -147,7 +147,8 @@ export function EntryForm({ initial, onClose }: Props) {
         </Field>
         <Field label="Amount" error={err.amount} class="w-amount">
           <input type="text" inputMode="decimal" value={d.amount} placeholder="0.00" class="num"
-            onInput={(e) => set("amount", e.currentTarget.value)} />
+            onInput={(e) => set("amount", e.currentTarget.value)}
+            onBlur={(e) => { const t = tidyAmount(e.currentTarget.value); if (t !== d.amount) set("amount", t); }} />
         </Field>
 
         {d.kind === "transfer" ? (
