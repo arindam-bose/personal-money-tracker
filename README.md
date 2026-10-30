@@ -12,8 +12,9 @@ There is no account and no server. Everything you enter is stored in your own
 browser, on your own computer, and is never sent anywhere.
 
 That also means **you are the backup**. Download a copy of each year now and then
-(the app reminds you after a week). If you clear your browser data or switch
-computers, import that file to get everything back.
+(the app reminds you a week after your last backup, if anything changed since). If
+you clear your browser data or switch computers, import that file to get
+everything back.
 
 Once opened, the tracker keeps a copy of itself in your browser, so it works without
 a signal too. New versions download by themselves; the top bar then offers

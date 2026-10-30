@@ -3,7 +3,7 @@ import { useEffect } from "preact/hooks";
 import { version } from "../package.json";
 import { downloadYear } from "./backup";
 import { updateReady } from "./offline";
-import { requestPersistence, daysSince } from "./storage";
+import { backupDue, daysSince, requestPersistence } from "./storage";
 import { current, loadSettings, openYear, persistState, years } from "./state";
 import type { ComponentType } from "preact";
 import { AccountsView } from "./views/accounts";
@@ -50,9 +50,6 @@ function pageFromHash(): Page {
   return name in PAGES ? (name as Page) : RENAMED[name] ?? "dashboard";
 }
 
-/** Remind about backups after this many days. */
-const BACKUP_AFTER_DAYS = 7;
-
 export function App() {
   const page = useSignal<Page>(pageFromHash());
 
@@ -69,7 +66,7 @@ export function App() {
   const setup = current.value?.setup;
   const backupDays = setup && !setup.closed ? daysSince(setup.lastBackupAt) : null;
   const hasEntries = !!current.value && current.value.expenses.length + current.value.earnings.length + current.value.transfers.length > 0;
-  const needsBackup = setup && !setup.closed && hasEntries && (backupDays === null || backupDays >= BACKUP_AFTER_DAYS);
+  const needsBackup = setup && backupDue(setup, hasEntries);
 
   async function backUpNow() {
     if (!setup) return;
