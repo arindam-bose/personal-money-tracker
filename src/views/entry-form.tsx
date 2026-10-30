@@ -233,12 +233,10 @@ export function EntryForm({ initial, onClose }: Props) {
 }
 
 /**
- * A labelled field. `group` makes it a <div> instead of a <label>, for controls with buttons
- * inside: clicking a label clicks its first button, which for tags removed the first chip.
- */
-/**
- * A labelled field. With an action (a button beside the label), the wrapper can't be a <label>:
- * the button would take the label. The label then names the field's control by `controlId`.
+ * A labelled field, normally wrapped in a <label>. It's a <div> instead for controls with buttons
+ * inside (`group`): clicking a label clicks its first button, which for tags removed the first chip.
+ * Likewise with an `action` (a button beside the label, like Date's Today); the label then names
+ * the field's control by `controlId`.
  */
 function Field(props: {
   label: string; error?: string; class?: string; group?: boolean;

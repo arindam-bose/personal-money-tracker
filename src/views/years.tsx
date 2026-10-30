@@ -7,15 +7,16 @@ import type { YearData } from "../db";
 import { ledgerOf, ratio, summarize, type Summary } from "../derive";
 import { formatCents, formatCompact, formatPercent } from "../money";
 import { current, loadAllYears, years, type YearSummary } from "../state";
-import { Chart, axisStyle, baseOption, seriesColors, token, type ChartOption } from "./chart";
+import { Chart, axisStyle, baseOption, money, moneyAxis, seriesColors, token, type ChartOption } from "./chart";
 
 /** The Dashboard's tiles, in its order. Colours match Reports: earning, spending, savings, investing, loans. */
-const MEASURES: { key: keyof Summary; label: string; color: (c: string[]) => string }[] = [
+const MEASURES: { key: keyof Summary; label: string; color: (c: string[], value: number) => string }[] = [
   { key: "earned", label: "Earned", color: (c) => c[0]! },
   { key: "netEarnings", label: "Net earnings", color: (c) => c[0]! },
   { key: "spent", label: "Spent", color: (c) => c[1]! },
   { key: "netSpent", label: "Net spending", color: (c) => c[1]! },
-  { key: "surplus", label: "Surplus", color: () => "" }, // green or red per year, as in Monthly cash flow
+  // Green or red per year, as in Monthly cash flow.
+  { key: "surplus", label: "Surplus", color: (_, v) => token(v < 0 ? "--expense" : "--earning") },
   { key: "netSavings", label: "Savings", color: (c) => c[2]! },
   { key: "investment", label: "Investment", color: (c) => c[3]! },
   { key: "ccPayments", label: "Credit card payments", color: () => token("--transfer") },
@@ -67,24 +68,23 @@ export function YearsView() {
       <div class={`year-charts${all.length > 4 ? " many" : ""}`}>
         {MEASURES.map((m) => {
           const values = sums.map((s) => value(s, m.key));
-          const barColor = (v: number) => (m.key === "surplus" ? token(v < 0 ? "--expense" : "--earning") : m.color(colors));
           const option: ChartOption = {
             ...baseOption(),
             legend: undefined,
             grid: { ...(baseOption().grid as object), top: 24 },
             tooltip: {
               ...(baseOption().tooltip as object), trigger: "axis", axisPointer: { type: "shadow" },
-              valueFormatter: (v: unknown) => formatCents(Number(v)),
+              valueFormatter: money,
             },
             // Every year named, even when the chart is narrow.
             xAxis: { type: "category", data: labels, ...axisStyle(), axisLabel: { color: token("--muted"), interval: 0, fontSize: 11, formatter: short }, splitLine: { show: false } },
-            yAxis: { type: "value", splitNumber: 3, ...axisStyle(), axisLine: { show: false }, axisLabel: { color: token("--muted"), formatter: formatCompact } },
+            yAxis: { ...moneyAxis(), splitNumber: 3 },
             series: [{
               name: m.label, type: "bar", barMaxWidth: 32,
               // Only the latest year is labelled with its amount; the tooltip and the table have the rest.
               data: values.map((v, i) => ({
                 value: v,
-                itemStyle: { color: barColor(v), borderRadius: v < 0 ? [0, 0, 4, 4] : [4, 4, 0, 0] },
+                itemStyle: { color: m.color(colors, v), borderRadius: v < 0 ? [0, 0, 4, 4] : [4, 4, 0, 0] },
                 label: { show: i === last, position: v < 0 ? "bottom" : "top", color: token("--muted"), fontSize: 11, formatter: (p: { value: number }) => formatCompact(p.value) },
               })),
             }],

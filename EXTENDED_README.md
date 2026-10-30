@@ -387,7 +387,10 @@ loaded when first opened (`chartPage` in `app.tsx`), so ECharts (~200 kB gzipped
 the app.
 
 Chart colours are CSS tokens (`--series-1` … `--series-10` in `style.css`), with
-separate light and dark steps. The palette was checked for colour-blind
+separate light and dark steps. One idea keeps one colour on every chart: earnings
+`--series-1`, spending `--series-2`, savings `--series-3`, investing `--series-4`,
+loans `--series-6`; a lighter shade on top of a bar is the rest of the same thing
+(net earned solid, other earnings lighter). The palette was checked for colour-blind
 separation against the app's light (`#ffffff`) and dark (`#1f1f21`) surfaces.
 Three light-mode colours are below 3:1 contrast, so every chart has a table view
 under it. Charts use the first six (`seriesColors()`): colours follow the category's

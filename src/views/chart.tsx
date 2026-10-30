@@ -7,6 +7,7 @@ import * as echarts from "echarts/core";
 import { LabelLayout } from "echarts/features";
 import { SVGRenderer } from "echarts/renderers";
 import { useEffect, useRef } from "preact/hooks";
+import { formatCents, formatCompact } from "../money";
 import { theme } from "../theme";
 
 echarts.use([BarChart, LineChart, PieChart, SankeyChart, GridComponent, LegendComponent, TitleComponent, TooltipComponent, LabelLayout, SVGRenderer]);
@@ -58,6 +59,14 @@ export function axisStyle() {
     splitLine: { lineStyle: { color: token("--chart-grid"), type: "solid" as const } },
   };
 }
+
+/** The value axis every money chart uses: compact dollars ($1.2K), no axis line. */
+export function moneyAxis() {
+  return { type: "value" as const, ...axisStyle(), axisLine: { show: false }, axisLabel: { color: token("--muted"), formatter: formatCompact } };
+}
+
+/** Tooltip values in dollars and cents. */
+export const money = (v: unknown) => formatCents(Number(v));
 
 interface Props {
   option: ChartOption;
