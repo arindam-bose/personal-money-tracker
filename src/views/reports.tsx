@@ -5,7 +5,7 @@
 import { useSignal, useSignalEffect } from "@preact/signals";
 import type { ComponentChildren } from "preact";
 import {
-  MONTH_SHORT, balanceSeries, cardSpending, earningsByMonth, hasLoanAccount, moneyFlow, monthlySummaries, shortDate, spendingByMonth, weeklyEarnings, weeklySpending,
+  MONTH_SHORT, balanceSeries, cardSpending, earningsByMonth, hasLoanAccount, moneyFlow, monthlySummaries, ratio, shortDate, spendingByMonth, weeklyEarnings, weeklySpending,
   type FlowGroup, type Ledger,
 } from "../derive";
 import { formatCents, formatCompact, formatPercent } from "../money";
@@ -68,13 +68,17 @@ export function ReportsView() {
         weekly: { label: "Weekly spending", body: <WeeklyCard ledger={l} year={year} start={start} lastDate={lastDate} /> },
         cards: { label: "Credit card usage", body: <CardUsageCard ledger={l} /> },
       }} />
+      <ReportTabs title="Savings and investment reports" id="saving" tabs={{
+        savings: { label: "Monthly savings", body: <SavingsCard ledger={l} months={months} /> },
+        investment: { label: "Monthly investment", body: <InvestmentCard ledger={l} months={months} /> },
+      }} />
       {!member && <BalancesCard ledger={l} year={year} start={start} lastDate={balancesEnd} />}
     </div>
   );
 }
 
 /**
- * A titled section of reports, one shown at a time under tabs (Earning reports, Expense reports).
+ * A titled section of reports, one shown at a time under tabs (Earning, Expense, Savings and investment reports).
  * Each section's tab lasts until the browser tab is closed.
  */
 function ReportTabs(props: { title: string; id: string; tabs: Record<string, { label: string; body: ComponentChildren }> }) {
@@ -509,6 +513,82 @@ function CardUsageCard({ ledger: l }: { ledger: Ledger }) {
       <TableView head={["Card", "Spent", "Share"]}
         rows={slices.map((c) => [c.name, formatCents(c.spent), formatPercent(c.spent / total)])}
         foot={["Total", formatCents(total), formatPercent(1)]} />
+    </Card>
+  );
+}
+
+// --- Monthly savings: moved into savings minus taken out ---
+
+function SavingsCard({ ledger: l, months }: { ledger: Ledger; months: MonthRange }) {
+  const sums = inRange(monthlySummaries(l), months);
+  const labels = inRange(MONTH_SHORT, months);
+  const [, , c3] = seriesColors();
+  const total = sums.reduce((a, s) => a + s.netSavings, 0);
+  const paid = sums.reduce((a, s) => a + s.paycheck, 0);
+  if (!sums.some((s) => s.netSavings)) {
+    return (
+      <Card title="Monthly savings" subtitle="Moved into savings minus taken out, each month.">
+        <p class="muted">No savings yet. They come from transfers in categories whose role is Into savings or Out of savings (see Accounts).</p>
+      </Card>
+    );
+  }
+  // Same colour as Savings in Where the money went. A month more was taken out than put in dips below zero.
+  const option: ChartOption = {
+    ...baseOption(),
+    legend: undefined,
+    tooltip: { ...(baseOption().tooltip as object), trigger: "axis", axisPointer: { type: "shadow" }, valueFormatter: money },
+    xAxis: { type: "category", data: labels, ...axisStyle(), splitLine: { show: false } },
+    yAxis: { type: "value", ...axisStyle(), axisLine: { show: false }, axisLabel: { color: token("--muted"), formatter: formatCompact } },
+    series: [{
+      name: "Saved", type: "bar", barMaxWidth: 24, itemStyle: { color: c3 },
+      data: sums.map((s) => ({ value: s.netSavings, itemStyle: { borderRadius: s.netSavings < 0 ? [0, 0, 4, 4] : [4, 4, 0, 0] } })),
+    }],
+  };
+  return (
+    <Card title="Monthly savings" subtitle="Moved into savings minus taken out, each month. A month more came out than went in drops below the line.">
+      <Chart option={option} height={300} label={`Savings per month, ${formatCents(total)} in all`} />
+      <TableView head={["Month", "Saved", "Of paychecks"]}
+        rows={sums.map((s, i) => [labels[i]!, formatCents(s.netSavings), formatPercent(s.savingsRate)])}
+        foot={["Total", formatCents(total), formatPercent(ratio(total, paid))]} />
+    </Card>
+  );
+}
+
+// --- Monthly investment: retirement and taxable ---
+
+function InvestmentCard({ ledger: l, months }: { ledger: Ledger; months: MonthRange }) {
+  const sums = inRange(monthlySummaries(l), months);
+  const labels = inRange(MONTH_SHORT, months);
+  const [, , , c4] = seriesColors();
+  const surface = token("--surface");
+  const total = sums.reduce((a, s) => a + s.investment, 0);
+  const paid = sums.reduce((a, s) => a + s.paycheck, 0);
+  if (!total) {
+    return (
+      <Card title="Monthly investment" subtitle="Retirement and taxable investing, each month.">
+        <p class="muted">No investing yet. It comes from transfers in categories whose role is Retirement investing or Taxable investing (see Accounts).</p>
+      </Card>
+    );
+  }
+  // Same colour as Investing in Where the money went: retirement solid, taxable lighter on top.
+  const option: ChartOption = {
+    ...baseOption(),
+    tooltip: { ...(baseOption().tooltip as object), trigger: "axis", axisPointer: { type: "shadow" }, valueFormatter: money },
+    xAxis: { type: "category", data: labels, ...axisStyle(), splitLine: { show: false } },
+    yAxis: { type: "value", ...axisStyle(), axisLine: { show: false }, axisLabel: { color: token("--muted"), formatter: formatCompact } },
+    series: [
+      { name: "Retirement", type: "bar", stack: "invest", barMaxWidth: 24, data: sums.map((s) => stackSegment(s.investRetirement, s.investTaxable === 0)),
+        itemStyle: { color: c4, borderColor: surface, borderWidth: 1 } },
+      { name: "Taxable", type: "bar", stack: "invest", barMaxWidth: 24, data: sums.map((s) => stackSegment(s.investTaxable, true)),
+        itemStyle: { color: c4, opacity: 0.4, borderColor: surface, borderWidth: 1 } },
+    ],
+  };
+  return (
+    <Card title="Monthly investment" subtitle="Retirement and taxable investing, each month. Retirement is solid; taxable is lighter on top.">
+      <Chart option={option} height={300} label={`Investment per month, retirement and taxable, ${formatCents(total)} in all`} />
+      <TableView head={["Month", "Retirement", "Taxable", "Total", "Of paychecks"]}
+        rows={sums.map((s, i) => [labels[i]!, formatCents(s.investRetirement), formatCents(s.investTaxable), formatCents(s.investment), formatPercent(s.investmentRate)])}
+        foot={["Total", ...(["investRetirement", "investTaxable"] as const).map((k) => formatCents(sums.reduce((a, s) => a + s[k], 0))), formatCents(total), formatPercent(ratio(total, paid))]} />
     </Card>
   );
 }

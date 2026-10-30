@@ -354,7 +354,7 @@ already exists, it is left alone. A closed year can be reopened.
 | Dashboard | `views/dashboard.tsx` | Month or year view; figures and simple HTML bars. |
 | Ledger | `views/ledger.tsx`, `views/entry-form.tsx` | One table for all three kinds; filters kept per tab in `sessionStorage`. |
 | Budget | `views/budget.tsx` | Enter moves down a column; saves on Enter or blur. |
-| Reports | `views/reports.tsx` | Loaded on demand (see Charts). Earning and Expense reports are tabbed sections; each remembers its tab in `sessionStorage`. |
+| Reports | `views/reports.tsx` | Loaded on demand (see Charts). Earning, Expense, and Savings and investment reports are tabbed sections; each remembers its tab in `sessionStorage`. |
 | Accounts | `views/accounts.tsx` | Accounts can be deleted only when no entry uses them. Categories always (entries move to Uncategorized), and tags always (they come off their entries). |
 | Settings | `views/settings.tsx`, `views/about.tsx` | Import, export, close/reopen, delete a year, start from scratch, the year's IRA settings, appearance, offline, erase everything, the demo file, about. |
 

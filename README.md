@@ -50,8 +50,8 @@ entry, a loan, investments and a car, and accounts that were closed.
   they aren't spending.
 - **Budget**: a monthly target for each spending category, with what's left.
 - **Reports**: where the money went, monthly cash flow (surplus months green,
-  deficit months red), earning and expense reports by category and by week, and
-  what each credit card paid for.
+  deficit months red), earning and expense reports by category and by week,
+  what each credit card paid for, and savings and investment month by month.
 - **Accounts**: your accounts, categories and tags. Tick **Net** on the earning
   categories that make up net earnings. Earnings in **Lowers spending**
   categories (refunds, points, money paid back) lower net spending instead.
