@@ -1,7 +1,8 @@
 import { beforeEach, describe, expect, it } from "vitest";
 import { exportYear, importYear } from "../src/backup";
 import { getSetting, listYears, loadYear, putEntryChange, setSetting } from "../src/db";
-import { current, ensureTag, eraseEverything, openYear, pinnedTags, removeEntry, removeYear, removeTag, saveEntry, setBudget, years } from "../src/state";
+import { current, ensureTag, eraseEverything, loadAllYears, openYear, pinnedTags, refreshYears, removeEntry, removeYear, removeTag, saveEntry, setBudget, years } from "../src/state";
+import { demoYear } from "../src/demo";
 import { freshDb, sample } from "./helpers";
 
 beforeEach(async () => {
@@ -116,6 +117,17 @@ describe("years saved before people were dropped", () => {
     expect(backup).not.toHaveProperty("people");
     expect(backup.expenses[2]).not.toHaveProperty("owed");
     expect(backup.categories.earning.find((c) => c.id === "ci_payback")!.role).toBe("offset");
+  });
+
+  it("are cleaned the same way for Over the years, oldest first, without rewriting them", async () => {
+    await storeOldShape(false);
+    expect(await importYear(demoYear(2025))).toMatchObject({ ok: true });
+    await refreshYears();
+    const all = await loadAllYears();
+    expect(all.map((d) => d.setup.year)).toEqual([2025, 2026]);
+    expect(all[1]!.setup).not.toHaveProperty("people");
+    expect(all[1]!.setup.categories.earning.find((c) => c.id === "ci_payback")!.role).toBe("offset");
+    expect((await loadYear(2026))!.setup).toHaveProperty("people"); // storage untouched until the year is opened
   });
 });
 

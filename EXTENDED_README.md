@@ -355,6 +355,7 @@ already exists, it is left alone. A closed year can be reopened.
 | Ledger | `views/ledger.tsx`, `views/entry-form.tsx` | One table for all three kinds; filters kept per tab in `sessionStorage`. |
 | Budget | `views/budget.tsx` | Enter moves down a column; saves on Enter or blur. |
 | Reports | `views/reports.tsx` | Loaded on demand (see Charts). Earning, Expense, and Savings and investment reports are tabbed sections; each remembers its tab in `sessionStorage`. |
+| Over the years | `views/years.tsx` | In the menu only with two or more years; the year picker shows "All years" there. Loads every year (`loadAllYears` in `state.ts`, upgraded in memory like `openYear`) and runs `summarize` on each, everyone together. Loaded on demand with the charts. |
 | Accounts | `views/accounts.tsx` | Accounts can be deleted only when no entry uses them. Categories always (entries move to Uncategorized), and tags always (they come off their entries). |
 | Settings | `views/settings.tsx`, `views/about.tsx` | Import, export, close/reopen, delete a year, start from scratch, the year's IRA settings, appearance, offline, erase everything, the demo file, about. |
 
@@ -381,8 +382,8 @@ when they were made: the ledger shows the newest first within a day. Imported id
 
 `views/chart.tsx` wraps ECharts 6 and registers only the parts used (sankey, bar,
 line, pie; grid, legend, title, tooltip; label layout, which moves overlapping labels apart; SVG renderer). A chart type or component
-used without being registered draws nothing, silently: register it there first. The Reports page is a separate chunk
-loaded when first opened, so ECharts (~200 kB gzipped) never slows the rest of
+used without being registered draws nothing, silently: register it there first. The Reports and Over the years pages are separate chunks
+loaded when first opened (`chartPage` in `app.tsx`), so ECharts (~200 kB gzipped) never slows the rest of
 the app.
 
 Chart colours are CSS tokens (`--series-1` … `--series-10` in `style.css`), with

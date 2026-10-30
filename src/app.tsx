@@ -12,23 +12,25 @@ import { DashboardView } from "./views/dashboard";
 import { LedgerView } from "./views/ledger";
 import { SettingsView } from "./views/settings";
 
-/** Reports pull in the charting library, so their code is only downloaded when first opened. */
-function ReportsPage() {
-  const view = useSignal<ComponentType | null>(null);
-  const failed = useSignal(false);
-  useEffect(() => {
-    // It can fail when a newer version replaced the files this tab was opened with,
-    // or with no signal before the offline copy was made: a reload fetches the current ones.
-    import("./views/reports").then((m) => (view.value = m.ReportsView), () => (failed.value = true));
-  }, []);
-  const View = view.value;
-  if (View) return <View />;
-  return failed.value ? (
-    <p class="muted">
-      The charts couldn't load: this tab is running an older version of the tracker.{" "}
-      <button type="button" class="link" onClick={() => location.reload()}>Reload</button>
-    </p>
-  ) : <p class="muted">Loading charts…</p>;
+/** Pages with charts pull in the charting library, so their code is only downloaded when first opened. */
+function chartPage(load: () => Promise<ComponentType>): ComponentType {
+  return function ChartPage() {
+    const view = useSignal<ComponentType | null>(null);
+    const failed = useSignal(false);
+    useEffect(() => {
+      // It can fail when a newer version replaced the files this tab was opened with,
+      // or with no signal before the offline copy was made: a reload fetches the current ones.
+      load().then((v) => (view.value = v), () => (failed.value = true));
+    }, []);
+    const View = view.value;
+    if (View) return <View />;
+    return failed.value ? (
+      <p class="muted">
+        The charts couldn't load: this tab is running an older version of the tracker.{" "}
+        <button type="button" class="link" onClick={() => location.reload()}>Reload</button>
+      </p>
+    ) : <p class="muted">Loading charts…</p>;
+  };
 }
 
 /** Pages, by URL hash (#/ledger). Hash links work on any static host with no server setup. */
@@ -36,7 +38,9 @@ const PAGES = {
   dashboard: { label: "Dashboard", view: DashboardView },
   ledger: { label: "Ledger", view: LedgerView },
   budget: { label: "Budget", view: BudgetView },
-  reports: { label: "Reports", view: ReportsPage },
+  reports: { label: "Reports", view: chartPage(() => import("./views/reports").then((m) => m.ReportsView)) },
+  // Only in the menu with two or more years.
+  years: { label: "Over the years", view: chartPage(() => import("./views/years").then((m) => m.YearsView)) },
   accounts: { label: "Accounts", view: AccountsView },
   settings: { label: "Settings", view: SettingsView },
 } as const;
@@ -79,7 +83,7 @@ export function App() {
       <header class="topbar">
         <h1>Money Tracker <span class="version">v{version}</span></h1>
         <nav>
-          {(Object.keys(PAGES) as Page[]).map((p) => (
+          {(Object.keys(PAGES) as Page[]).filter((p) => p !== "years" || years.value.length > 1).map((p) => (
             <a href={`#/${p}`} class={p === page.value ? "active" : ""} aria-current={p === page.value ? "page" : undefined}>
               {PAGES[p].label}
             </a>
@@ -98,7 +102,8 @@ export function App() {
               {backupDays === null ? "Not backed up yet" : `Last backup ${backupDays} days ago`} · Back up now
             </button>
           )}
-          {years.value.length > 0 && (
+          {/* Over the years covers every year, so the picker steps aside there. */}
+          {page.value === "years" && years.value.length > 1 ? <span class="muted">All years</span> : years.value.length > 0 && (
             <select aria-label="Year" value={setup?.year} onChange={(e) => openYear(Number(e.currentTarget.value))}>
               {years.value.map((y) => <option value={y.setup.year}>{y.setup.year}</option>)}
             </select>

@@ -122,18 +122,31 @@ export async function openYear(year?: number): Promise<void> {
   const saved = await getSetting("activeYear");
   const pick = [year, saved, stored[0]].find((y) => y !== undefined && stored.includes(y));
   let data = pick === undefined ? null : await loadYear(pick);
-  // Bring older years up to date: drop people, owed shares and the old loan expense role, and give open years Uncategorized.
-  // An open year is saved that way the first time; a closed one is only cleaned in memory, never rewritten.
-  if (data) {
-    const cleaned = withoutPeople(data);
-    const base = cleaned ?? { setup: data.setup };
-    const change = { ...base, setup: data.setup.closed ? base.setup : withUncategorized(base.setup) };
-    if (cleaned || change.setup !== data.setup) {
-      data = data.setup.closed ? withChange(data, change) : await saveChange(data, change);
-    }
-  }
+  // An open year is saved up to date the first time; a closed one is only cleaned in memory, never rewritten.
+  const change = data && upgrade(data);
+  if (data && change) data = data.setup.closed ? withChange(data, change) : await saveChange(data, change);
   current.value = data;
   if (pick !== undefined && pick !== saved) await setSetting("activeYear", pick);
+}
+
+/**
+ * What brings an older year up to date: drop people, owed shares and the old loan expense role,
+ * and give open years Uncategorized. Null when there's nothing to change.
+ */
+function upgrade(data: YearData): YearChange | null {
+  const cleaned = withoutPeople(data);
+  const base = cleaned ?? { setup: data.setup };
+  const change = { ...base, setup: data.setup.closed ? base.setup : withUncategorized(base.setup) };
+  return cleaned || change.setup !== data.setup ? change : null;
+}
+
+/** Every stored year, oldest first, brought up to date in memory only (for Over the years). */
+export async function loadAllYears(): Promise<YearData[]> {
+  const all = await Promise.all(years.value.map((y) => loadYear(y.setup.year)));
+  return all.filter((d) => d !== null).map((d) => {
+    const change = upgrade(d);
+    return change ? withChange(d, change) : d;
+  }).sort((a, b) => a.setup.year - b.setup.year);
 }
 
 // Changes run one at a time. Each one reads the current state only when its turn comes,

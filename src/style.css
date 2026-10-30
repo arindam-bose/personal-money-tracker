@@ -999,6 +999,40 @@ tr.row-transfer td {
   gap: 16px;
 }
 
+/* --- Over the years: one small chart per Dashboard figure --- */
+
+.years {
+  display: grid;
+  gap: 16px;
+}
+
+.year-charts {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 12px;
+}
+
+/* Five across: what came in and went out on the first row, where it went on the second. */
+@media (min-width: 900px) {
+  .year-charts { grid-template-columns: repeat(5, minmax(0, 1fr)); }
+}
+
+/* More than four years need wider charts to name every year. */
+.year-charts.many {
+  grid-template-columns: repeat(auto-fill, minmax(300px, 1fr));
+}
+
+/* Charts sit at the bottom, so a title on two lines doesn't push one lower than its row. */
+.year-charts .card {
+  padding: 12px 14px;
+  display: flex;
+  flex-direction: column;
+}
+
+.year-charts .chart {
+  margin-top: auto;
+}
+
 /* Earning / Expense reports: a heading, tabs, then the open tab's card. */
 .section-title {
   font-size: 18px;
