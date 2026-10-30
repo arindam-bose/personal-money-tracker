@@ -56,7 +56,7 @@ export function YearsView() {
   const short = (y: string) => (all.length > 4 ? `’${y.slice(2)}` : y);
 
   return (
-    <div class="years">
+    <div class="over-years">
       <p class="muted">
         Each Dashboard figure for every year, everyone together.
         {ongoing.length > 0 && <> * {ongoing.join(", ")} so far.</>}

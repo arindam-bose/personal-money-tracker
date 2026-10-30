@@ -1001,7 +1001,7 @@ tr.row-transfer td {
 
 /* --- Over the years: one small chart per Dashboard figure --- */
 
-.years {
+.over-years {
   display: grid;
   gap: 16px;
 }
