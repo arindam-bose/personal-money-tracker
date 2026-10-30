@@ -11,6 +11,8 @@ describe("amountPrefix", () => {
     expect(finds("1972.2", 197225)).toBe(true);
     expect(finds("45.", 4567)).toBe(true);
     expect(finds("45.67", 4567)).toBe(true);
+    expect(finds("05", 500)).toBe(true);
+    expect(finds("0.5", 50)).toBe(true);
   });
   it("doesn't find digits in the middle or a different cents", () => {
     expect(finds("50", 15000)).toBe(false);

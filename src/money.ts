@@ -28,10 +28,11 @@ export function amountText(cents: Cents): string {
 
 /**
  * What an amount search looks for at the start of amountText, or null if the text isn't an amount.
- * "$1,97" -> "197", which finds 197.00 and 1972.25, but not 150.00 for "50".
+ * "$1,97" -> "197", which finds 197.00 and 1972.25, but not 150.00 for "50". Leading zeros go,
+ * as amountText has none: "05" -> "5", "0.5" stays.
  */
 export function amountPrefix(text: string): string | null {
-  return parseCents(text) === null ? null : text.replace(/[$,\s]/g, "");
+  return parseCents(text) === null ? null : text.replace(/[$,\s]/g, "").replace(/^0+(?=\d)/, "");
 }
 
 const compact = new Intl.NumberFormat("en-US", { style: "currency", currency: "USD", notation: "compact", maximumFractionDigits: 1 });
