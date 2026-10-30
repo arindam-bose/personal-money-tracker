@@ -297,9 +297,51 @@ kbd {
   margin-bottom: 16px;
 }
 
-.add-expense { border-left: 3px solid var(--expense); }
-.add-earning { border-left: 3px solid var(--earning); }
-.add-transfer { border-left: 3px solid var(--transfer); }
+/* The three add buttons share the row equally, each tinted in its kind's colour. */
+.add-buttons {
+  flex: 1;
+  display: grid;
+  grid-template-columns: repeat(3, 1fr);
+  gap: 10px;
+}
+
+button.add {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 6px;
+  padding: 9px 12px;
+  font-weight: 600;
+  color: var(--kind);
+  background: color-mix(in srgb, var(--kind) 7%, var(--surface));
+  border-color: color-mix(in srgb, var(--kind) 35%, var(--surface));
+}
+
+button.add:hover {
+  filter: none;
+  background: color-mix(in srgb, var(--kind) 14%, var(--surface));
+}
+
+.add-earning { --kind: var(--earning); }
+.add-expense { --kind: var(--expense); }
+.add-transfer { --kind: var(--transfer); }
+
+.add-icon {
+  font-size: 1.15em;
+  line-height: 1;
+}
+
+button.add kbd {
+  font-weight: 400;
+}
+
+/* Phones have no keyboard shortcuts, and the hint and "Add" would crowd the label. */
+@media (max-width: 600px) {
+  .add-buttons { gap: 6px; }
+  button.add { padding: 9px 4px; gap: 4px; font-size: 14px; text-transform: capitalize; }
+  button.add kbd,
+  .add-verb { display: none; }
+}
 
 .last-updated {
   margin: -6px 0 10px;

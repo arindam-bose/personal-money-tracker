@@ -288,11 +288,17 @@ export function LedgerView() {
         {setup.accounts.length === 0 ? (
           <span class="muted">Add your accounts on the <a href="#/accounts">Accounts</a> page first, then log entries here.</span>
         ) : !readOnly.value ? (
-          <>
-            <button type="button" class="add add-earning" onClick={() => openNew("earning")}>+ Earning <kbd>I</kbd></button>
-            <button type="button" class="add add-expense" onClick={() => openNew("expense")}>- Expense <kbd>E</kbd></button>
-            <button type="button" class="add add-transfer" onClick={() => openNew("transfer")}>⇄ Transfer <kbd>T</kbd></button>
-          </>
+          <div class="add-buttons">
+            <button type="button" class="add add-earning" title="Add money that came in (I)" onClick={() => openNew("earning")}>
+              <span class="add-icon" aria-hidden="true">+</span> <span class="add-verb">Add</span> earning <kbd>I</kbd>
+            </button>
+            <button type="button" class="add add-expense" title="Add money that went out (E)" onClick={() => openNew("expense")}>
+              <span class="add-icon" aria-hidden="true">−</span> <span class="add-verb">Add</span> expense <kbd>E</kbd>
+            </button>
+            <button type="button" class="add add-transfer" title="Add money moved between your own accounts (T)" onClick={() => openNew("transfer")}>
+              <span class="add-icon" aria-hidden="true">⇄</span> <span class="add-verb">Add</span> transfer <kbd>T</kbd>
+            </button>
+          </div>
         ) : (
           <span class="muted">{setup.year} is closed, so it can't be changed.</span>
         )}
