@@ -2,12 +2,13 @@
 // Built for the keyboard: fields in typing order, Enter saves, Esc closes.
 
 import { useSignal } from "@preact/signals";
-import { useEffect, useRef } from "preact/hooks";
+import { useEffect, useId, useRef } from "preact/hooks";
 import type { JSX } from "preact";
 import {
   checkDraft, defaultCategory, earningRole, suggestTransferCategory, tidyAmount,
   type AnyEntry, type Draft, type DraftErrors, type DraftField, type Kind,
 } from "../entries";
+import { localToday } from "../derive";
 import { membersOf } from "../setup";
 import { current, ensureTag, nextEntryId, removeEntry, saveEntry } from "../state";
 import type { Account, YearSetup } from "../types";
@@ -124,6 +125,10 @@ export function EntryForm({ initial, onClose }: Props) {
   // A closed account, like an archived one, only stays on the entries that already use it.
   const accounts = setup.accounts.filter((a) => a.type !== "asset" && (!(a.archived || a.closedOn) || [d.account, d.from, d.to].includes(a.id)));
   const role = earningRole(d, setup);
+  // The browser's own date picker can't take a Today button, so it sits on the label; T does the same.
+  const today = localToday();
+  const dateId = useId();
+  const canToday = today >= yearStart(setup) && today <= `${setup.year}-12-31`;
 
   return (
     <form class={`entry-form kind-${d.kind}`} onSubmit={onSubmit} onKeyDown={onKeyDown} noValidate>
@@ -137,9 +142,18 @@ export function EntryForm({ initial, onClose }: Props) {
       </div>
 
       <div class="fields">
-        <Field label="Date" error={err.date} class="w-date">
-          <input type="date" value={d.date} min={yearStart(setup)} max={`${setup.year}-12-31`}
-            onInput={(e) => set("date", e.currentTarget.value)} />
+        <Field label="Date" error={err.date} class="w-date" controlId={dateId}
+          action={canToday && d.date !== today && (
+            <button type="button" class="link field-action" onClick={() => set("date", today)} title="Set the date to today (T)">Today</button>
+          )}>
+          <input id={dateId} type="date" value={d.date} min={yearStart(setup)} max={`${setup.year}-12-31`}
+            onInput={(e) => set("date", e.currentTarget.value)}
+            onKeyDown={(e) => {
+              if (canToday && e.key.toLowerCase() === "t" && !e.ctrlKey && !e.metaKey && !e.altKey) {
+                e.preventDefault();
+                set("date", today);
+              }
+            }} />
         </Field>
         <Field label="Item" error={err.item} class="w-item">
           <input ref={itemRef} type="text" value={d.item} placeholder="What was it?"
@@ -220,12 +234,21 @@ export function EntryForm({ initial, onClose }: Props) {
  * A labelled field. `group` makes it a <div> instead of a <label>, for controls with buttons
  * inside: clicking a label clicks its first button, which for tags removed the first chip.
  */
-function Field(props: { label: string; error?: string; class?: string; group?: boolean; children: JSX.Element | JSX.Element[] }) {
-  const Tag = props.group ? "div" : "label";
+/**
+ * A labelled field. With an action (a button beside the label), the wrapper can't be a <label>:
+ * the button would take the label. The label then names the field's control by `controlId`.
+ */
+function Field(props: {
+  label: string; error?: string; class?: string; group?: boolean;
+  action?: JSX.Element | false; controlId?: string; children: JSX.Element | JSX.Element[];
+}) {
+  const Tag = props.group || props.action !== undefined ? "div" : "label";
   return (
     <Tag class={`field ${props.class ?? ""} ${props.error ? "has-error" : ""}`} role={props.group ? "group" : undefined}
       aria-label={props.group ? props.label : undefined}>
-      <span class="field-label">{props.label}</span>
+      {props.action !== undefined ? (
+        <span class="field-head"><label class="field-label" for={props.controlId}>{props.label}</label>{props.action}</span>
+      ) : <span class="field-label">{props.label}</span>}
       {props.children}
       {props.error && <span class="field-error">{props.error}</span>}
     </Tag>
