@@ -1,7 +1,7 @@
 {
   "name": "personal-money-tracker",
   "private": true,
-  "version": "3.0.19",
+  "version": "3.0.20",
   "released": "2026-10-30",
   "type": "module",
   "scripts": {

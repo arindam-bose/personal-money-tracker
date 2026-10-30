@@ -476,6 +476,11 @@ tr:focus-within .dup-btn,
   color: var(--text);
 }
 
+/* Without hover (touch screens) it would be an invisible button: show it. */
+@media (hover: none) {
+  .dup-btn { opacity: 1; }
+}
+
 /* A just-made copy glows briefly. */
 @keyframes flash {
   from { background: rgba(var(--heat), 0.28); }
