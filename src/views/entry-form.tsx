@@ -162,7 +162,9 @@ export function EntryForm({ initial, onClose }: Props) {
         <Field label="Amount" error={err.amount} class="w-amount">
           <input type="text" inputMode="decimal" value={d.amount} placeholder="0.00" class="num"
             onInput={(e) => set("amount", e.currentTarget.value)}
-            onBlur={(e) => { const t = tidyAmount(e.currentTarget.value); if (t !== d.amount) set("amount", t); }} />
+            // The live draft, not the field: a save clears the draft and moves focus here before the
+            // field re-renders, and tidying the old text would bring the last amount back.
+            onBlur={() => { const a = draft.value.amount, t = tidyAmount(a); if (t !== a) set("amount", t); }} />
         </Field>
 
         {d.kind === "transfer" ? (
