@@ -12,6 +12,10 @@ describe("backupDue", () => {
     expect(backupDue({ lastBackupAt: daysAgo(9), lastChangedAt: daysAgo(2) }, true, now)).toBe(true);
     expect(backupDue({ lastBackupAt: daysAgo(6), lastChangedAt: daysAgo(2) }, true, now)).toBe(false);
   });
+  it("counts setup changes (accounts, budgets) as well as entries", () => {
+    expect(backupDue({ lastBackupAt: daysAgo(9), lastChangedAt: daysAgo(20), setupChangedAt: daysAgo(2) }, true, now)).toBe(true);
+    expect(backupDue({ lastBackupAt: daysAgo(9), lastChangedAt: daysAgo(20), setupChangedAt: daysAgo(10) }, true, now)).toBe(false);
+  });
   it("stays quiet for a year untouched since its backup, however old", () => {
     expect(backupDue({ lastBackupAt: daysAgo(90), lastChangedAt: daysAgo(100) }, true, now)).toBe(false);
   });

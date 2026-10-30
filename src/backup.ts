@@ -24,6 +24,7 @@ export async function exportYear(year: number, now = new Date()): Promise<YearFi
     ...(setup.start ? { start: setup.start } : {}),
     exportedAt: now.toISOString(),
     ...(setup.lastChangedAt ? { lastChangedAt: setup.lastChangedAt } : {}),
+    ...(setup.setupChangedAt ? { setupChangedAt: setup.setupChangedAt } : {}),
     ...(setup.closed ? { closed: true } : {}),
     accounts: setup.accounts,
     categories: setup.categories,

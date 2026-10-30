@@ -308,7 +308,7 @@ into the next year.
 
 A backup is the year's `YearFile`, downloaded from the Settings page or the top-bar
 reminder (shown for an open year with entries that was never backed up, or that
-changed since a backup at least 7 days old; `backupDue` in `storage.ts`). Importing a
+changed since a backup at least 7 days old, in its entries or its setup; `backupDue` in `storage.ts`). Importing a
 file counts as a backup made at its `exportedAt` time. JSON keys are written in a
 fixed order, so two backups of the same year diff cleanly.
 Backups are named `money-tracker-<year>_<date>_<time>_<browser>_<system>.json`
@@ -323,6 +323,11 @@ A backup holds everything needed to rebuild the year on a clean device:
   entries, in `state.ts`). Of two backups of a year, the later one is newer; importing
   over a year shows both times and warns when the tracker's is later. Left out until
   the first change.
+- `setupChangedAt`, when the setup last changed: accounts, categories, tags, people,
+  budgets, the start day or IRA settings (`saveSetup` and `saveChange` in `state.ts`;
+  bringing an older year up to date on opening doesn't count). Kept apart from
+  `lastChangedAt` so the ledger's "Last updated" stays about entries; the backup reminder
+  and the import warning look at both. Left out until the first change.
 - `closed: true` for a closed year, so it comes back read-only (left out while open).
 - `iraLimit`, the year's IRA limit: the one set on the Settings page, or else the IRS
   limit for that year. Every backup writes it; in older files without it, the IRS

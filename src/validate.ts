@@ -111,8 +111,11 @@ export function validateYearFile(raw: unknown): ValidationResult {
   if (!isObj(data.categories)) err(`"categories" is missing.`);
   if (!isObj(data.budgets) || !isObj(data.budgets.default)) err(`"budgets.default" is missing.`);
   if (data.closed !== undefined && typeof data.closed !== "boolean") err(`"closed" must be true or false.`);
-  if (data.lastChangedAt !== undefined && !(typeof data.lastChangedAt === "string" && ISO_TIMESTAMP.test(data.lastChangedAt) && !Number.isNaN(Date.parse(data.lastChangedAt)))) {
-    err(`"lastChangedAt" must be a date and time, like "2026-10-26T22:16:00.000Z".`);
+  for (const key of ["lastChangedAt", "setupChangedAt"] as const) {
+    const at = data[key];
+    if (at !== undefined && !(typeof at === "string" && ISO_TIMESTAMP.test(at) && !Number.isNaN(Date.parse(at)))) {
+      err(`"${key}" must be a date and time, like "2026-10-26T22:16:00.000Z".`);
+    }
   }
   if (data.iraLimit !== undefined && !(isCents(data.iraLimit) && data.iraLimit >= 0)) err(`"iraLimit" is not whole cents.`);
   if (data.iraBeforeStart !== undefined && !(isCents(data.iraBeforeStart) && data.iraBeforeStart >= 0)) {

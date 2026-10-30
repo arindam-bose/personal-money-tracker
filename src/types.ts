@@ -165,6 +165,12 @@ export interface YearFile {
    * Of two backups of a year, the later one holds the newer data. Left out until the first change.
    */
   lastChangedAt?: string;
+  /**
+   * When the setup last changed (ISO timestamp): accounts, categories, tags, people, budgets,
+   * the start day or IRA settings. Apart from lastChangedAt, which is only the entries; together
+   * they tell the backup reminder whether anything changed since the last backup. Left out until the first change.
+   */
+  setupChangedAt?: string;
   /** Set by "Close year"; a closed year is read-only. Left out while the year is open. */
   closed?: boolean;
   accounts: Account[];
@@ -197,7 +203,7 @@ export interface FileSettings {
 }
 
 /** The parts of a YearFile that are set up once, not entered day to day. */
-export type YearSetup = Pick<YearFile, "year" | "start" | "closed" | "accounts" | "categories" | "tags" | "members" | "budgets" | "iraLimit" | "iraBeforeStart" | "lastChangedAt"> & {
+export type YearSetup = Pick<YearFile, "year" | "start" | "closed" | "accounts" | "categories" | "tags" | "members" | "budgets" | "iraLimit" | "iraBeforeStart" | "lastChangedAt" | "setupChangedAt"> & {
   /** When this year was last exported to JSON (ISO timestamp), for the backup reminder. */
   lastBackupAt?: string;
 };

@@ -85,6 +85,21 @@ describe("last updated", () => {
     await removeTag(used);
     expect(await stamp()).toBeDefined();
   });
+
+  it("keeps setup changes apart: they stamp setupChangedAt, entries don't", async () => {
+    const setupStamp = async () => (await loadYear(2026))!.setup.setupChangedAt;
+    expect(await setupStamp()).toBeUndefined();
+    await saveEntry({ kind: "expense", entry: current.value!.expenses[0]! });
+    expect(await setupStamp()).toBeUndefined();
+    const before = Date.now();
+    await setBudget("default", "ce_food", 1);
+    const at = await setupStamp();
+    expect(Date.parse(at!)).toBeGreaterThanOrEqual(before);
+    expect(current.value!.setup.setupChangedAt).toBe(at);
+    expect((await exportYear(2026))!.setupChangedAt).toBe(at);
+    await removeTag(current.value!.setup.tags[0]!.id); // a change that also moves entries
+    expect(Date.parse((await setupStamp())!)).toBeGreaterThanOrEqual(Date.parse(at!));
+  });
 });
 
 describe("years saved before people were dropped", () => {

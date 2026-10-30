@@ -50,8 +50,11 @@ function replaceQuestion(fileName: string, stored: YearSummary, file: YearFile):
     : `exported ${at.toLocaleDateString(undefined, { day: "numeric", month: "short", year: "numeric" })}`;
   const here = stored.setup.lastChangedAt;
   const there = file.lastChangedAt;
-  // A file without one was saved before files carried it, so anything changed here is newer.
-  const newerHere = here !== undefined && (there === undefined || Date.parse(here) > Date.parse(there));
+  // The latest change of either kind, entries or setup. A file without one was saved before
+  // files carried it, so anything changed here is newer.
+  const latest = (...at: (string | undefined)[]) => Math.max(...at.map((x) => (x ? Date.parse(x) : -Infinity)));
+  const hereAt = latest(here, stored.setup.setupChangedAt), thereAt = latest(there, file.setupChangedAt);
+  const newerHere = hereAt > -Infinity && hereAt > thereAt;
   return [
     `Replace all your ${file.year} data with "${fileName}"?`,
     "",

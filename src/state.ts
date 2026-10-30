@@ -124,7 +124,7 @@ export async function openYear(year?: number): Promise<void> {
   let data = pick === undefined ? null : await loadYear(pick);
   // An open year is saved up to date the first time; a closed one is only cleaned in memory, never rewritten.
   const change = data && upgrade(data);
-  if (data && change) data = data.setup.closed ? withChange(data, change) : await saveChange(data, change);
+  if (data && change) data = data.setup.closed ? withChange(data, change) : await saveChange(data, change, true);
   current.value = data;
   if (pick !== undefined && pick !== saved) await setSetting("activeYear", pick);
 }
@@ -239,8 +239,14 @@ function touched(setup: YearSetup): YearSetup {
   return { ...setup, lastChangedAt: new Date().toISOString() };
 }
 
-async function saveSetup(setup: YearSetup): Promise<void> {
+/** The setup stamped with now as when it last changed itself (not its entries). */
+function setupTouched(setup: YearSetup): YearSetup {
+  return { ...setup, setupChangedAt: new Date().toISOString() };
+}
+
+async function saveSetup(change: YearSetup): Promise<void> {
   const data = editable();
+  const setup = setupTouched(change);
   await putSetup(setup);
   current.value = { ...data, setup };
 }
@@ -273,11 +279,16 @@ export function updateSetup(change: (setup: YearSetup, usage: Usage) => YearSetu
   });
 }
 
-/** Save a change (new setup plus the entries it touched) in one transaction, then show it. */
-async function saveChange(data: YearData, change: YearChange): Promise<YearData> {
+/**
+ * Save a change (new setup plus the entries it touched) in one transaction, then show it.
+ * An `upgrade` (bringing an older year up to date on opening) isn't the user's change: the setup
+ * isn't stamped, as importing the same backup again would redo it.
+ */
+async function saveChange(data: YearData, change: YearChange, upgrade = false): Promise<YearData> {
   const { expenses = [], earnings = [], transfers = [] } = change;
-  // Entries moved off a deleted category, tag or person count as a change to the ledger.
-  const setup = expenses.length || earnings.length || transfers.length ? touched(change.setup) : change.setup;
+  // Entries moved off a deleted category, tag or person count as a change to the ledger too.
+  const changed = upgrade ? change.setup : setupTouched(change.setup);
+  const setup = expenses.length || earnings.length || transfers.length ? touched(changed) : changed;
   await putSetupAndEntries(setup, { expenses, earnings, transfers });
   return withChange(data, { ...change, setup });
 }

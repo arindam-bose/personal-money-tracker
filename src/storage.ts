@@ -24,12 +24,14 @@ const BACKUP_AFTER_DAYS = 7;
 /**
  * Whether the top bar should remind about a backup: never for a closed year or one with no entries;
  * otherwise if it was never backed up, or it changed since a backup taken a week or more ago.
- * A finished year nobody touches stays quiet. No change time (old data) counts as changed.
+ * A change is to the entries or to the setup (accounts, budgets and so on).
+ * A finished year nobody touches stays quiet. No entry change time (old data) counts as changed.
  */
-export function backupDue(setup: Pick<YearSetup, "closed" | "lastBackupAt" | "lastChangedAt">, hasEntries: boolean, now = new Date()): boolean {
+export function backupDue(setup: Pick<YearSetup, "closed" | "lastBackupAt" | "lastChangedAt" | "setupChangedAt">, hasEntries: boolean, now = new Date()): boolean {
   if (setup.closed || !hasEntries) return false;
   const days = daysSince(setup.lastBackupAt, now);
   if (days === null) return true;
-  const changed = !setup.lastChangedAt || Date.parse(setup.lastChangedAt) > Date.parse(setup.lastBackupAt!);
+  const after = (at: string | undefined) => at !== undefined && Date.parse(at) > Date.parse(setup.lastBackupAt!);
+  const changed = !setup.lastChangedAt || after(setup.lastChangedAt) || after(setup.setupChangedAt);
   return changed && days >= BACKUP_AFTER_DAYS;
 }

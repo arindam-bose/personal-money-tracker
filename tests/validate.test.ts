@@ -20,6 +20,8 @@ describe("validateYearFile", () => {
     expect(errorsAfter((f) => (f.lastChangedAt = "yesterday"))).toEqual([`"lastChangedAt" must be a date and time, like "2026-10-26T22:16:00.000Z".`]);
     // Strings Date.parse would take, but that aren't timestamps.
     for (const loose of ["1", "May 2026", "2026-10-26"]) expect(errorsAfter((f) => (f.lastChangedAt = loose))).toHaveLength(1);
+    expect(errorsAfter((f) => (f.setupChangedAt = "2026-10-27T08:30:00.000Z"))).toEqual([]);
+    expect(errorsAfter((f) => (f.setupChangedAt = "yesterday"))).toEqual([`"setupChangedAt" must be a date and time, like "2026-10-26T22:16:00.000Z".`]);
   });
 
   it("rejects files that aren't money-tracker files", () => {
