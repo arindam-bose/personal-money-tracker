@@ -315,6 +315,7 @@ button.add {
   color: var(--kind);
   background: color-mix(in srgb, var(--kind) 7%, var(--surface));
   border-color: color-mix(in srgb, var(--kind) 35%, var(--surface));
+  border-left: 3px solid var(--kind);
 }
 
 button.add:hover {
