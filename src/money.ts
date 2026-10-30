@@ -21,15 +21,17 @@ export function parseCents(text: string): Cents | null {
   return dollars * 100 + cents;
 }
 
+/** Amount as it's typed in a form: 1234 -> "12.34", 197225 -> "1972.25". */
+export function amountText(cents: Cents): string {
+  return formatCents(cents).replace(/[$,]/g, "");
+}
+
 /**
- * The amounts a search for this text finds, lowest and highest in cents, or null if it isn't an amount.
- * Like the digits read on a receipt, it matches as far as it was typed: "45" -> 45.00–45.99, "45.6" -> 45.60–45.69, "45.67" -> just 45.67.
+ * What an amount search looks for at the start of amountText, or null if the text isn't an amount.
+ * "$1,97" -> "197", which finds 197.00 and 1972.25, but not 150.00 for "50".
  */
-export function amountRange(text: string): [Cents, Cents] | null {
-  const low = parseCents(text);
-  if (low === null) return null;
-  const decimals = text.split(".")[1]?.trim().length ?? 0;
-  return [low, low + (decimals === 0 ? 99 : decimals === 1 ? 9 : 0)];
+export function amountPrefix(text: string): string | null {
+  return parseCents(text) === null ? null : text.replace(/[$,\s]/g, "");
 }
 
 const compact = new Intl.NumberFormat("en-US", { style: "currency", currency: "USD", notation: "compact", maximumFractionDigits: 1 });

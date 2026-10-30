@@ -43,7 +43,7 @@ entry, a loan, investments and a car, and accounts that were closed.
   newest or oldest first. Filter by month, the last 1 to 12 months, or dates you
   pick, and by kind, account, category, tag or person; every filter list can be
   searched by typing. The search box finds words in the item or notes, or an
-  amount: 45 finds $45.00 to $45.99, 45.67 finds just that. Quick keyboard entry. "Last updated" shows when an entry
+  amount by its first digits: 197 finds $197.00 and $1,972.25. Quick keyboard entry. "Last updated" shows when an entry
   last changed, and backups carry it.
   Transfers (paying a card, moving money to savings) are shown apart, because
   they aren't spending.
