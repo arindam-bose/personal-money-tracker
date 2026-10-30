@@ -141,17 +141,26 @@ function AccountsCard({ setup, usage }: { setup: YearSetup; usage: Usage }) {
         <table class="data-table setup-table">
           <thead>
             <tr>
-              <th>Name</th><th>Type</th><th>Number</th>
+              <th class="c-act" /><th>Name</th><th>Type</th><th>Number</th>
               <th class="num">Opening</th><th class="num">Limit</th><th class="num">Balance now</th>
               <th class="num">Entries</th><th />
             </tr>
           </thead>
           <tbody>
             {sorted.map((a) => editing.value === a.id ? (
-              <tr key={a.id}><td colSpan={8}><AccountForm account={a} onDone={() => (editing.value = null)} /></td></tr>
+              <tr key={a.id}><td colSpan={9}><AccountForm account={a} onDone={() => (editing.value = null)} /></td></tr>
             ) : (
               <Fragment key={a.id}>
                 <tr class={a.archived || a.closedOn ? "archived" : ""}>
+                  {/* Like the Ledger: Duplicate shows on hover, on the left. */}
+                  <td class="c-act">
+                    {!readOnly.value && (
+                      <button type="button" class="dup-btn" aria-label={`Duplicate ${a.name}`} title={`Duplicate: add a copy named “${a.name} (new)”`}
+                        onClick={() => copy(a)}>
+                        ⧉
+                      </button>
+                    )}
+                  </td>
                   <td>
                     {a.name}{a.archived && !a.closedOn && <span class="badge">hidden</span>}
                     {a.closedOn && <span class="badge">closed {shortDate(a.closedOn)}</span>}
@@ -175,7 +184,6 @@ function AccountsCard({ setup, usage }: { setup: YearSetup; usage: Usage }) {
                           </button>
                         )}
                         <button type="button" onClick={() => (editing.value = a.id)}>Edit</button>
-                        <button type="button" onClick={() => copy(a)} title={`Add a copy named “${a.name} (new)”`}>Duplicate</button>
                         {a.closedOn ? (
                           <button type="button" onClick={() => reopen(a)} title="Undo closing it: it counts again, and takes entries after that day">Reopen</button>
                         ) : (
@@ -198,10 +206,10 @@ function AccountsCard({ setup, usage }: { setup: YearSetup; usage: Usage }) {
                   </td>
                 </tr>
                 {valuing.value === a.id && (
-                  <tr><td colSpan={8}><ValuationForm account={a} setup={setup} onDone={() => (valuing.value = null)} /></td></tr>
+                  <tr><td colSpan={9}><ValuationForm account={a} setup={setup} onDone={() => (valuing.value = null)} /></td></tr>
                 )}
                 {closing.value === a.id && !a.closedOn && (
-                  <tr><td colSpan={8}><CloseForm account={a} setup={setup} onDone={() => (closing.value = null)} /></td></tr>
+                  <tr><td colSpan={9}><CloseForm account={a} setup={setup} onDone={() => (closing.value = null)} /></td></tr>
                 )}
               </Fragment>
             ))}

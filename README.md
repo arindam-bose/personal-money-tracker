@@ -76,7 +76,7 @@ entry, a loan, investments and a car, and accounts that were closed.
   the Accounts page. Then each entry can be logged for one person, and the
   Dashboard, Ledger and Reports can show **All people** or one person at a time.
   Accounts and budgets stay shared by everyone.
-  **Duplicate** an account to start a similar one (the copy is named "… (new)").
+  **Duplicate** an account (⧉, at the left of its row when you point at it) to start a similar one (the copy is named "… (new)").
 - **Settings**: import a year, or start one from scratch (from January 1 or any
   later day); back up, and close a finished year, which starts the next one from
   its closing balances. Also each year's IRA limit; **Delete…** to remove one
