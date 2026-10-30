@@ -19,7 +19,8 @@
   --series-3: #1baf7a;
   --series-4: #eda100;
   --series-5: #e87ba4;
-  --series-6: #008300;
+  /* Plum, not a second green: loans (series-6) sit next to savings (series-3) in Balances over time. */
+  --series-6: #6e396a;
   /* 7 to 10 are only for Credit card usage, which names up to ten cards (and labels each slice). */
   --series-7: #6250d6;
   --series-8: #e34948;
@@ -57,7 +58,7 @@
   --series-3: #199e70;
   --series-4: #c98500;
   --series-5: #d55181;
-  --series-6: #008300;
+  --series-6: #9d42b7;
   --series-7: #9085e9;
   --series-8: #e66767;
   --series-9: #0f9cc2;
