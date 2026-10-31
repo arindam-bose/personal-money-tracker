@@ -102,7 +102,8 @@ export function App() {
       <header class="topbar">
         {/* The title goes home: the Dashboard. */}
         <h1><a href="#/" class="home-link">Money Tracker</a> <span class="version">v{version}</span></h1>
-        <nav id="pages" class={menuOpen.value ? "open" : ""}>
+        {/* Picking a page closes the menu, even the page already open (the address doesn't change then). */}
+        <nav id="pages" class={menuOpen.value ? "open" : ""} onClick={(e) => (e.target as Element).closest("a") && (menuOpen.value = false)}>
           {(Object.keys(PAGES) as Page[]).filter((p) => p !== "years" || years.value.length > 1).map((p) => (
             <a href={`#/${p}`} class={p === page.value ? "active" : ""} aria-current={p === page.value ? "page" : undefined}>
               {PAGES[p].label}
