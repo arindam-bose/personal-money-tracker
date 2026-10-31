@@ -392,15 +392,6 @@ select {
   min-width: 0;
 }
 
-/* Phones zoom the page into any field with text under 16px when it's tapped. */
-@media (max-width: 600px) {
-  input,
-  select,
-  textarea {
-    font-size: 16px;
-  }
-}
-
 input:focus-visible,
 select:focus-visible,
 button:focus-visible,
@@ -2163,12 +2154,6 @@ button.icon-action.icon-update:hover {
   .card .name-list.compact li {
     grid-template-columns: minmax(0, 1fr) 36px 24px;
     grid-template-areas: "name uses del";
-  }
-
-  /* .card raises these above the 13px rules further down. */
-  .card .name-list select,
-  .card .add-row select {
-    font-size: 16px;
   }
 }
 
