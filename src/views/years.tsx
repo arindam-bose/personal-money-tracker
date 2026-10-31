@@ -6,12 +6,11 @@ import { useSignal, useSignalEffect } from "@preact/signals";
 import type { YearData } from "../db";
 import { ledgerOf, ratio, spendByCategory, summarize, tagTotal, type Summary } from "../derive";
 import { formatCents, formatCompact, formatPercent } from "../money";
-import {
-  current, loadAllYears, pinnedYearCategories, pinnedYearTags, savePinnedYearCategories, savePinnedYearTags, years, type YearSummary,
-} from "../state";
+import { current, loadAllYears, pins, savePins, years, type YearSummary } from "../state";
+import type { PinSetting } from "../types";
 import { Chart, axisStyle, baseOption, money, moneyAxis, seriesColors, token, type ChartOption } from "./chart";
 import { CardTitle, PageHelp } from "./help";
-import { SearchSelect } from "./search-select";
+import { PinTotal } from "./pin-total";
 
 /** The Dashboard's tiles, in its order. Colours match Reports: earning, spending, savings, investing, loans. */
 const MEASURES: { key: keyof Summary; label: string; color: (c: string[], value: number) => string }[] = [
@@ -38,7 +37,7 @@ interface Figure {
   /** One per year, oldest first. */
   values: number[];
   color: (value: number) => string;
-  /** For a pinned tag: takes it off the page. */
+  /** For a pinned category or tag: takes it off the page. */
   onRemove?: () => void;
 }
 
@@ -65,17 +64,6 @@ function idIn(list: Named[], id: string, name: string, names: Map<string, string
   return list.find((x) => x.id === id)?.id ?? list.find((x) => same(x.name) && same(names.get(x.id) ?? x.name))?.id;
 }
 
-/** Pin choices of one kind: not pinned yet, and one per name (the newest year's), however many ids it had. */
-function pinChoices(names: Map<string, string>, pinned: string[], kind: string, group: string) {
-  const seen = new Set(pinned.map((id) => names.get(id)?.toLowerCase()));
-  const choices = [];
-  for (const [id, name] of names) {
-    if (seen.has(name.toLowerCase())) continue;
-    seen.add(name.toLowerCase());
-    choices.push({ value: `${kind}:${id}`, label: name, group });
-  }
-  return choices;
-}
 
 export function YearsView() {
   // Each load remembers the list of years it was for: one made before the list changed is never shown.
@@ -111,7 +99,8 @@ export function YearsView() {
     ) : <p class="muted">Loading years…</p>;
   }
 
-  const sums = all.map((d) => summarize(ledgerOf(d)));
+  const ledgers = all.map(ledgerOf);
+  const sums = ledgers.map((l) => summarize(l));
   const labels = all.map((d) => `${d.setup.year}${inProgress(d) ? "*" : ""}`);
   const ongoing = all.filter(inProgress).map((d) => d.setup.year);
   const colors = seriesColors();
@@ -123,30 +112,29 @@ export function YearsView() {
   const tagNames = namesInAllYears(all, tagsOf);
   const categoryNames = namesInAllYears(all, categoriesOf);
   /** Charts for pinned tags or categories. They're spending, so they take Spent's colour; one deleted from every year drops out. */
-  const pinned = (ids: string[], names: Map<string, string>, list: (d: YearData) => Named[], kind: string,
-    total: (d: YearData, id: string) => number, save: (ids: string[]) => void): Figure[] =>
-    ids.flatMap((id) => {
+  const pinned = (key: PinSetting, names: Map<string, string>, list: (d: YearData) => Named[],
+    total: (year: number, id: string) => number): Figure[] => {
+    const ids = pins[key].value;
+    return ids.flatMap((id) => {
       const name = names.get(id);
       if (name === undefined) return [];
       return [{
-        key: `${kind}:${id}`, label: name, color: () => colors[1]!,
-        values: all.map((d) => {
+        key: `${key}:${id}`, label: name, color: () => colors[1]!,
+        values: all.map((d, year) => {
           const own = idIn(list(d), id, name, names);
-          return own ? total(d, own) : 0;
+          return own ? total(year, own) : 0;
         }),
-        onRemove: () => save(ids.filter((x) => x !== id)),
+        onRemove: () => savePins(key, ids.filter((x) => x !== id)),
       }];
     });
+  };
+  // Worked out once per year, for every pinned category.
+  const categorySpend = pins.pinnedYearCategories.value.length ? ledgers.map((l) => spendByCategory(l)) : [];
   const figures: Figure[] = [
     ...MEASURES.map((m) => ({ key: m.key, label: m.label, values: sums.map((s) => value(s, m.key)), color: (v: number) => m.color(colors, v) })),
     // All spending in the category, before refunds, as in Spending by category.
-    ...pinned(pinnedYearCategories.value, categoryNames, categoriesOf, "cat",
-      (d, id) => spendByCategory(ledgerOf(d)).get(id)?.gross ?? 0, savePinnedYearCategories),
-    ...pinned(pinnedYearTags.value, tagNames, tagsOf, "tag", (d, id) => tagTotal(ledgerOf(d), id), savePinnedYearTags),
-  ];
-  const choices = [
-    ...pinChoices(categoryNames, pinnedYearCategories.value, "cat", "Spending categories"),
-    ...pinChoices(tagNames, pinnedYearTags.value, "tag", "Tags"),
+    ...pinned("pinnedYearCategories", categoryNames, categoriesOf, (year, id) => categorySpend[year]!.get(id)?.gross ?? 0),
+    ...pinned("pinnedYearTags", tagNames, tagsOf, (year, id) => tagTotal(ledgers[year]!, id)),
   ];
 
   return (
@@ -189,17 +177,8 @@ export function YearsView() {
             </section>
           );
         })}
-        {choices.length > 0 && (
-          <label class="card pin-tile">
-            <span class="tile-label">Pin a total</span>
-            <SearchSelect value="" placeholder="Category or tag…" aria-label="Category or tag to chart over the years" choices={choices}
-              onChange={(v) => {
-                const [kind, id] = [v.slice(0, 3), v.slice(4)];
-                if (kind === "cat") savePinnedYearCategories([...pinnedYearCategories.value, id]);
-                else savePinnedYearTags([...pinnedYearTags.value, id]);
-              }} />
-          </label>
-        )}
+        <PinTotal categories={categoryNames} tags={tagNames} keys={{ cat: "pinnedYearCategories", tag: "pinnedYearTags" }}
+          label="Category or tag to chart over the years" />
       </div>
       <section class="card report">
         <CardTitle title="All figures">† Change is {labels[last]} against {labels[last - 1]}.</CardTitle>

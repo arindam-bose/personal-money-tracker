@@ -198,6 +198,13 @@ export interface YearFile {
   settings?: FileSettings;
 }
 
+/**
+ * The app-wide pins: tags and spending categories shown beyond the Dashboard's own tiles and
+ * Over the years' own charts. Kept on the device, and carried in backups.
+ */
+export const PIN_SETTINGS = ["pinnedTags", "pinnedYearTags", "pinnedCategories", "pinnedYearCategories"] as const;
+export type PinSetting = (typeof PIN_SETTINGS)[number];
+
 /** The app-wide settings a backup carries, so a new device can be set up from it. */
 export interface FileSettings {
   /** Tag ids whose totals show on the dashboard. */

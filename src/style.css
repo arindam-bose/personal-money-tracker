@@ -969,7 +969,7 @@ button.link.field-action {
   position: relative;
 }
 
-/* Room for the ? beside a head's own buttons (+ Add account, Include loans). */
+/* Room for the ? beside a head's own buttons (+ Add, Include loans). */
 .card:has(.card-help) .card-head {
   padding-right: 28px;
 }

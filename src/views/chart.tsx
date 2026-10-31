@@ -152,8 +152,8 @@ export function Chart({ option, height, label, onPick }: Props) {
       legend: { ...(option.legend as object), show: false },
       grid: { ...(option.grid as object), top: 12 },
     } : option, { notMerge: true });
-    // A new option shows every series again.
-    hidden.value = new Set();
+    // A new option shows every series again (a new Set only when some were hidden, to spare a redraw).
+    if (hidden.value.size) hidden.value = new Set();
   }, [option]);
 
   function toggle(name: string) {

@@ -5,11 +5,8 @@ import { getSetting, loadYear, putSetup, replaceYear, setSetting } from "./db";
 import { localToday } from "./derive";
 import { detectDevice, type Device } from "./device";
 import { iraLimitOf, withChange, withoutPeople } from "./setup";
-import type { FileSettings, YearFile } from "./types";
+import { PIN_SETTINGS, type FileSettings, type YearFile } from "./types";
 import { validateYearFile, type ValidationResult } from "./validate";
-
-/** The app-wide pins a backup carries: what the Dashboard and Over the years show beyond their own figures. */
-const PIN_SETTINGS = ["pinnedTags", "pinnedYearTags", "pinnedCategories", "pinnedYearCategories"] as const;
 
 /** Build the backup file for a stored year, or null if the year isn't stored. */
 export async function exportYear(year: number, now = new Date()): Promise<YearFile | null> {
@@ -20,10 +17,8 @@ export async function exportYear(year: number, now = new Date()): Promise<YearFi
   const data = cleaned ? withChange(stored, cleaned) : stored;
   const { setup } = data;
   const settings: FileSettings = {};
-  for (const key of PIN_SETTINGS) {
-    const pinned = await getSetting(key);
-    if (pinned?.length) settings[key] = pinned;
-  }
+  const saved = await Promise.all(PIN_SETTINGS.map((key) => getSetting(key)));
+  PIN_SETTINGS.forEach((key, i) => { if (saved[i]?.length) settings[key] = saved[i]; });
   return {
     app: "money-tracker",
     schema: 1,

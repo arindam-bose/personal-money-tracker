@@ -2,7 +2,7 @@
 // touches the database. Returns every problem found, not just the first, so a
 // broken file can be fixed in one go.
 
-import type { AccountType, YearFile } from "./types";
+import { PIN_SETTINGS, type AccountType, type YearFile } from "./types";
 
 export type ValidationResult = { ok: true; file: YearFile } | { ok: false; errors: string[] };
 
@@ -124,10 +124,10 @@ export function validateYearFile(raw: unknown): ValidationResult {
   if (data.settings !== undefined) {
     if (!isObj(data.settings)) err(`"settings" must be an object.`);
     else {
-      for (const [key, what] of [["pinnedTags", "tag"], ["pinnedYearTags", "tag"], ["pinnedCategories", "category"], ["pinnedYearCategories", "category"]]) {
-        const pinned = data.settings[key!];
+      for (const key of PIN_SETTINGS) {
+        const pinned = data.settings[key];
         if (pinned !== undefined && !(Array.isArray(pinned) && pinned.every((t) => typeof t === "string"))) {
-          err(`"settings.${key}" must be a list of ${what} ids.`);
+          err(`"settings.${key}" must be a list of ${key.endsWith("Categories") ? "category" : "tag"} ids.`);
         }
       }
     }

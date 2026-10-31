@@ -1,7 +1,7 @@
 import { beforeEach, describe, expect, it } from "vitest";
 import { exportYear, importYear } from "../src/backup";
 import { getSetting, listYears, loadYear, putEntryChange, setSetting } from "../src/db";
-import { current, ensureTag, eraseEverything, loadAllYears, openYear, pinnedTags, refreshYears, removeEntry, removeYear, removeTag, saveEntry, setBudget, years } from "../src/state";
+import { current, ensureTag, eraseEverything, loadAllYears, openYear, pins, refreshYears, removeEntry, removeYear, removeTag, saveEntry, setBudget, years } from "../src/state";
 import { demoYear } from "../src/demo";
 import { freshDb, sample } from "./helpers";
 
@@ -163,7 +163,7 @@ describe("erase everything", () => {
     const next = { ...sample(), year: 2027, expenses: [], earnings: [], transfers: [], budgets: { default: {} } };
     await importYear(next);
     await setSetting("pinnedTags", ["t_x"]);
-    pinnedTags.value = ["t_x"];
+    pins.pinnedTags.value = ["t_x"];
 
     await eraseEverything();
     expect(await listYears()).toEqual([]);
@@ -172,7 +172,7 @@ describe("erase everything", () => {
     expect(await getSetting("activeYear")).toBeUndefined();
     expect(current.value).toBeNull();
     expect(years.value).toEqual([]);
-    expect(pinnedTags.value).toEqual([]);
+    expect(pins.pinnedTags.value).toEqual([]);
 
     // And a backup restores it all again.
     await importYear(sample());

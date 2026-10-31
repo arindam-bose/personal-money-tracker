@@ -235,7 +235,7 @@ export function monthlySummaries(ledger: Ledger): Summary[] {
   return Array.from({ length: 12 }, (_, i) => summarize(ledger, i + 1));
 }
 
-/** Total of expenses carrying a tag, e.g. "Sent to India" (pinned tag totals on the dashboard). */
+/** Total of expenses carrying a tag, e.g. "Sent to India" (pinned tags, on the Dashboard and Over the years). */
 export function tagTotal(ledger: Ledger, tagId: string, month?: number): Cents {
   let total = 0;
   for (const e of ledger.expenses) if (inMonth(e.date, month) && e.tags.includes(tagId)) total += e.amount;
