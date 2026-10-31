@@ -2028,6 +2028,11 @@ button.icon-action.danger {
   color: var(--danger);
 }
 
+/* Update balance / value: its rising line in green. */
+button.icon-action.icon-update {
+  color: var(--earning);
+}
+
 /* Phones: a bigger target for a finger. */
 @media (max-width: 600px) {
   button.icon-action {

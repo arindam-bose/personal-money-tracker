@@ -35,7 +35,7 @@ export function IconButton(props: {
   icon: IconName; label: string; title?: string; danger?: boolean; onClick: () => void;
 }) {
   return (
-    <button type="button" class={`icon-action ${props.danger ? "danger" : ""}`} aria-label={props.label}
+    <button type="button" class={`icon-action icon-${props.icon} ${props.danger ? "danger" : ""}`} aria-label={props.label}
       title={props.title ?? props.label} onClick={props.onClick}>
       <Icon name={props.icon} />
     </button>
