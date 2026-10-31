@@ -1111,9 +1111,12 @@ button.help-btn:focus-visible {
   }
 }
 
-/* Grid items default to min-width: auto, and a wide table would stretch the whole column past the screen. */
+/* Grid items default to min-width: auto, and a wide table or chart would stretch the whole column past the screen. */
 .columns > *,
-.stack > * {
+.stack > *,
+.reports > *,
+.over-years > *,
+.tab-panel > * {
   min-width: 0;
 }
 
@@ -1268,7 +1271,7 @@ button.help-btn:focus-visible {
 
 /* More than four years need wider charts to name every year. */
 .year-charts.many {
-  grid-template-columns: repeat(auto-fill, minmax(300px, 1fr));
+  grid-template-columns: repeat(auto-fill, minmax(min(300px, 100%), 1fr));
 }
 
 /* Charts sit at the bottom, so a title on two lines doesn't push one lower than its row. */
@@ -1291,8 +1294,12 @@ button.help-btn:focus-visible {
 .tab-bar {
   display: flex;
   gap: 4px;
-  border-bottom: 1px solid var(--border);
+  /* The line under the tabs is a shadow, not a border: the active tab's underline sits on it
+     without overlapping, which in a scrolling bar would add a scrollbar. */
+  box-shadow: inset 0 -1px 0 var(--border);
   margin-bottom: 12px;
+  /* On a phone the tabs keep to one line and scroll sideways. */
+  overflow-x: auto;
 }
 
 .tab-bar button {
@@ -1302,8 +1309,8 @@ button.help-btn:focus-visible {
   background: none;
   color: var(--muted);
   padding: 8px 14px;
-  margin-bottom: -1px;
   font-weight: 500;
+  white-space: nowrap;
 }
 
 .tab-bar button:hover {
@@ -1344,6 +1351,20 @@ button.help-btn:focus-visible {
 
 .table-view {
   margin-top: 8px;
+}
+
+/* A table wider than the card (twelve months on a phone) scrolls sideways inside it. */
+.table-scroll {
+  overflow-x: auto;
+}
+
+/* Where the money went: its labels need about 640px, so a narrower card scrolls sideways. */
+.wide-chart {
+  overflow-x: auto;
+}
+
+.wide-chart .chart {
+  min-width: 640px;
 }
 
 .table-view summary {

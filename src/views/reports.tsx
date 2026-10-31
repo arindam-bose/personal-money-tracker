@@ -144,19 +144,21 @@ function TableView(props: { head: string[]; rows: (string | number)[][]; foot?: 
   return (
     <details class="table-view">
       <summary>Show as a table</summary>
-      <table class="data-table">
-        <thead>
-          <tr>{props.head.map((h, i) => <th class={i ? "num" : ""}>{h}</th>)}</tr>
-        </thead>
-        <tbody>
-          {props.rows.map((r) => <tr>{r.map((c, i) => <td class={i ? "num" : ""}>{c}</td>)}</tr>)}
-        </tbody>
-        {props.foot && (
-          <tfoot>
-            <tr>{props.foot.map((c, i) => <td class={i ? "num" : ""}>{c}</td>)}</tr>
-          </tfoot>
-        )}
-      </table>
+      <div class="table-scroll">
+        <table class="data-table">
+          <thead>
+            <tr>{props.head.map((h, i) => <th class={i ? "num" : ""}>{h}</th>)}</tr>
+          </thead>
+          <tbody>
+            {props.rows.map((r) => <tr>{r.map((c, i) => <td class={i ? "num" : ""}>{c}</td>)}</tr>)}
+          </tbody>
+          {props.foot && (
+            <tfoot>
+              <tr>{props.foot.map((c, i) => <td class={i ? "num" : ""}>{c}</td>)}</tr>
+            </tfoot>
+          )}
+        </table>
+      </div>
     </details>
   );
 }
@@ -230,7 +232,10 @@ function MoneyFlowCard({ ledger: l, year }: { ledger: Ledger; year: number }) {
       <ul class="legend" aria-label="Colours">
         {usedGroups.map((g) => <li><span class="swatch" style={{ background: color[g] }} />{GROUP_LABEL[g]}</li>)}
       </ul>
-      <Chart option={option} height={height} label={`Money flow for ${year}: ${formatCents(total)} in total`} />
+      {/* Its labels need the width: on a phone it keeps it, and scrolls sideways. */}
+      <div class="wide-chart">
+        <Chart option={option} height={height} label={`Money flow for ${year}: ${formatCents(total)} in total`} />
+      </div>
       <TableView head={["From", "To", "Amount"]}
         rows={flow.links.map((x) => [
           flow.nodes.find((n) => n.id === x.source)!.name,
