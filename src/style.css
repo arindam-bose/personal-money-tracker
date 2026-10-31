@@ -1010,8 +1010,13 @@ button.help-btn:focus-visible {
   color: var(--expense);
 }
 
-.tile-value.pos {
-  color: var(--earning);
+/* Surplus in income blue, a deficit in spending orange, as Reports shades those months. */
+.tile-value.surplus {
+  color: var(--income-text);
+}
+
+.tile-value.deficit {
+  color: var(--spending-text);
 }
 
 .tiles {

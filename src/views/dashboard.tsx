@@ -142,7 +142,7 @@ export function DashboardView() {
           detail={[`Bank ${formatCents(sum.spentBySource.bank)}`, `Card ${formatCents(sum.spentBySource.card)}`, `Cash ${formatCents(sum.spentBySource.cash)}`]} />
         <Tile label="Net spending" concept="spending" value={formatCents(sum.netSpent)}
           detail={netSpendingDetail(l, sum.offsets)} />
-        <Tile label="Surplus" value={formatCents(sum.surplus)} tone={sum.surplus > 0 ? "pos" : sum.surplus < 0 ? "neg" : undefined}
+        <Tile label="Surplus" value={formatCents(sum.surplus)} tone={sum.surplus > 0 ? "surplus" : sum.surplus < 0 ? "deficit" : undefined}
           detail={`Earned ${formatCents(sum.earned)} − spent ${formatCents(sum.spent)}`} />
         <Tile label="Savings" concept="savings" value={formatCents(sum.netSavings)}
           detail={`${formatPercent(sum.savingsRate)} of paychecks`} />
@@ -207,7 +207,7 @@ function netSpendingDetail(l: Ledger, offsets: number): string {
  */
 function Tile(props: {
   label: string; value: string; detail?: string | string[]; concept?: "income" | "spending" | "savings" | "investing" | "loans";
-  tone?: "pos" | "neg"; onRemove?: () => void;
+  tone?: "surplus" | "deficit"; onRemove?: () => void;
 }) {
   return (
     <div class={`tile card ${props.concept ? `tile-${props.concept}` : ""}`}>
