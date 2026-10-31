@@ -162,20 +162,20 @@ function AccountsCard({ setup, usage }: { setup: YearSetup; usage: Usage }) {
                       </button>
                     )}
                   </td>
-                  <td>
+                  <td class="a-name">
                     {a.name}{a.archived && !a.closedOn && <span class="badge">hidden</span>}
                     {a.closedOn && <span class="badge">closed {shortDate(a.closedOn)}</span>}
                     {a.type === "loan" && <div class="tile-detail">{loanText(a)}</div>}
                     {hasValuations(a.type) && !a.closedOn && <div class="tile-detail">{worthText(a)}</div>}
                   </td>
-                  <td>{TYPE_LABEL[a.type]}</td>
-                  <td>{a.ref}</td>
+                  <td class="a-meta">{TYPE_LABEL[a.type]}</td>
+                  <td class="a-meta">{a.ref}</td>
                   {/* An asset has no opening or ledger balance: only the value it was last updated to. */}
-                  <td class="num">{a.type === "asset" ? "" : owes(a) ? owedText(a.opening) : formatCents(a.opening)}</td>
-                  <td class="num">{a.limit !== undefined ? formatCents(a.limit) : ""}</td>
-                  <td class="num">{a.type === "asset" ? "" : owes(a) ? owedText(bal.get(a.id) ?? 0) : formatCents(bal.get(a.id) ?? 0)}</td>
-                  <td class="num">{usage.accounts.get(a.id) ?? 0}</td>
-                  <td>
+                  <td class="num a-meta" data-label="Opening">{a.type === "asset" ? "" : owes(a) ? owedText(a.opening) : formatCents(a.opening)}</td>
+                  <td class="num a-meta" data-label="Limit">{a.limit !== undefined ? formatCents(a.limit) : ""}</td>
+                  <td class="num a-balance">{a.type === "asset" ? "" : owes(a) ? owedText(bal.get(a.id) ?? 0) : formatCents(bal.get(a.id) ?? 0)}</td>
+                  <td class="num a-meta" data-label="Entries">{usage.accounts.get(a.id) ?? 0}</td>
+                  <td class="a-actions">
                     {!readOnly.value && (
                       <div class="row-actions">
                         {hasValuations(a.type) && !a.closedOn && (

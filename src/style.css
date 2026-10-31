@@ -1829,6 +1829,107 @@ button.danger-solid {
   color: var(--muted);
 }
 
+/* Wide screens: the buttons wrap inside their cell rather than push the table past the card. */
+.setup-table .row-actions {
+  flex-wrap: wrap;
+}
+
+/* Below 1200px nine columns don't fit (they need about 1100px), so each account is a block.
+   Its name and balance come first, then its type, number, opening, limit and entries in small
+   print (empty ones left out), then its buttons. The forms that open under a row take the whole width. */
+@media (max-width: 1199px) {
+  .setup-table,
+  .setup-table tbody {
+    display: block;
+  }
+
+  .setup-table thead {
+    display: none;
+  }
+
+  .setup-table tbody tr {
+    display: flex;
+    flex-wrap: wrap;
+    align-items: baseline;
+    column-gap: 10px;
+    row-gap: 4px;
+    padding: 10px 0;
+    border-bottom: 1px solid var(--border);
+  }
+
+  .setup-table td {
+    padding: 0;
+    border-bottom: none;
+    white-space: normal;
+  }
+
+  .setup-table td[colspan] {
+    flex: 1 1 100%;
+  }
+
+  .setup-table .a-name {
+    order: 1;
+    flex: 1 1 calc(100% - 150px);
+    min-width: 0;
+    font-size: 15px;
+  }
+
+  .setup-table .a-balance {
+    order: 2;
+    flex: 0 0 140px;
+    font-size: 15px;
+  }
+
+  .setup-table .a-meta {
+    order: 3;
+    font-size: 12px;
+    color: var(--muted);
+    text-align: left !important;
+  }
+
+  .setup-table .a-meta:empty,
+  .setup-table .a-balance:empty {
+    display: none;
+  }
+
+  .setup-table .a-meta[data-label]::before {
+    content: attr(data-label) " ";
+  }
+
+  /* A line break after the small print, so Duplicate always starts the buttons' line. */
+  .setup-table tbody tr::after {
+    content: "";
+    order: 3;
+    flex-basis: 100%;
+  }
+
+  .setup-table .c-act {
+    order: 4;
+    padding: 0 !important;
+  }
+
+  /* Its buttons wrap beside Duplicate, rather than leaving it alone on a line. */
+  .setup-table .a-actions {
+    order: 5;
+    flex: 1 1 0;
+    min-width: 0;
+  }
+
+  .setup-table .row-actions {
+    justify-content: flex-start;
+    flex-wrap: wrap;
+  }
+
+  .setup-table .row-actions button {
+    padding: 5px 10px;
+  }
+
+  .card-head > button {
+    white-space: nowrap;
+  }
+}
+
+
 .inline-form {
   border: 1px solid var(--border);
   border-left: 4px solid var(--accent);
