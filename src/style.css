@@ -697,6 +697,64 @@ button.link.field-action {
   margin: 2px 0 12px;
 }
 
+/* A card's title and its ? (src/views/help.tsx); the description shows under it on hover or focus. */
+.card-title {
+  position: relative;
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  margin-bottom: 12px;
+}
+
+button.help-btn {
+  flex: none;
+  width: 18px;
+  height: 18px;
+  padding: 0;
+  border-radius: 50%;
+  border: 1px solid var(--muted);
+  background: none;
+  color: var(--muted);
+  font-size: 11px;
+  font-weight: 600;
+  line-height: 1;
+  cursor: help;
+}
+
+button.help-btn:hover,
+button.help-btn:focus-visible {
+  filter: none;
+  border-color: var(--accent);
+  color: var(--accent);
+}
+
+.help-tip {
+  position: absolute;
+  top: calc(100% + 4px);
+  left: 0;
+  z-index: 30;
+  width: max-content;
+  max-width: min(360px, calc(100vw - 64px));
+  padding: 8px 10px;
+  font-size: 13px;
+  font-weight: normal;
+  line-height: 1.45;
+  color: var(--text);
+  background: var(--surface);
+  border: 1px solid var(--border);
+  border-radius: 8px;
+  box-shadow: 0 6px 20px rgba(0, 0, 0, 0.15);
+  visibility: hidden;
+  opacity: 0;
+  transition: opacity 0.12s, visibility 0.12s;
+}
+
+.help-btn:hover + .help-tip,
+.help-btn:focus + .help-tip {
+  visibility: visible;
+  opacity: 1;
+}
+
 .hero {
   margin-bottom: 16px;
 }

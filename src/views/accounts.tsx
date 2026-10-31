@@ -15,6 +15,7 @@ import { current, ledger, readOnly, removeCategory, removeMember, removeTag, set
 import type { Account, AccountType, EarningRole, YearSetup } from "../types";
 import { startsMidYear, yearStart } from "../year";
 import { DateField } from "./date-field";
+import { CardTitle } from "./help";
 
 const TYPE_LABEL: Record<AccountType, string> = {
   checking: "Checking", savings: "Savings", cash: "Cash", credit: "Credit card", investment: "Investment", loan: "Loan / mortgage", asset: "Asset",
@@ -120,12 +121,11 @@ function AccountsCard({ setup, usage }: { setup: YearSetup; usage: Usage }) {
     <section class="card">
       <div class="card-head">
         <div>
-          <h3>Accounts</h3>
-          <p class="muted small">
+          <CardTitle title="Accounts">
             Opening balances are what each account held {startsMidYear(setup)
               ? <>on the morning of {shortDate(yearStart(setup))}, when tracking began. Nothing before that day is in the ledger.</>
               : <>on January 1, {setup.year}.</>}
-          </p>
+          </CardTitle>
           <StartField key={yearStart(setup)} setup={setup} onError={(m) => (error.value = m)} />
         </div>
         {!readOnly.value && editing.value === null && (
@@ -544,12 +544,11 @@ function CategoryCard({ kind, setup, usage }: { kind: CategoryKind; setup: YearS
 
   return (
     <section class="card">
-      <h3>{KIND_TITLE[kind]}</h3>
-      <p class="muted small">{{
+      <CardTitle title={KIND_TITLE[kind]}>{{
         expense: "Rename freely: entries keep their category. Delete one and its entries move to Uncategorized. Charity shows as a share of pay on the dashboard.",
         earning: "Tick “Net” for the earnings that make up net earnings on the dashboard; untick one-offs. “Lowers spending” is for refunds, points and money paid back: they lower net spending instead. Uncategorized counts in neither.",
         transfer: "What each one is for drives the savings, investing, card-payment and loan-payment figures.",
-      }[kind]}</p>
+      }[kind]}</CardTitle>
       <ul class={`name-list ${kind === "earning" ? "with-net" : ""}`}>
         {list.map((c) => (
           <li key={c.id}>
@@ -611,11 +610,10 @@ function TagsCard({ tags, uses }: { tags: { id: string; name: string }[]; uses: 
 
   return (
     <section class="card">
-      <h3>Tags</h3>
-      <p class="muted small">
+      <CardTitle title="Tags">
         Tags group expenses across categories, like “Costco” or “Vacation”. You can also add them while typing an
         expense. Deleting a tag takes it off its expenses.
-      </p>
+      </CardTitle>
       {tags.length === 0 && <p class="muted small">None yet.</p>}
       <ul class="name-list compact">
         {tags.map((t) => (
@@ -668,11 +666,10 @@ function PeopleCard({ setup, usage }: { setup: YearSetup; usage: Usage }) {
 
   return (
     <section class="card">
-      <h3>People</h3>
-      <p class="muted small">
+      <CardTitle title="People">
         Everything belongs to {first.name} until you add someone else. Then each entry can be logged for one person,
         and the Dashboard, Ledger and Reports can show one person at a time. Accounts and budgets stay shared.
-      </p>
+      </CardTitle>
       <ul class="name-list compact">
         {members.map((m) => (
           <li key={m.id}>

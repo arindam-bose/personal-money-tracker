@@ -13,6 +13,7 @@ import { membersOf } from "../setup";
 import { current, ledger, loansLeftOut } from "../state";
 import { IncludeLoans } from "./dashboard";
 import { Chart, axisStyle, baseOption, money, moneyAxis, seriesColors, token, type ChartOption } from "./chart";
+import { CardTitle } from "./help";
 import { showInLedger } from "./ledger";
 import { MemberPicker, viewedLedger, viewedMember } from "./people";
 import { dayBefore, firstMonth, yearStart } from "../year";
@@ -120,11 +121,10 @@ function Card(props: { title: string; subtitle: string; action?: ComponentChildr
     <section class="card report">
       {props.action ? (
         <div class="card-head">
-          <h3>{props.title}</h3>
+          <CardTitle title={props.title}>{props.subtitle}</CardTitle>
           {props.action}
         </div>
-      ) : <h3>{props.title}</h3>}
-      <p class="muted small">{props.subtitle}</p>
+      ) : <CardTitle title={props.title}>{props.subtitle}</CardTitle>}
       {props.children}
     </section>
   );

@@ -52,6 +52,8 @@ entry, a loan, investments and a car, and accounts that were closed.
 - **Reports**: where the money went, monthly cash flow (surplus months green,
   deficit months red), earning and expense reports by category and by week,
   what each credit card paid for, and savings and investment month by month.
+  On Reports and Accounts, hover (or tab to) the **?** by a card's title to see
+  what it shows.
 - **Accounts**: your accounts, categories and tags. Tick **Net** on the earning
   categories that make up net earnings. Earnings in **Lowers spending**
   categories (refunds, points, money paid back) lower net spending instead.
