@@ -140,7 +140,7 @@ function AccountsCard({ setup, usage }: { setup: YearSetup; usage: Usage }) {
           {saved.mark("start")}
         </div>
         {!readOnly.value && editing.value === null && (
-          <button type="button" onClick={() => (editing.value = "new")}>+ Add account</button>
+          <button type="button" class="tinted add-earning" onClick={() => (editing.value = "new")}>+ Add</button>
         )}
       </div>
 
@@ -607,7 +607,7 @@ function CategoryCard({ kind, setup, usage }: { kind: CategoryKind; setup: YearS
           <select value={newRole.value} onChange={(e) => (newRole.value = e.currentTarget.value)} aria-label="What it's for">
             {Object.entries(ROLE_LABEL[kind]).map(([role, label]) => <option value={role}>{label}</option>)}
           </select>
-          <button type="submit">Add</button>
+          <button type="submit" class="tinted add-earning">+ Add</button>
         </form>
       )}
       {error.value && <p class="form-error" role="alert">{error.value}</p>}
@@ -668,7 +668,7 @@ function TagsCard({ tags, uses }: { tags: { id: string; name: string }[]; uses: 
         <form class="add-row" onSubmit={add}>
           <input type="text" value={newName.value} placeholder="New tag" aria-label="New tag"
             onInput={(e) => (newName.value = e.currentTarget.value)} />
-          <button type="submit">Add</button>
+          <button type="submit" class="tinted add-earning">+ Add</button>
         </form>
       )}
       {error.value && <p class="form-error" role="alert">{error.value}</p>}
@@ -731,7 +731,7 @@ function PeopleCard({ setup, usage }: { setup: YearSetup; usage: Usage }) {
         <form class="add-row" onSubmit={add}>
           <input type="text" value={newName.value} placeholder="New person" aria-label="New person"
             onInput={(e) => (newName.value = e.currentTarget.value)} />
-          <button type="submit">Add</button>
+          <button type="submit" class="tinted add-earning">+ Add</button>
         </form>
       )}
       {error.value && <p class="form-error" role="alert">{error.value}</p>}

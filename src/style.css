@@ -445,12 +445,10 @@ kbd {
   gap: 10px;
 }
 
-button.add {
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  gap: 6px;
-  padding: 9px 12px;
+/* A button tinted in its kind's colour, with a stripe on the left: the Ledger's add buttons,
+   and the Accounts page's green "+ Add" ones. */
+button.add,
+button.tinted {
   font-weight: 600;
   color: var(--kind);
   background: color-mix(in srgb, var(--kind) 7%, var(--surface));
@@ -458,9 +456,18 @@ button.add {
   border-left: 3px solid var(--kind);
 }
 
-button.add:hover {
+button.add:hover,
+button.tinted:hover {
   filter: none;
   background: color-mix(in srgb, var(--kind) 14%, var(--surface));
+}
+
+button.add {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 6px;
+  padding: 9px 12px;
 }
 
 .add-earning { --kind: var(--earning); }
