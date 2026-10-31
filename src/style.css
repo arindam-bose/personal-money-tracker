@@ -960,7 +960,7 @@ button.link.field-action {
 }
 
 /* A card's title and its ? (src/views/help.tsx). The ? sits in the card's top right corner,
-   and the description shows under it, right-aligned, on hover or focus. */
+   or at the top right of a page, and the description shows under it, right-aligned, on hover or focus. */
 .card-title {
   margin-bottom: 12px;
 }
@@ -978,6 +978,16 @@ button.link.field-action {
   position: absolute;
   top: 14px;
   right: 14px;
+}
+
+.page-help {
+  display: flex;
+  justify-content: flex-end;
+}
+
+.help {
+  position: relative;
+  display: inline-flex;
 }
 
 button.help-btn {

@@ -8,6 +8,7 @@ import { ledgerOf, ratio, summarize, type Summary } from "../derive";
 import { formatCents, formatCompact, formatPercent } from "../money";
 import { current, loadAllYears, years, type YearSummary } from "../state";
 import { Chart, axisStyle, baseOption, money, moneyAxis, seriesColors, token, type ChartOption } from "./chart";
+import { PageHelp } from "./help";
 
 /** The Dashboard's tiles, in its order. Colours match Reports: earning, spending, savings, investing, loans. */
 const MEASURES: { key: keyof Summary; label: string; color: (c: string[], value: number) => string }[] = [
@@ -61,10 +62,10 @@ export function YearsView() {
 
   return (
     <div class="over-years">
-      <p class="muted">
+      <PageHelp>
         Each Dashboard figure for every year, everyone together.
         {ongoing.length > 0 && <> * {ongoing.join(", ")} so far.</>}
-      </p>
+      </PageHelp>
       <div class={`year-charts${all.length > 4 ? " many" : ""}`}>
         {MEASURES.map((m) => {
           const values = sums.map((s) => value(s, m.key));
