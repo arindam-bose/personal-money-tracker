@@ -1556,6 +1556,13 @@ button.help-btn:focus-visible {
   font-weight: 600;
 }
 
+/* A note mark on a heading (Change†): raised, without making the row taller. */
+.data-table th sup {
+  font-size: 0.8em;
+  line-height: 0;
+  margin-left: 1px;
+}
+
 .data-table .num {
   text-align: right;
   font-variant-numeric: tabular-nums;

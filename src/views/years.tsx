@@ -99,14 +99,14 @@ export function YearsView() {
         })}
       </div>
       <section class="card report">
-        <CardTitle title="All figures">Change is {labels[last]} against {labels[last - 1]}.</CardTitle>
+        <CardTitle title="All figures">† Change is {labels[last]} against {labels[last - 1]}.</CardTitle>
         <div class="heatmap-wrap">
           <table class="data-table">
             <thead>
               <tr>
                 <th>Figure</th>
                 {labels.map((y) => <th class="num">{y}</th>)}
-                <th class="num">Change</th>
+                <th class="num">Change<sup aria-hidden="true">†</sup></th>
               </tr>
             </thead>
             <tbody>
