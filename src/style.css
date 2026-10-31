@@ -1556,6 +1556,11 @@ button.help-btn:focus-visible {
   font-weight: 600;
 }
 
+/* Over the years' All figures: as wide as its card. */
+.data-table.all-figures {
+  width: 100%;
+}
+
 /* A note mark on a heading (Change†): raised, without making the row taller. */
 .data-table th sup {
   font-size: 0.8em;

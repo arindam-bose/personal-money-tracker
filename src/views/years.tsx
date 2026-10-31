@@ -101,7 +101,7 @@ export function YearsView() {
       <section class="card report">
         <CardTitle title="All figures">† Change is {labels[last]} against {labels[last - 1]}.</CardTitle>
         <div class="heatmap-wrap">
-          <table class="data-table">
+          <table class="data-table all-figures">
             <thead>
               <tr>
                 <th>Figure</th>
