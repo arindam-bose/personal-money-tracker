@@ -1536,6 +1536,12 @@ button.danger-solid {
   grid-template-columns: repeat(3, 1fr);
 }
 
+@media (max-width: 600px) {
+  .budget-tiles {
+    grid-template-columns: 1fr;
+  }
+}
+
 .budget .filters button {
   padding: 5px 12px;
 }
@@ -1592,6 +1598,79 @@ button.danger-solid {
 
 .c-progress {
   width: 28%;
+}
+
+/* Phones: six columns don't fit, so each category is a small block: its name and what's left,
+   the bar, then its targets and spending, each labelled (the header row is hidden). */
+@media (max-width: 600px) {
+  .budget-table,
+  .budget-table tbody,
+  .budget-table tfoot {
+    display: block;
+  }
+
+  .budget-table thead {
+    display: none;
+  }
+
+  .budget-table tbody tr {
+    display: grid;
+    grid-template-columns: repeat(3, minmax(0, 1fr));
+    grid-template-areas:
+      "name name left"
+      "bar bar bar"
+      "target override spent";
+    gap: 6px 10px;
+    padding: 10px 0;
+    border-bottom: 1px solid var(--border);
+  }
+
+  .budget-table td {
+    padding: 0;
+    border-bottom: none;
+  }
+
+  .budget-table .b-name { grid-area: name; font-weight: 600; }
+  .budget-table .b-left { grid-area: left; }
+  .budget-table .c-progress { grid-area: bar; width: auto; }
+  /* !important to beat .num's own, which keeps numbers right-aligned everywhere else. */
+  .budget-table .b-target { grid-area: target; text-align: left !important; }
+  .budget-table .b-override { grid-area: override; text-align: left !important; }
+  .budget-table .b-spent { grid-area: spent; }
+
+  .budget-table td[data-label]::before {
+    content: attr(data-label);
+    display: block;
+    font-size: 12px;
+    color: var(--muted);
+  }
+
+  .budget-table .money-input {
+    width: 100%;
+    box-sizing: border-box;
+    text-align: left !important;
+    padding-left: 0;
+  }
+
+  .budget-table tfoot tr {
+    display: flex;
+    justify-content: space-between;
+    gap: 10px;
+    padding-top: 8px;
+  }
+
+  .budget-table tfoot td:empty {
+    display: none;
+  }
+
+  .budget-table td .left-word {
+    display: inline;
+  }
+}
+
+/* "left" after the amount, only where there's no Left header above it. */
+.budget-table .left-word {
+  display: none;
 }
 
 .money-input {
