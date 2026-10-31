@@ -16,6 +16,7 @@ import type { Account, AccountType, EarningRole, YearSetup } from "../types";
 import { startsMidYear, yearStart } from "../year";
 import { DateField } from "./date-field";
 import { CardTitle } from "./help";
+import { IconButton } from "./icons";
 import { idByName, useSaved } from "./saved";
 
 const TYPE_LABEL: Record<AccountType, string> = {
@@ -152,26 +153,17 @@ function AccountsCard({ setup, usage }: { setup: YearSetup; usage: Usage }) {
         <table class="data-table setup-table">
           <thead>
             <tr>
-              <th class="c-act" /><th>Name</th><th>Type</th><th>Number</th>
+              <th>Name</th><th>Type</th><th>Number</th>
               <th class="num">Opening</th><th class="num">Limit</th><th class="num">Balance now</th>
               <th class="num">Entries</th><th />
             </tr>
           </thead>
           <tbody>
             {sorted.map((a) => editing.value === a.id ? (
-              <tr key={a.id}><td colSpan={9}><AccountForm account={a} onDone={() => (editing.value = null)} onSaved={saved.flash} /></td></tr>
+              <tr key={a.id}><td colSpan={8}><AccountForm account={a} onDone={() => (editing.value = null)} onSaved={saved.flash} /></td></tr>
             ) : (
               <Fragment key={a.id}>
                 <tr class={a.archived || a.closedOn ? "archived" : ""}>
-                  {/* Like the Ledger: Duplicate shows on hover, on the left. */}
-                  <td class="c-act">
-                    {!readOnly.value && (
-                      <button type="button" class="dup-btn" aria-label={`Duplicate ${a.name}`} title={`Duplicate: add a copy named “${a.name} (new)”`}
-                        onClick={() => copy(a)}>
-                        ⧉
-                      </button>
-                    )}
-                  </td>
                   <td class="a-name">
                     {a.name}{a.archived && !a.closedOn && <span class="badge">hidden</span>}
                     {a.closedOn && <span class="badge">closed {shortDate(a.closedOn)}</span>}
@@ -186,42 +178,45 @@ function AccountsCard({ setup, usage }: { setup: YearSetup; usage: Usage }) {
                   <td class="num a-balance">{a.type === "asset" ? "" : owes(a) ? owedText(bal.get(a.id) ?? 0) : formatCents(bal.get(a.id) ?? 0)}</td>
                   <td class="num a-meta" data-label="Entries">{usage.accounts.get(a.id) ?? 0}</td>
                   <td class="a-actions">
+                    {/* Icons, always shown: each says what it does in its tooltip. */}
                     {!readOnly.value && (
                       <div class="row-actions">
+                        {saved.mark(a.id)}
                         {hasValuations(a.type) && !a.closedOn && (
-                          <button type="button" onClick={() => (valuing.value = valuing.value === a.id ? null : a.id)}
-                            title={`Note what ${a.type === "asset" ? "it" : "the account"} is worth today`}>
-                            {a.type === "asset" ? "Update value" : "Update balance"}
-                          </button>
+                          <IconButton icon="update" label={`${a.type === "asset" ? "Update value" : "Update balance"} of ${a.name}`}
+                            title={`${a.type === "asset" ? "Update value" : "Update balance"}: note what ${a.type === "asset" ? "it" : "the account"} is worth today`}
+                            onClick={() => (valuing.value = valuing.value === a.id ? null : a.id)} />
                         )}
-                        <button type="button" onClick={() => (editing.value = a.id)}>Edit</button>
+                        <IconButton icon="edit" label={`Edit ${a.name}`} title="Edit" onClick={() => (editing.value = a.id)} />
+                        <IconButton icon="duplicate" label={`Duplicate ${a.name}`} title={`Duplicate: add a copy named “${a.name} (new)”`}
+                          onClick={() => copy(a)} />
                         {a.closedOn ? (
-                          <button type="button" onClick={() => reopen(a)} title="Undo closing it: it counts again, and takes entries after that day">Reopen</button>
+                          <IconButton icon="reopen" label={`Reopen ${a.name}`} title="Reopen: undo closing it. It counts again, and takes entries after that day"
+                            onClick={() => reopen(a)} />
                         ) : (
                           <>
-                            <button type="button" onClick={() => (closing.value = closing.value === a.id ? null : a.id)}
-                              title="Sold, paid off or shut down for good. Pick the day: from then it's left out of net worth and doesn't carry into next year. Move any money out first, so it ends at $0.">
-                              Close…
-                            </button>
-                            <button type="button" onClick={() => toggleArchive(a)}
+                            <IconButton icon="close" label={`Close ${a.name}…`}
+                              title="Close…: sold, paid off or shut down for good. Pick the day: from then it's left out of net worth and doesn't carry into next year. Move any money out first, so it ends at $0."
+                              onClick={() => (closing.value = closing.value === a.id ? null : a.id)} />
+                            <IconButton icon={a.archived ? "unhide" : "hide"} label={`${a.archived ? "Unhide" : "Hide"} ${a.name}`}
                               title={a.archived
-                                ? "Offer it again when you add entries"
-                                : "Still open, just not used: it stops being offered for new entries, but it still counts in net worth and carries into next year. Old entries keep it."}>
-                              {a.archived ? "Unhide" : "Hide"}
-                            </button>
+                                ? "Unhide: offer it again when you add entries"
+                                : "Hide: still open, just not used. It stops being offered for new entries, but it still counts in net worth and carries into next year. Old entries keep it."}
+                              onClick={() => toggleArchive(a)} />
                           </>
                         )}
-                        {!usage.accounts.get(a.id) && <button type="button" class="danger" onClick={() => remove(a)}>Delete</button>}
-                        {saved.mark(a.id)}
+                        {!usage.accounts.get(a.id) && (
+                          <IconButton icon="delete" danger label={`Delete ${a.name}`} title="Delete (not used by any entry)" onClick={() => remove(a)} />
+                        )}
                       </div>
                     )}
                   </td>
                 </tr>
                 {valuing.value === a.id && (
-                  <tr><td colSpan={9}><ValuationForm account={a} setup={setup} onDone={() => (valuing.value = null)} onSaved={saved.flash} /></td></tr>
+                  <tr><td colSpan={8}><ValuationForm account={a} setup={setup} onDone={() => (valuing.value = null)} onSaved={saved.flash} /></td></tr>
                 )}
                 {closing.value === a.id && !a.closedOn && (
-                  <tr><td colSpan={9}><CloseForm account={a} setup={setup} onDone={() => (closing.value = null)} onSaved={saved.flash} /></td></tr>
+                  <tr><td colSpan={8}><CloseForm account={a} setup={setup} onDone={() => (closing.value = null)} onSaved={saved.flash} /></td></tr>
                 )}
               </Fragment>
             ))}
