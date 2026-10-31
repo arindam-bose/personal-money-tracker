@@ -58,8 +58,8 @@ export function usageOf(data: Pick<YearData, "expenses" | "earnings" | "transfer
   return u;
 }
 
-const EXPENSE_ROLES: (ExpenseRole | undefined)[] = [undefined, "charity"];
-const EARNING_ROLES: EarningRole[] = ["paycheck", "income", "offset"];
+const EXPENSE_ROLES: (ExpenseRole | undefined)[] = [undefined, "charity", "transfer_out"];
+const EARNING_ROLES: EarningRole[] = ["paycheck", "income", "offset", "transfer_in"];
 const TRANSFER_ROLES: TransferRole[] = [
   "cc_payment", "savings_in", "savings_out", "invest_retirement", "invest_taxable", "cash_withdrawal", "loan_payment", "general",
 ];
@@ -525,7 +525,7 @@ export function blankSetup(year: number): YearSetup {
     categories: {
       expense: cats<ExpenseRole>("ce", [
         ["Bills"], ["Charity", "charity"], ["Food & Drinks"], ["Health & Wellness"], ["Housing"],
-        ["Personal Care & Activities"], ["Shopping"], ["Transfer to external account"], ["Transport"],
+        ["Personal Care & Activities"], ["Shopping"], ["Transfer to external account", "transfer_out"], ["Transport"],
       ]),
       earning: cats<EarningRole>("ci", [
         ["Paycheck", "paycheck"], ["Interest", "income"], ["Tax Refund", "income"], ["Other", "income", false],

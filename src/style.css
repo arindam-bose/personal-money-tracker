@@ -19,7 +19,8 @@
   --series-3: #1baf7a;
   --series-4: #eda100;
   --series-5: #e87ba4;
-  --series-6: #008300;
+  /* Plum, not a second green: loans (series-6) sit next to savings (series-3) in Balances over time. */
+  --series-6: #6e396a;
   /* 7 to 10 are only for Credit card usage, which names up to ten cards (and labels each slice). */
   --series-7: #6250d6;
   --series-8: #e34948;
@@ -57,7 +58,7 @@
   --series-3: #199e70;
   --series-4: #c98500;
   --series-5: #d55181;
-  --series-6: #008300;
+  --series-6: #9d42b7;
   --series-7: #9085e9;
   --series-8: #e66767;
   --series-9: #0f9cc2;
@@ -100,6 +101,12 @@ a {
   margin: 0 24px 0 0;
 }
 
+/* The title links home without looking like a link. */
+.home-link {
+  color: inherit;
+  text-decoration: none;
+}
+
 .topbar .version {
   font-size: 12px;
   font-weight: 400;
@@ -140,6 +147,79 @@ a {
   border-color: var(--danger);
   font-size: 13px;
   padding: 4px 10px;
+}
+
+.menu-btn {
+  display: none;
+}
+
+/* Phones, tablets and narrow windows: the links don't fit in a row, so they fold into a menu under ☰,
+   and the reminders shorten to "Back up" and "Reload" (their tooltips keep the rest). */
+@media (max-width: 999px) {
+  .topbar {
+    padding: 0 16px;
+    gap: 8px;
+  }
+
+  .topbar h1 {
+    margin: 0;
+    white-space: nowrap;
+  }
+
+  .topbar-right .long {
+    display: none;
+  }
+
+  .topbar-right {
+    gap: 8px;
+  }
+
+  .menu-btn {
+    display: block;
+    padding: 4px 10px;
+    font-size: 18px;
+    line-height: 1.2;
+  }
+
+  .topbar nav {
+    display: none;
+    position: absolute;
+    top: calc(100% + 4px);
+    right: 16px;
+    flex-direction: column;
+    min-width: 180px;
+    padding: 6px;
+    background: var(--surface);
+    border: 1px solid var(--border);
+    border-radius: 8px;
+    box-shadow: 0 6px 20px rgba(0, 0, 0, 0.15);
+  }
+
+  .topbar nav.open {
+    display: flex;
+  }
+
+  .topbar nav a {
+    padding: 10px 12px;
+  }
+
+  main {
+    margin: 16px auto;
+    padding: 0 16px;
+  }
+}
+
+/* Phones: the version goes under the title, small, to leave the bar room for its buttons. */
+@media (max-width: 600px) {
+  .topbar h1 {
+    display: flex;
+    flex-direction: column;
+    line-height: 1.15;
+  }
+
+  .topbar .version {
+    font-size: 11px;
+  }
 }
 
 /* A column as tall as the window, so the footer sits at the bottom even on a short page. */
@@ -200,6 +280,63 @@ table.years th {
   font-weight: 600;
   color: var(--muted);
   font-size: 13px;
+}
+
+/* Phones: each year is a block: the year and its last backup, its entry counts in small print,
+   then its buttons. */
+@media (max-width: 600px) {
+  table.years,
+  table.years tbody {
+    display: block;
+  }
+
+  table.years thead {
+    display: none;
+  }
+
+  table.years tbody tr {
+    display: flex;
+    flex-wrap: wrap;
+    align-items: baseline;
+    gap: 4px 12px;
+    padding: 10px 0;
+    border-bottom: 1px solid var(--border);
+  }
+
+  table.years td {
+    padding: 0;
+    border-bottom: none;
+  }
+
+  table.years .y-year { order: 1; flex: 1 1 auto; font-weight: 600; }
+  table.years .y-backup { order: 2; font-size: 13px; color: var(--muted); }
+
+  /* A line break, so the counts start a line of their own. */
+  table.years tbody tr::after {
+    content: "";
+    order: 3;
+    flex-basis: 100%;
+  }
+
+  table.years .y-count {
+    order: 4;
+    font-size: 13px;
+    color: var(--muted);
+  }
+
+  table.years .y-count::before {
+    content: attr(data-label) " ";
+  }
+
+  table.years .y-actions {
+    order: 5;
+    flex: 1 1 100%;
+  }
+
+  table.years .row-actions {
+    justify-content: flex-start;
+    flex-wrap: wrap;
+  }
 }
 
 .num {
@@ -297,9 +434,59 @@ kbd {
   margin-bottom: 16px;
 }
 
-.add-expense { border-left: 3px solid var(--expense); }
-.add-earning { border-left: 3px solid var(--earning); }
-.add-transfer { border-left: 3px solid var(--transfer); }
+/* The three add buttons share the row equally, each tinted in its kind's colour. */
+.add-buttons {
+  flex: 1;
+  display: grid;
+  grid-template-columns: repeat(3, 1fr);
+  gap: 10px;
+}
+
+/* A button tinted in its kind's colour, with a stripe on the left: the Ledger's add buttons,
+   and the Accounts page's green "+ Add" ones. */
+button.add,
+button.tinted {
+  font-weight: 600;
+  color: var(--kind);
+  background: color-mix(in srgb, var(--kind) 7%, var(--surface));
+  border-color: color-mix(in srgb, var(--kind) 35%, var(--surface));
+  border-left: 3px solid var(--kind);
+}
+
+button.add:hover,
+button.tinted:hover {
+  filter: none;
+  background: color-mix(in srgb, var(--kind) 14%, var(--surface));
+}
+
+button.add {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 6px;
+  padding: 9px 12px;
+}
+
+.add-earning { --kind: var(--earning); }
+.add-expense { --kind: var(--expense); }
+.add-transfer { --kind: var(--transfer); }
+
+.add-icon {
+  font-size: 1.15em;
+  line-height: 1;
+}
+
+button.add kbd {
+  font-weight: 400;
+}
+
+/* Phones have no keyboard shortcuts, and the hint and "Add" would crowd the label. */
+@media (max-width: 600px) {
+  .add-buttons { gap: 6px; }
+  button.add { padding: 9px 4px; gap: 4px; font-size: 14px; text-transform: capitalize; }
+  button.add kbd,
+  .add-verb { display: none; }
+}
 
 .last-updated {
   margin: -6px 0 10px;
@@ -432,6 +619,11 @@ tr:focus-within .dup-btn,
   color: var(--text);
 }
 
+/* Without hover (touch screens) it would be an invisible button: show it. */
+@media (hover: none) {
+  .dup-btn { opacity: 1; }
+}
+
 /* A just-made copy glows briefly. */
 @keyframes flash {
   from { background: rgba(var(--heat), 0.28); }
@@ -480,6 +672,64 @@ tr.flash td {
 /* Transfers move money without spending it: muted throughout. */
 tr.row-transfer td {
   color: var(--transfer);
+}
+
+/* Phones: a table row of seven columns has no room, so each entry takes two lines, with
+   item and amount on the first, then date, category, account and person in small print.
+   Tags are left out here; the entry's form shows them. */
+@media (max-width: 600px) {
+  table.entries,
+  table.entries tbody {
+    display: block;
+  }
+
+  table.entries thead {
+    display: none;
+  }
+
+  table.entries tbody tr {
+    display: grid;
+    /* Category and account take what they need; when the line runs short, they share it. */
+    grid-template-columns: 24px auto minmax(0, max-content) minmax(0, max-content) 1fr auto;
+    grid-template-areas:
+      "act item item item item amount"
+      "act date cat account . person";
+    column-gap: 10px;
+    row-gap: 2px;
+    padding: 8px 12px 8px 4px;
+    border-bottom: 1px solid var(--border);
+  }
+
+  table.entries tbody tr:last-child {
+    border-bottom: none;
+  }
+
+  table.entries td {
+    width: auto;
+    padding: 0;
+    border-bottom: none;
+  }
+
+  table.entries .c-act { grid-area: act; align-self: center; padding: 0 !important; }
+  table.entries .c-item { grid-area: item; }
+  table.entries .c-amount { grid-area: amount; }
+  table.entries .c-date { grid-area: date; }
+  table.entries .c-cat { grid-area: cat; }
+  table.entries .c-account { grid-area: account; }
+  table.entries .c-person { grid-area: person; text-align: right; }
+  table.entries .c-tags { display: none; }
+
+  table.entries .c-date,
+  table.entries .c-cat,
+  table.entries .c-account,
+  table.entries .c-person {
+    font-size: 12px;
+    color: var(--muted);
+  }
+
+  table.entries .kind-dot {
+    margin-right: 5px;
+  }
 }
 
 .chip {
@@ -565,6 +815,18 @@ tr.row-transfer td {
   color: var(--muted);
 }
 
+/* A label with a small action at its right, like Date's Today. */
+.field-head {
+  display: flex;
+  justify-content: space-between;
+  align-items: baseline;
+}
+
+button.link.field-action {
+  font-size: 12px;
+  padding: 0;
+}
+
 .field-error {
   font-size: 12px;
   color: var(--danger);
@@ -583,6 +845,17 @@ tr.row-transfer td {
 .w-cat { width: 210px; }
 .w-tags { flex: 1 1 300px; }
 .w-notes { flex: 1 1 100%; }
+
+/* Phones: one field per line, at full width. The keyboard hint has no keyboard to speak of. */
+@media (max-width: 600px) {
+  .entry-form .field {
+    flex: 1 1 100%;
+  }
+
+  .kind-tabs .hint {
+    display: none;
+  }
+}
 
 .tag-picker {
   position: relative;
@@ -614,6 +887,56 @@ tr.row-transfer td {
   font-size: 13px;
 }
 
+/* "Saved" by what was just saved on the Accounts page (src/views/saved.tsx): it shows, then fades. */
+.saved-mark {
+  font-size: 12px;
+  color: var(--earning);
+  white-space: nowrap;
+  animation: saved-fade 2s ease-in forwards;
+}
+
+@keyframes saved-fade {
+  0%, 70% { opacity: 1; }
+  100% { opacity: 0; }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .saved-mark { animation: none; }
+}
+
+/* In a list row it floats over the row's right end (the count and ×), so nothing moves. */
+.name-list li {
+  position: relative;
+}
+
+.name-list li > .saved-mark {
+  position: absolute;
+  right: 0;
+  top: 50%;
+  transform: translateY(-50%);
+  padding: 2px 8px;
+  border-radius: 4px;
+  background: var(--surface);
+  box-shadow: 0 0 0 1px var(--border);
+}
+
+/* Phones: category rows take two lines; it sits on the second, over the count and ×. */
+@media (max-width: 600px) {
+  .name-list:not(.compact) li > .saved-mark {
+    top: auto;
+    bottom: 8px;
+    transform: none;
+  }
+}
+
+.start-field + .saved-mark {
+  margin-left: 8px;
+}
+
+.row-actions .saved-mark {
+  align-self: center;
+}
+
 /* --- Dashboard --- */
 
 .card {
@@ -634,6 +957,86 @@ tr.row-transfer td {
 
 .card > p.small {
   margin: 2px 0 12px;
+}
+
+/* A card's title and its ? (src/views/help.tsx). The ? sits in the card's top right corner,
+   or at the top right of a page, and the description shows under it, right-aligned, on hover or focus. */
+.card-title {
+  margin-bottom: 12px;
+}
+
+.card:has(.card-help) {
+  position: relative;
+}
+
+/* Room for the ? beside a head's own buttons (+ Add, Include loans). */
+.card:has(.card-help) .card-head {
+  padding-right: 28px;
+}
+
+.card-help {
+  position: absolute;
+  top: 14px;
+  right: 14px;
+}
+
+.page-help {
+  display: flex;
+  justify-content: flex-end;
+}
+
+.help {
+  position: relative;
+  display: inline-flex;
+}
+
+button.help-btn {
+  flex: none;
+  width: 18px;
+  height: 18px;
+  padding: 0;
+  border-radius: 50%;
+  border: 1px solid var(--muted);
+  background: none;
+  color: var(--muted);
+  font-size: 11px;
+  font-weight: 600;
+  line-height: 1;
+  cursor: help;
+}
+
+button.help-btn:hover,
+button.help-btn:focus-visible {
+  filter: none;
+  border-color: var(--accent);
+  color: var(--accent);
+}
+
+.help-tip {
+  position: absolute;
+  top: calc(100% + 4px);
+  right: 0;
+  z-index: 30;
+  width: max-content;
+  max-width: min(360px, calc(100vw - 64px));
+  padding: 8px 10px;
+  font-size: 13px;
+  font-weight: normal;
+  line-height: 1.45;
+  color: var(--text);
+  background: var(--surface);
+  border: 1px solid var(--border);
+  border-radius: 8px;
+  box-shadow: 0 6px 20px rgba(0, 0, 0, 0.15);
+  visibility: hidden;
+  opacity: 0;
+  transition: opacity 0.12s, visibility 0.12s;
+}
+
+.help-btn:hover + .help-tip,
+.help-btn:focus + .help-tip {
+  visibility: visible;
+  opacity: 1;
 }
 
 .hero {
@@ -697,10 +1100,15 @@ tr.row-transfer td {
   content: "• ";
 }
 
-.tile-earning { border-left: 3px solid var(--earning); }
-.tile-expense { border-left: 3px solid var(--expense); }
+/* The colours Reports gives each concept (series 1 to 4, and 6 for loans). */
+.tile-income { border-left: 3px solid var(--series-1); }
+.tile-spending { border-left: 3px solid var(--series-2); }
+.tile-savings { border-left: 3px solid var(--series-3); }
+.tile-investing { border-left: 3px solid var(--series-4); }
+.tile-loans { border-left: 3px solid var(--series-6); }
 
-.tile .unpin {
+.tile .unpin,
+.year-chart-head .unpin {
   border: none;
   background: none;
   color: var(--muted);
@@ -841,6 +1249,15 @@ tr.row-transfer td {
   }
 }
 
+/* Grid items default to min-width: auto, and a wide table or chart would stretch the whole column past the screen. */
+.columns > *,
+.stack > *,
+.reports > *,
+.over-years > *,
+.tab-panel > * {
+  min-width: 0;
+}
+
 .hbars {
   list-style: none;
   margin: 0;
@@ -882,9 +1299,9 @@ tr.row-transfer td {
   border-radius: 0 4px 4px 0;
 }
 
-/* The ledger's kind colours: earnings green, spending red. */
-.hbar-fill.earning { background: var(--earning); }
-.hbar-fill.expense { background: var(--expense); }
+/* Reports' colours: income blue, spending orange. */
+.hbar-fill.income { background: var(--series-1); }
+.hbar-fill.spending { background: var(--series-2); }
 
 .hbar-value,
 .hbar-share {
@@ -895,6 +1312,23 @@ tr.row-transfer td {
 .hbar-share {
   color: var(--muted);
   font-size: 12px;
+}
+
+/* Phones: the bar moves under its row, so the name and amounts get the whole width
+   (the Dashboard's budget list does the same, next to its own rules). */
+@media (max-width: 600px) {
+  .hbars button {
+    grid-template-columns: minmax(0, 1fr) auto 48px;
+    grid-template-areas:
+      "name value share"
+      "track track track";
+    row-gap: 4px;
+  }
+
+  .hbar-name { grid-area: name; }
+  .hbar-value { grid-area: value; }
+  .hbar-share { grid-area: share; }
+  .hbar-track { grid-area: track; height: 6px; }
 }
 
 .acct-table {
@@ -955,7 +1389,49 @@ tr.row-transfer td {
   gap: 16px;
 }
 
-/* Earning / Expense reports: a heading, tabs, then the open tab's card. */
+/* --- Over the years: one small chart per Dashboard figure --- */
+
+.over-years {
+  display: grid;
+  gap: 16px;
+}
+
+.year-charts {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 12px;
+}
+
+/* Five across: what came in and went out on the first row, where it went on the second. */
+@media (min-width: 900px) {
+  .year-charts { grid-template-columns: repeat(5, minmax(0, 1fr)); }
+}
+
+/* More than four years need wider charts to name every year. */
+.year-charts.many {
+  grid-template-columns: repeat(auto-fill, minmax(min(300px, 100%), 1fr));
+}
+
+/* Charts sit at the bottom, so a title on two lines doesn't push one lower than its row. */
+.year-charts .card {
+  padding: 12px 14px;
+  display: flex;
+  flex-direction: column;
+}
+
+.year-charts .chart {
+  margin-top: auto;
+}
+
+/* A chart's title, with × beside it on a pinned tag's. */
+.year-chart-head {
+  display: flex;
+  justify-content: space-between;
+  align-items: baseline;
+  gap: 8px;
+}
+
+/* Earning, Expense, and Savings and investment reports: a heading, tabs, then the open tab's card. */
 .section-title {
   font-size: 18px;
   margin: 12px 0 4px;
@@ -964,8 +1440,12 @@ tr.row-transfer td {
 .tab-bar {
   display: flex;
   gap: 4px;
-  border-bottom: 1px solid var(--border);
+  /* The line under the tabs is a shadow, not a border: the active tab's underline sits on it
+     without overlapping, which in a scrolling bar would add a scrollbar. */
+  box-shadow: inset 0 -1px 0 var(--border);
   margin-bottom: 12px;
+  /* On a phone the tabs keep to one line and scroll sideways. */
+  overflow-x: auto;
 }
 
 .tab-bar button {
@@ -975,8 +1455,8 @@ tr.row-transfer td {
   background: none;
   color: var(--muted);
   padding: 8px 14px;
-  margin-bottom: -1px;
   font-weight: 500;
+  white-space: nowrap;
 }
 
 .tab-bar button:hover {
@@ -1015,8 +1495,49 @@ tr.row-transfer td {
   vertical-align: -1px;
 }
 
+/* Charts' legends (src/views/chart.tsx): each name is a button that hides or shows its series. */
+.chart-legend {
+  gap: 4px 14px;
+}
+
+.chart-legend button {
+  border: none;
+  background: none;
+  padding: 2px 0;
+  font: inherit;
+  color: inherit;
+}
+
+.chart-legend button[aria-pressed="false"] {
+  text-decoration: line-through;
+  opacity: 0.5;
+}
+
+.chart-legend .swatch {
+  background: var(--c);
+}
+
+/* A dashed line's series (Invested this year) gets a dashed swatch. */
+.chart-legend .swatch.dashed {
+  background: repeating-linear-gradient(90deg, var(--c) 0 3px, transparent 3px 5px);
+}
+
 .table-view {
   margin-top: 8px;
+}
+
+/* A table wider than the card (twelve months on a phone) scrolls sideways inside it. */
+.table-scroll {
+  overflow-x: auto;
+}
+
+/* Where the money went: its labels need about 640px, so a narrower card scrolls sideways. */
+.wide-chart {
+  overflow-x: auto;
+}
+
+.wide-chart .chart {
+  min-width: 640px;
 }
 
 .table-view summary {
@@ -1042,6 +1563,18 @@ tr.row-transfer td {
 .data-table th {
   color: var(--muted);
   font-weight: 600;
+}
+
+/* Over the years' All figures: as wide as its card. */
+.data-table.all-figures {
+  width: 100%;
+}
+
+/* A note mark on a heading (Change†): raised, without making the row taller. */
+.data-table th sup {
+  font-size: 0.8em;
+  line-height: 0;
+  margin-left: 1px;
 }
 
 .data-table .num {
@@ -1209,6 +1742,12 @@ button.danger-solid {
   grid-template-columns: repeat(3, 1fr);
 }
 
+@media (max-width: 600px) {
+  .budget-tiles {
+    grid-template-columns: 1fr;
+  }
+}
+
 .budget .filters button {
   padding: 5px 12px;
 }
@@ -1265,6 +1804,79 @@ button.danger-solid {
 
 .c-progress {
   width: 28%;
+}
+
+/* Phones: six columns don't fit, so each category is a small block: its name and what's left,
+   the bar, then its targets and spending, each labelled (the header row is hidden). */
+@media (max-width: 600px) {
+  .budget-table,
+  .budget-table tbody,
+  .budget-table tfoot {
+    display: block;
+  }
+
+  .budget-table thead {
+    display: none;
+  }
+
+  .budget-table tbody tr {
+    display: grid;
+    grid-template-columns: repeat(3, minmax(0, 1fr));
+    grid-template-areas:
+      "name name left"
+      "bar bar bar"
+      "target override spent";
+    gap: 6px 10px;
+    padding: 10px 0;
+    border-bottom: 1px solid var(--border);
+  }
+
+  .budget-table td {
+    padding: 0;
+    border-bottom: none;
+  }
+
+  .budget-table .b-name { grid-area: name; font-weight: 600; }
+  .budget-table .b-left { grid-area: left; }
+  .budget-table .c-progress { grid-area: bar; width: auto; }
+  /* !important to beat .num's own, which keeps numbers right-aligned everywhere else. */
+  .budget-table .b-target { grid-area: target; text-align: left !important; }
+  .budget-table .b-override { grid-area: override; text-align: left !important; }
+  .budget-table .b-spent { grid-area: spent; }
+
+  .budget-table td[data-label]::before {
+    content: attr(data-label);
+    display: block;
+    font-size: 12px;
+    color: var(--muted);
+  }
+
+  .budget-table .money-input {
+    width: 100%;
+    box-sizing: border-box;
+    text-align: left !important;
+    padding-left: 0;
+  }
+
+  .budget-table tfoot tr {
+    display: flex;
+    justify-content: space-between;
+    gap: 10px;
+    padding-top: 8px;
+  }
+
+  .budget-table tfoot td:empty {
+    display: none;
+  }
+
+  .budget-table td .left-word {
+    display: inline;
+  }
+}
+
+/* "left" after the amount, only where there's no Left header above it. */
+.budget-table .left-word {
+  display: none;
 }
 
 .money-input {
@@ -1339,6 +1951,20 @@ button.danger-solid {
   font-variant-numeric: tabular-nums;
 }
 
+@media (max-width: 600px) {
+  .budget-list li {
+    grid-template-columns: minmax(0, 1fr) auto;
+    grid-template-areas:
+      "name left"
+      "bar bar";
+    row-gap: 4px;
+  }
+
+  .budget-list .hbar-name { grid-area: name; }
+  .budget-list .num { grid-area: left; }
+  .budget-list .budget-bar { grid-area: bar; }
+}
+
 .sr-only {
   position: absolute;
   width: 1px;
@@ -1409,6 +2035,159 @@ button.danger-solid {
   color: var(--muted);
 }
 
+/* Wide screens: the buttons wrap inside their cell rather than push the table past the card. */
+.setup-table .row-actions {
+  flex-wrap: wrap;
+  gap: 4px;
+  align-items: center;
+}
+
+/* Row actions as small square icons (src/views/icons.tsx), always shown. */
+button.icon-action {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 28px;
+  height: 28px;
+  padding: 0;
+  color: var(--muted);
+}
+
+button.icon-action:hover {
+  filter: none;
+  color: var(--text);
+  background: var(--row-hover);
+}
+
+/* Delete in red and Update balance / value in green, each tinted like the "+ Add" buttons
+   (without the stripe, which a small square can't carry). */
+button.icon-action.danger { --kind: var(--danger); }
+button.icon-action.icon-update { --kind: var(--earning); }
+
+button.icon-action.danger,
+button.icon-action.icon-update {
+  color: var(--kind);
+  background: color-mix(in srgb, var(--kind) 7%, var(--surface));
+  border-color: color-mix(in srgb, var(--kind) 35%, var(--surface));
+}
+
+button.icon-action.danger:hover,
+button.icon-action.icon-update:hover {
+  background: color-mix(in srgb, var(--kind) 14%, var(--surface));
+}
+
+/* Phones: a bigger target for a finger. */
+@media (max-width: 600px) {
+  button.icon-action {
+    width: 32px;
+    height: 32px;
+  }
+}
+
+/* Below 1200px nine columns don't fit (they need about 1100px), so each account is a block.
+   Its name and balance come first, then its type, number, opening, limit and entries in small
+   print (empty ones left out), then its buttons. The forms that open under a row take the whole width. */
+@media (max-width: 1199px) {
+  .setup-table,
+  .setup-table tbody {
+    display: block;
+  }
+
+  .setup-table thead {
+    display: none;
+  }
+
+  .setup-table tbody tr {
+    display: flex;
+    flex-wrap: wrap;
+    align-items: baseline;
+    column-gap: 10px;
+    row-gap: 4px;
+    padding: 6px 0;
+    border-bottom: 1px solid var(--border);
+  }
+
+  .setup-table td {
+    padding: 0;
+    border-bottom: none;
+    white-space: normal;
+  }
+
+  .setup-table td[colspan] {
+    flex: 1 1 100%;
+  }
+
+  .setup-table .a-name {
+    order: 1;
+    flex: 1 1 calc(100% - 150px);
+    min-width: 0;
+    font-size: 15px;
+  }
+
+  .setup-table .a-balance {
+    order: 2;
+    flex: 0 0 140px;
+    font-size: 15px;
+  }
+
+  .setup-table .a-meta {
+    order: 3;
+    font-size: 12px;
+    color: var(--muted);
+    text-align: left !important;
+  }
+
+  /* An empty balance (an asset's) still holds its place, so the small print stays on the second line. */
+  .setup-table .a-meta:empty {
+    display: none;
+  }
+
+  .setup-table .a-meta[data-label]::before {
+    content: attr(data-label) " ";
+  }
+
+  /* The icons sit at the right end of the small print's line, or under it when it's full. */
+  .setup-table .a-actions {
+    order: 4;
+    flex: 0 0 auto;
+    margin-left: auto;
+  }
+
+  .setup-table .row-actions {
+    justify-content: flex-end;
+  }
+
+  .card-head > button {
+    white-space: nowrap;
+  }
+}
+
+@media (max-width: 600px) {
+  /* Category rows: the name gets a line of its own, and what it's for, Net, uses and × go under it. */
+  .card .name-list li,
+  .card .name-list.with-net li {
+    grid-template-columns: minmax(0, 1fr) auto 28px 22px;
+    grid-template-areas:
+      "name name name name"
+      "role net uses del";
+    gap: 2px 12px;
+    padding: 4px 0;
+  }
+
+  .card .name-list li > .name-input { grid-area: name; }
+  .card .name-list li > select { grid-area: role; max-width: 200px; }
+  .card .name-list li > .net-tick { grid-area: net; }
+  .card .name-list li > .uses { grid-area: uses; }
+  .card .name-list li > .icon-btn,
+  .card .name-list li > .del-placeholder { grid-area: del; }
+
+  /* Tags and people have only a count and ×: they stay on one line. */
+  .card .name-list.compact li {
+    grid-template-columns: minmax(0, 1fr) 36px 24px;
+    grid-template-areas: "name uses del";
+  }
+}
+
 .inline-form {
   border: 1px solid var(--border);
   border-left: 4px solid var(--accent);
@@ -1441,7 +2220,8 @@ button.danger-solid {
   padding: 0;
   margin: 0 0 10px;
   display: grid;
-  grid-template-columns: repeat(auto-fill, minmax(460px, 1fr));
+  /* Never wider than the card, or a phone would scroll sideways. */
+  grid-template-columns: repeat(auto-fill, minmax(min(460px, 100%), 1fr));
   column-gap: 32px;
 }
 
@@ -1456,7 +2236,7 @@ button.danger-solid {
 /* Tags and people: many short names, so flow them into columns. */
 .name-list.compact {
   display: grid;
-  grid-template-columns: repeat(auto-fill, minmax(230px, 1fr));
+  grid-template-columns: repeat(auto-fill, minmax(min(230px, 100%), 1fr));
   column-gap: 24px;
 }
 

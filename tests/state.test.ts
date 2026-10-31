@@ -1,7 +1,8 @@
 import { beforeEach, describe, expect, it } from "vitest";
 import { exportYear, importYear } from "../src/backup";
 import { getSetting, listYears, loadYear, putEntryChange, setSetting } from "../src/db";
-import { current, ensureTag, eraseEverything, openYear, pinnedTags, removeEntry, removeYear, removeTag, saveEntry, setBudget, years } from "../src/state";
+import { current, ensureTag, eraseEverything, loadAllYears, openYear, pins, refreshYears, removeEntry, removeYear, removeTag, saveEntry, setBudget, years } from "../src/state";
+import { demoYear } from "../src/demo";
 import { freshDb, sample } from "./helpers";
 
 beforeEach(async () => {
@@ -84,6 +85,29 @@ describe("last updated", () => {
     await removeTag(used);
     expect(await stamp()).toBeDefined();
   });
+
+  it("keeps setup changes apart: they stamp setupChangedAt, entries don't", async () => {
+    const setupStamp = async () => (await loadYear(2026))!.setup.setupChangedAt;
+    expect(await setupStamp()).toBeUndefined();
+    await saveEntry({ kind: "expense", entry: current.value!.expenses[0]! });
+    expect(await setupStamp()).toBeUndefined();
+    const before = Date.now();
+    await setBudget("default", "ce_food", 1);
+    const at = await setupStamp();
+    expect(Date.parse(at!)).toBeGreaterThanOrEqual(before);
+    expect(current.value!.setup.setupChangedAt).toBe(at);
+    expect((await exportYear(2026))!.setupChangedAt).toBe(at);
+    await removeTag(current.value!.setup.tags[0]!.id); // a change that also moves entries
+    expect(Date.parse((await setupStamp())!)).toBeGreaterThanOrEqual(Date.parse(at!));
+  });
+
+  it("doesn't stamp a save that changes nothing", async () => {
+    await setBudget("default", "ce_food", 1);
+    const at = (await loadYear(2026))!.setup.setupChangedAt;
+    await new Promise((r) => setTimeout(r, 5));
+    await setBudget("default", "ce_food", 1); // the same target again
+    expect((await loadYear(2026))!.setup.setupChangedAt).toBe(at);
+  });
 });
 
 describe("years saved before people were dropped", () => {
@@ -97,8 +121,12 @@ describe("years saved before people were dropped", () => {
 
   it("cleans an open year and saves it that way", async () => {
     await storeOldShape(false);
+    const before = (await loadYear(2026))!.setup;
     await openYear(2026);
     const stored = (await loadYear(2026))!;
+    // Bringing it up to date isn't the user's change: neither stamp moves, so no backup reminder.
+    expect(stored.setup.lastChangedAt).toBe(before.lastChangedAt);
+    expect(stored.setup.setupChangedAt).toBe(before.setupChangedAt);
     expect(stored.setup).not.toHaveProperty("people");
     expect(stored.setup.categories.earning.find((c) => c.id === "ci_payback")!.role).toBe("offset");
     expect(stored.expenses[2]).not.toHaveProperty("owed");
@@ -117,6 +145,17 @@ describe("years saved before people were dropped", () => {
     expect(backup.expenses[2]).not.toHaveProperty("owed");
     expect(backup.categories.earning.find((c) => c.id === "ci_payback")!.role).toBe("offset");
   });
+
+  it("are cleaned the same way for Over the years, oldest first, without rewriting them", async () => {
+    await storeOldShape(false);
+    expect(await importYear(demoYear(2025))).toMatchObject({ ok: true });
+    await refreshYears();
+    const all = await loadAllYears();
+    expect(all.map((d) => d.setup.year)).toEqual([2025, 2026]);
+    expect(all[1]!.setup).not.toHaveProperty("people");
+    expect(all[1]!.setup.categories.earning.find((c) => c.id === "ci_payback")!.role).toBe("offset");
+    expect((await loadYear(2026))!.setup).toHaveProperty("people"); // storage untouched until the year is opened
+  });
 });
 
 describe("erase everything", () => {
@@ -124,7 +163,7 @@ describe("erase everything", () => {
     const next = { ...sample(), year: 2027, expenses: [], earnings: [], transfers: [], budgets: { default: {} } };
     await importYear(next);
     await setSetting("pinnedTags", ["t_x"]);
-    pinnedTags.value = ["t_x"];
+    pins.pinnedTags.value = ["t_x"];
 
     await eraseEverything();
     expect(await listYears()).toEqual([]);
@@ -133,7 +172,7 @@ describe("erase everything", () => {
     expect(await getSetting("activeYear")).toBeUndefined();
     expect(current.value).toBeNull();
     expect(years.value).toEqual([]);
-    expect(pinnedTags.value).toEqual([]);
+    expect(pins.pinnedTags.value).toEqual([]);
 
     // And a backup restores it all again.
     await importYear(sample());

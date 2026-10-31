@@ -38,6 +38,12 @@ export interface Settings {
   activeYear: number;
   /** Tag ids whose totals show on the dashboard (e.g. "t_india"). */
   pinnedTags: string[];
+  /** Tag ids whose yearly totals are charted on Over the years. */
+  pinnedYearTags: string[];
+  /** Spending category ids whose totals show on the dashboard, after the pinned tags. */
+  pinnedCategories: string[];
+  /** Spending category ids whose yearly totals are charted on Over the years. */
+  pinnedYearCategories: string[];
   /** True to leave what loans owe out of net worth on the dashboard. Left out, they count. */
   netWorthWithoutLoans: boolean;
 }
@@ -153,6 +159,7 @@ export async function replaceYear(file: YearFile, extra: Pick<YearSetup, "lastBa
     ...(file.iraLimit !== undefined ? { iraLimit: file.iraLimit } : {}),
     ...(file.iraBeforeStart !== undefined ? { iraBeforeStart: file.iraBeforeStart } : {}),
     ...(file.lastChangedAt ? { lastChangedAt: file.lastChangedAt } : {}),
+    ...(file.setupChangedAt ? { setupChangedAt: file.setupChangedAt } : {}),
     ...extra,
   };
   tx.objectStore("years").put(setup);

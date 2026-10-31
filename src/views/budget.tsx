@@ -127,29 +127,29 @@ export function BudgetView() {
           <tbody>
             {view.lines.map((line, row) => (
               <tr key={line.cat}>
-                <td>
+                <td class="b-name">
                   <a href="#/ledger" onClick={(e) => { e.preventDefault(); showCategory(line.cat, month); }}>
                     {names.get(line.cat) ?? line.cat}
                   </a>
                 </td>
                 {month ? (
                   <>
-                    <td class="num">
+                    <td class="num b-target" data-label="Every month">
                       <MoneyInput value={setup.budgets.default[line.cat]} placeholder="No budget" disabled={!editable}
                         label={`${names.get(line.cat)} every month`} row={row} col={0}
                         onCommit={(v) => setBudget("default", line.cat, v)} />
                     </td>
-                    <td class="num">
+                    <td class="num b-override" data-label="This month only">
                       <MoneyInput value={setup.budgets[monthKey(year, month)]?.[line.cat]} placeholder="Same" disabled={!editable}
                         label={`${names.get(line.cat)} in ${MONTH_NAMES[month - 1]} only`} row={row} col={1}
                         onCommit={(v) => setBudget(monthKey(year, month), line.cat, v)} />
                     </td>
                   </>
                 ) : (
-                  <td class="num">{line.target === undefined ? <span class="muted">–</span> : formatCents(line.target)}</td>
+                  <td class="num b-target" data-label="Budgeted">{line.target === undefined ? <span class="muted">–</span> : formatCents(line.target)}</td>
                 )}
-                <td class="num">{formatCents(line.spent)}</td>
-                <td class="num"><Left line={line} /></td>
+                <td class="num b-spent" data-label="Spent">{formatCents(line.spent)}</td>
+                <td class="num b-left"><Left line={line} /></td>
                 <td class="c-progress"><BudgetBar line={line} pace={pace} /></td>
               </tr>
             ))}
@@ -159,6 +159,13 @@ export function BudgetView() {
               <tr>
                 <td colSpan={month ? 3 : 2}>Refunds and points not tied to a category</td>
                 <td class="num">−{formatCents(view.untargetedOffsets)}</td>
+                <td colSpan={2} />
+              </tr>
+            )}
+            {view.transfersOut > 0 && (
+              <tr>
+                <td colSpan={month ? 3 : 2}>Transfers to external, not net spending</td>
+                <td class="num">−{formatCents(view.transfersOut)}</td>
                 <td colSpan={2} />
               </tr>
             )}
@@ -192,7 +199,7 @@ function Left({ line }: { line: BudgetLine }) {
   if (line.remaining === undefined) return <span class="muted">–</span>;
   return line.remaining < 0
     ? <span class="over">Over by {formatCents(-line.remaining)}</span>
-    : <>{formatCents(line.remaining)}</>;
+    : <>{formatCents(line.remaining)}<span class="left-word"> left</span></>;
 }
 
 /**

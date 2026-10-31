@@ -3,7 +3,7 @@
 
 import { uncategorizedId } from "./categories";
 import { membersOf } from "./members";
-import { formatCents, parseCents } from "./money";
+import { amountText, parseCents } from "./money";
 import type {
   Account, Earning, EarningRole, Expense, Transfer, TransferRole, YearSetup,
 } from "./types";
@@ -69,9 +69,10 @@ function blankDraft(kind: Kind, date: string): Draft {
   };
 }
 
-/** Amount as the form shows it: 1234 -> "12.34". */
-function amountText(cents: number): string {
-  return formatCents(cents).replace(/[$,]/g, "");
+/** A typed amount tidied to two decimals once it is valid: "5000" -> "5000.00". Anything else stays as typed. */
+export function tidyAmount(text: string): string {
+  const cents = parseCents(text);
+  return cents === null || cents === 0 ? text : amountText(cents);
 }
 
 /** Fill a draft from an existing entry, for editing. */

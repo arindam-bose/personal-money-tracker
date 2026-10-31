@@ -1,6 +1,6 @@
 import { describe, expect, it } from "vitest";
 import {
-  checkDraft, draftFrom, duplicateEntry, emptyDraft, newId, slug, suggestTransferCategory, type Draft,
+  checkDraft, draftFrom, duplicateEntry, emptyDraft, newId, slug, suggestTransferCategory, tidyAmount, type Draft,
 } from "../src/entries";
 import { withUncategorized } from "../src/categories";
 import type { YearSetup } from "../src/types";
@@ -94,6 +94,15 @@ describe("checkDraft", () => {
     for (const e of all) {
       expect(checkDraft(draftFrom(e), setup, "unused"), e.entry.id).toEqual({ ok: true, entry: e });
     }
+  });
+});
+
+describe("tidyAmount", () => {
+  it("shows a valid amount with two decimals", () => {
+    expect(["5000", "12.5", "$1,234", " 7. ", "0.01"].map(tidyAmount)).toEqual(["5000.00", "12.50", "1234.00", "7.00", "0.01"]);
+  });
+  it("leaves invalid, zero and empty amounts as typed", () => {
+    expect(["", "abc", "1.234", "-5", "0"].map(tidyAmount)).toEqual(["", "abc", "1.234", "-5", "0"]);
   });
 });
 

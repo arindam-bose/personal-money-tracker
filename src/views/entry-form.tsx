@@ -5,13 +5,14 @@ import { useSignal } from "@preact/signals";
 import { useEffect, useRef } from "preact/hooks";
 import type { JSX } from "preact";
 import {
-  checkDraft, defaultCategory, earningRole, suggestTransferCategory,
+  checkDraft, defaultCategory, earningRole, suggestTransferCategory, tidyAmount,
   type AnyEntry, type Draft, type DraftErrors, type DraftField, type Kind,
 } from "../entries";
 import { membersOf } from "../setup";
 import { current, ensureTag, nextEntryId, removeEntry, saveEntry } from "../state";
 import type { Account, YearSetup } from "../types";
 import { yearStart } from "../year";
+import { DateField } from "./date-field";
 import { SearchSelect, matching } from "./search-select";
 
 const KIND_LABEL: Record<Kind, string> = { expense: "Expense", earning: "Earning", transfer: "Transfer" };
@@ -137,17 +138,18 @@ export function EntryForm({ initial, onClose }: Props) {
       </div>
 
       <div class="fields">
-        <Field label="Date" error={err.date} class="w-date">
-          <input type="date" value={d.date} min={yearStart(setup)} max={`${setup.year}-12-31`}
-            onInput={(e) => set("date", e.currentTarget.value)} />
-        </Field>
+        <DateField label="Date" error={err.date} value={d.date} min={yearStart(setup)} max={`${setup.year}-12-31`}
+          onChange={(date) => set("date", date)} />
         <Field label="Item" error={err.item} class="w-item">
           <input ref={itemRef} type="text" value={d.item} placeholder="What was it?"
             onInput={(e) => set("item", e.currentTarget.value)} />
         </Field>
         <Field label="Amount" error={err.amount} class="w-amount">
           <input type="text" inputMode="decimal" value={d.amount} placeholder="0.00" class="num"
-            onInput={(e) => set("amount", e.currentTarget.value)} />
+            onInput={(e) => set("amount", e.currentTarget.value)}
+            // The live draft, not the field: a save clears the draft and moves focus here before the
+            // field re-renders, and tidying the old text would bring the last amount back.
+            onBlur={() => { const a = draft.value.amount, t = tidyAmount(a); if (t !== a) set("amount", t); }} />
         </Field>
 
         {d.kind === "transfer" ? (
@@ -216,8 +218,8 @@ export function EntryForm({ initial, onClose }: Props) {
 }
 
 /**
- * A labelled field. `group` makes it a <div> instead of a <label>, for controls with buttons
- * inside: clicking a label clicks its first button, which for tags removed the first chip.
+ * A labelled field, normally wrapped in a <label>. It's a <div> instead for controls with buttons
+ * inside (`group`): clicking a label clicks its first button, which for tags removed the first chip.
  */
 function Field(props: { label: string; error?: string; class?: string; group?: boolean; children: JSX.Element | JSX.Element[] }) {
   const Tag = props.group ? "div" : "label";

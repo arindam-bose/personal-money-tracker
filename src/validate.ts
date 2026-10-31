@@ -2,7 +2,7 @@
 // touches the database. Returns every problem found, not just the first, so a
 // broken file can be fixed in one go.
 
-import type { AccountType, YearFile } from "./types";
+import { PIN_SETTINGS, type AccountType, type YearFile } from "./types";
 
 export type ValidationResult = { ok: true; file: YearFile } | { ok: false; errors: string[] };
 
@@ -10,8 +10,8 @@ export type ValidationResult = { ok: true; file: YearFile } | { ok: false; error
 const ACCOUNT_TYPES = Object.keys({
   checking: 1, savings: 1, cash: 1, credit: 1, investment: 1, loan: 1, asset: 1,
 } satisfies Record<AccountType, 1>) as AccountType[];
-const EXPENSE_ROLES = ["charity"];
-const EARNING_ROLES = ["paycheck", "income", "offset"];
+const EXPENSE_ROLES = ["charity", "transfer_out"];
+const EARNING_ROLES = ["paycheck", "income", "offset", "transfer_in"];
 const TRANSFER_ROLES = [
   "cc_payment", "savings_in", "savings_out", "invest_retirement",
   "invest_taxable", "cash_withdrawal", "loan_payment", "general",
@@ -111,18 +111,25 @@ export function validateYearFile(raw: unknown): ValidationResult {
   if (!isObj(data.categories)) err(`"categories" is missing.`);
   if (!isObj(data.budgets) || !isObj(data.budgets.default)) err(`"budgets.default" is missing.`);
   if (data.closed !== undefined && typeof data.closed !== "boolean") err(`"closed" must be true or false.`);
-  if (data.lastChangedAt !== undefined && !(typeof data.lastChangedAt === "string" && ISO_TIMESTAMP.test(data.lastChangedAt) && !Number.isNaN(Date.parse(data.lastChangedAt)))) {
-    err(`"lastChangedAt" must be a date and time, like "2026-10-26T22:16:00.000Z".`);
+  for (const key of ["lastChangedAt", "setupChangedAt"] as const) {
+    const at = data[key];
+    if (at !== undefined && !(typeof at === "string" && ISO_TIMESTAMP.test(at) && !Number.isNaN(Date.parse(at)))) {
+      err(`"${key}" must be a date and time, like "2026-10-26T22:16:00.000Z".`);
+    }
   }
   if (data.iraLimit !== undefined && !(isCents(data.iraLimit) && data.iraLimit >= 0)) err(`"iraLimit" is not whole cents.`);
   if (data.iraBeforeStart !== undefined && !(isCents(data.iraBeforeStart) && data.iraBeforeStart >= 0)) {
     err(`"iraBeforeStart" is not whole cents.`);
   }
   if (data.settings !== undefined) {
-    const pinned = isObj(data.settings) ? data.settings.pinnedTags : undefined;
     if (!isObj(data.settings)) err(`"settings" must be an object.`);
-    else if (pinned !== undefined && !(Array.isArray(pinned) && pinned.every((t) => typeof t === "string"))) {
-      err(`"settings.pinnedTags" must be a list of tag ids.`);
+    else {
+      for (const key of PIN_SETTINGS) {
+        const pinned = data.settings[key];
+        if (pinned !== undefined && !(Array.isArray(pinned) && pinned.every((t) => typeof t === "string"))) {
+          err(`"settings.${key}" must be a list of ${key.endsWith("Categories") ? "category" : "tag"} ids.`);
+        }
+      }
     }
   }
   if (errors.length) return { ok: false, errors };

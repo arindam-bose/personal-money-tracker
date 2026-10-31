@@ -139,8 +139,8 @@ know what each one means:
 
 | Kind | Roles |
 |---|---|
-| Expense | none (regular), `charity` |
-| Earning | `paycheck`, `income`, `offset` (refunds, points, money paid back: lowers spending) |
+| Expense | none (regular), `charity`, `transfer_out` (to your own accounts outside the tracker: in Spent, not net spending) |
+| Earning | `paycheck`, `income`, `offset` (refunds, points, money paid back: lowers spending), `transfer_in` (from your own accounts outside the tracker: in Earned, never net earnings) |
 | Transfer | `cc_payment`, `savings_in`, `savings_out`, `invest_retirement`, `invest_taxable`, `cash_withdrawal`, `loan_payment`, `general` |
 
 Earning and transfer categories must have a role; the validator refuses a file
@@ -207,7 +207,7 @@ Tests).
 | Spent | All expenses, split bank / card / cash by the debited account's type |
 | Surplus | Earned − spent |
 | Net earnings | Earnings in paycheck/income categories not marked `net: false` (the "Net" tick) |
-| Net spending | Spent (Uncategorized included) − earnings in `offset` ("Lowers spending") categories (`spendingOffsetCategories`) |
+| Net spending | Spent (Uncategorized included) − earnings in `offset` ("Lowers spending") categories (`spendingOffsetCategories`) − expenses in `transfer_out` categories |
 | Net savings | `savings_in` − `savings_out` transfers |
 | Investment | `invest_retirement` + `invest_taxable` transfers |
 | Loan payments | `loan_payment` transfers (not spending) |
@@ -217,7 +217,7 @@ Tests).
 | Loans owed | −(loan balances), interest included |
 | Investments worth | Each investment account's latest balance update; accounts without one aren't counted |
 | Assets worth | Each asset account's latest value |
-| Net worth | Available cash − card debt − loans owed + investments worth + assets worth. The **Include loans** switch (Dashboard, and Balances over time in Reports) can leave loans out too |
+| Net worth | What you own minus what you owe: available cash + investments worth + assets worth − card debt − loans owed. The **Include loans** switch (Dashboard, and Balances over time in Reports) can leave loans out too |
 
 Investment accounts' ledger balances are contributions this year, not market
 value; they open at 0 every year. What they're worth is only what the user enters.
@@ -226,7 +226,9 @@ value; they open at 0 every year. What they're worth is only what the user enter
 (`budgets.default`) and optional one-month overrides (`budgets["2026-03"]`).
 Spending against a budget is net of refunds aimed at that category (`offsets` on
 the earning). Refunds aimed at no category lower the
-total only, shown as their own line so the bottom line equals net spending.
+total only, shown as their own line so the bottom line equals net spending. So do
+`transfer_out` categories: their lines show what was sent, and a line of their own
+takes it off the total.
 
 **Money flow** (the Sankey, `moneyFlow`): earnings by category flow into one
 "Income" hub, which flows out to spending categories, savings, investing and
@@ -307,7 +309,8 @@ into the next year.
 ### Backups
 
 A backup is the year's `YearFile`, downloaded from the Settings page or the top-bar
-reminder (shown after 7 days without one, for years with entries). Importing a
+reminder (shown for an open year with entries that was never backed up, or that
+changed since a backup at least 7 days old, in its entries or its setup; `backupDue` in `storage.ts`). Importing a
 file counts as a backup made at its `exportedAt` time. JSON keys are written in a
 fixed order, so two backups of the same year diff cleanly.
 Backups are named `money-tracker-<year>_<date>_<time>_<browser>_<system>.json`
@@ -322,15 +325,24 @@ A backup holds everything needed to rebuild the year on a clean device:
   entries, in `state.ts`). Of two backups of a year, the later one is newer; importing
   over a year shows both times and warns when the tracker's is later. Left out until
   the first change.
+- `setupChangedAt`, when the setup last changed: accounts, categories, tags, people,
+  budgets, the start day or IRA settings (`saveSetup` and `saveChange` in `state.ts`;
+  bringing an older year up to date on opening doesn't count). Kept apart from
+  `lastChangedAt` so the ledger's "Last updated" stays about entries; the backup reminder
+  and the import warning look at both. Left out until the first change.
 - `closed: true` for a closed year, so it comes back read-only (left out while open).
 - `iraLimit`, the year's IRA limit: the one set on the Settings page, or else the IRS
   limit for that year. Every backup writes it; in older files without it, the IRS
   limit applies (`IRA_LIMITS` in `setup.ts`; years past the list use the
   latest one). Add the new limit there when the IRS announces it. A closed
   year's limit doesn't carry into the next year.
-- `settings.pinnedTags`, the dashboard's pinned tags. They are app-wide, so
-  importing applies them only when the device has none saved yet; restoring an
-  old year never undoes today's pins.
+- `settings.pinnedTags` and `settings.pinnedCategories`, the dashboard's pinned tags
+  and spending categories, and `settings.pinnedYearTags` and `settings.pinnedYearCategories`,
+  the ones charted on Over the years. A category's total is all its spending, before
+  refunds, as in Spending by category. They are app-wide, so importing applies each
+  only when the device has none saved yet; restoring an old year never undoes
+  today's pins. On Over the years a pinned tag or category is found in each year by
+  its id, or else by name, since each year has its own.
 
 All four are optional on import, so older backups still import. `tests/transfer.test.ts`
 moves a year that uses every optional field to a clean device and back; its file
@@ -353,8 +365,9 @@ already exists, it is left alone. A closed year can be reopened.
 | Dashboard | `views/dashboard.tsx` | Month or year view; figures and simple HTML bars. |
 | Ledger | `views/ledger.tsx`, `views/entry-form.tsx` | One table for all three kinds; filters kept per tab in `sessionStorage`. |
 | Budget | `views/budget.tsx` | Enter moves down a column; saves on Enter or blur. |
-| Reports | `views/reports.tsx` | Loaded on demand (see Charts). Earning and Expense reports are tabbed sections; each remembers its tab in `sessionStorage`. |
+| Reports | `views/reports.tsx` | Loaded on demand (see Charts). Earning, Expense, and Savings and investment reports are tabbed sections; each remembers its tab in `sessionStorage`. |
 | Accounts | `views/accounts.tsx` | Accounts can be deleted only when no entry uses them. Categories always (entries move to Uncategorized), and tags always (they come off their entries). |
+| Over the years | `views/years.tsx` | In the menu only with two or more years; the year picker shows "All years" there. Loads every year (`loadAllYears` in `state.ts`, upgraded in memory like `openYear`) and runs `summarize` on each, everyone together. Loaded on demand with the charts. |
 | Settings | `views/settings.tsx`, `views/about.tsx` | Import, export, close/reopen, delete a year, start from scratch, the year's IRA settings, appearance, offline, erase everything, the demo file, about. |
 
 Routing is by URL hash (`#/ledger`), which works on any static host.
@@ -379,13 +392,16 @@ when they were made: the ledger shows the newest first within a day. Imported id
 ## Charts
 
 `views/chart.tsx` wraps ECharts 6 and registers only the parts used (sankey, bar,
-line, pie; grid, legend, title, tooltip; SVG renderer). A chart type or component
-used without being registered draws nothing, silently: register it there first. The Reports page is a separate chunk
-loaded when first opened, so ECharts (~200 kB gzipped) never slows the rest of
+line, pie; grid, legend, title, tooltip; label layout, which moves overlapping labels apart; SVG renderer). A chart type or component
+used without being registered draws nothing, silently: register it there first. The Reports and Over the years pages are separate chunks
+loaded when first opened (`chartPage` in `app.tsx`), so ECharts (~200 kB gzipped) never slows the rest of
 the app.
 
 Chart colours are CSS tokens (`--series-1` … `--series-10` in `style.css`), with
-separate light and dark steps. The palette was checked for colour-blind
+separate light and dark steps. One idea keeps one colour on every chart: earnings
+`--series-1`, spending `--series-2`, savings `--series-3`, investing `--series-4`,
+loans `--series-6`; a lighter shade on top of a bar is the rest of the same thing
+(net earned solid, other earnings lighter). The palette was checked for colour-blind
 separation against the app's light (`#ffffff`) and dark (`#1f1f21`) surfaces.
 Three light-mode colours are below 3:1 contrast, so every chart has a table view
 under it. Charts use the first six (`seriesColors()`): colours follow the category's

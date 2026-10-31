@@ -50,8 +50,11 @@ function replaceQuestion(fileName: string, stored: YearSummary, file: YearFile):
     : `exported ${at.toLocaleDateString(undefined, { day: "numeric", month: "short", year: "numeric" })}`;
   const here = stored.setup.lastChangedAt;
   const there = file.lastChangedAt;
-  // A file without one was saved before files carried it, so anything changed here is newer.
-  const newerHere = here !== undefined && (there === undefined || Date.parse(here) > Date.parse(there));
+  // The latest change of either kind, entries or setup. A file without one was saved before
+  // files carried it, so anything changed here is newer.
+  const latest = (...at: (string | undefined)[]) => Math.max(...at.map((x) => (x ? Date.parse(x) : -Infinity)));
+  const hereAt = latest(here, stored.setup.setupChangedAt), thereAt = latest(there, file.setupChangedAt);
+  const newerHere = hereAt > -Infinity && hereAt > thereAt;
   return [
     `Replace all your ${file.year} data with "${fileName}"?`,
     "",
@@ -168,15 +171,15 @@ export function SettingsView() {
           <tbody>
             {years.value.map(({ setup, expenses, earnings, transfers }) => (
               <tr key={setup.year}>
-                <td>
+                <td class="y-year">
                   {setup.year}
                   {setup.closed && <span class="badge">closed</span>}
                 </td>
-                <td class="num">{expenses}</td>
-                <td class="num">{earnings}</td>
-                <td class="num">{transfers}</td>
-                <td>{backupText(setup.lastBackupAt)}</td>
-                <td>
+                <td class="num y-count" data-label="Expenses">{expenses}</td>
+                <td class="num y-count" data-label="Earnings">{earnings}</td>
+                <td class="num y-count" data-label="Transfers">{transfers}</td>
+                <td class="y-backup">{backupText(setup.lastBackupAt)}</td>
+                <td class="y-actions">
                   {deleting.value === setup.year ? (
                     <div class="row-actions asking">
                       <span>

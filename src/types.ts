@@ -56,8 +56,10 @@ export interface Valuation {
 
 // Roles are hidden tags on categories, so users can rename categories
 // and the reports still know what each one means.
-export type ExpenseRole = "charity";
-export type EarningRole = "paycheck" | "income" | "offset";
+/** "transfer_out" / "transfer_in": money to or from accounts outside the tracker. They count in
+ * Spent and Earned, but never in net spending or net earnings. */
+export type ExpenseRole = "charity" | "transfer_out";
+export type EarningRole = "paycheck" | "income" | "offset" | "transfer_in";
 export type TransferRole =
   | "cc_payment"
   | "savings_in"
@@ -165,6 +167,12 @@ export interface YearFile {
    * Of two backups of a year, the later one holds the newer data. Left out until the first change.
    */
   lastChangedAt?: string;
+  /**
+   * When the setup last changed (ISO timestamp): accounts, categories, tags, people, budgets,
+   * the start day or IRA settings. Apart from lastChangedAt, which is only the entries; together
+   * they tell the backup reminder whether anything changed since the last backup. Left out until the first change.
+   */
+  setupChangedAt?: string;
   /** Set by "Close year"; a closed year is read-only. Left out while the year is open. */
   closed?: boolean;
   accounts: Account[];
@@ -190,14 +198,27 @@ export interface YearFile {
   settings?: FileSettings;
 }
 
+/**
+ * The app-wide pins: tags and spending categories shown beyond the Dashboard's own tiles and
+ * Over the years' own charts. Kept on the device, and carried in backups.
+ */
+export const PIN_SETTINGS = ["pinnedTags", "pinnedYearTags", "pinnedCategories", "pinnedYearCategories"] as const;
+export type PinSetting = (typeof PIN_SETTINGS)[number];
+
 /** The app-wide settings a backup carries, so a new device can be set up from it. */
 export interface FileSettings {
   /** Tag ids whose totals show on the dashboard. */
   pinnedTags?: string[];
+  /** Tag ids whose yearly totals are charted on Over the years. */
+  pinnedYearTags?: string[];
+  /** Spending category ids whose totals show on the dashboard. */
+  pinnedCategories?: string[];
+  /** Spending category ids whose yearly totals are charted on Over the years. */
+  pinnedYearCategories?: string[];
 }
 
 /** The parts of a YearFile that are set up once, not entered day to day. */
-export type YearSetup = Pick<YearFile, "year" | "start" | "closed" | "accounts" | "categories" | "tags" | "members" | "budgets" | "iraLimit" | "iraBeforeStart" | "lastChangedAt"> & {
+export type YearSetup = Pick<YearFile, "year" | "start" | "closed" | "accounts" | "categories" | "tags" | "members" | "budgets" | "iraLimit" | "iraBeforeStart" | "lastChangedAt" | "setupChangedAt"> & {
   /** When this year was last exported to JSON (ISO timestamp), for the backup reminder. */
   lastBackupAt?: string;
 };

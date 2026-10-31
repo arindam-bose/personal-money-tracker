@@ -1,5 +1,27 @@
 import { describe, expect, it } from "vitest";
-import { formatCents, formatPercent, parseCents, parseSignedCents } from "../src/money";
+import { amountPrefix, amountText, formatCents, formatPercent, parseCents, parseSignedCents } from "../src/money";
+
+describe("amountPrefix", () => {
+  // Matches the start of the amount as the form writes it.
+  const finds = (q: string, cents: number) => amountText(cents).startsWith(amountPrefix(q)!);
+  it("finds amounts that start with what was typed", () => {
+    expect(finds("19", 1947)).toBe(true);
+    expect(finds("197", 197225)).toBe(true);
+    expect(finds("$1,97", 197225)).toBe(true);
+    expect(finds("1972.2", 197225)).toBe(true);
+    expect(finds("45.", 4567)).toBe(true);
+    expect(finds("45.67", 4567)).toBe(true);
+    expect(finds("05", 500)).toBe(true);
+    expect(finds("0.5", 50)).toBe(true);
+  });
+  it("doesn't find digits in the middle or a different cents", () => {
+    expect(finds("50", 15000)).toBe(false);
+    expect(finds("45.6", 4570)).toBe(false);
+  });
+  it.each(["45.678", "coffee", "", "-5"])("%s isn't an amount", (q) => {
+    expect(amountPrefix(q)).toBeNull();
+  });
+});
 
 describe("parseCents", () => {
   it.each([

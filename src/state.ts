@@ -2,7 +2,7 @@
 // Every change goes through the actions below: they write to IndexedDB first, then
 // update the signal, so what you see is always what is stored.
 
-import { computed, signal } from "@preact/signals";
+import { computed, signal, type Signal } from "@preact/signals";
 import { deleteYear, eraseAll, getSetting, listYears, loadYear, putEntryChange, putSetup, putSetupAndEntries, replaceYear, setSetting, type YearData } from "./db";
 import { ledgerOf, type Ledger } from "./derive";
 import { ID_PREFIX, STORE, duplicateEntry, newId, slug, type AnyEntry, type Kind } from "./entries";
@@ -10,7 +10,7 @@ import { emptyYearFile, nextYearSetup } from "./rollover";
 import { assertClosedStayEmpty, blankSetup, closeAccount, deleteCategory, iraLimitOf, deleteMember, deleteTag, usageOf, withChange, withStart, withoutPeople, type YearChange, type Usage } from "./setup";
 import { withUncategorized, type CategoryKind } from "./categories";
 import type { PersistState } from "./storage";
-import type { YearSetup } from "./types";
+import { PIN_SETTINGS, type PinSetting, type YearSetup } from "./types";
 
 export interface YearSummary {
   setup: YearSetup;
@@ -61,12 +61,14 @@ export function setMemberView(id: string): void {
     // Not kept; the choice still applies until the page reloads.
   }
 }
-export const pinnedTags = signal<string[]>([]);
+/** Each kind of pin (tags and categories, on the Dashboard and on Over the years), kept on this device under its own name. */
+export const pins = Object.fromEntries(PIN_SETTINGS.map((key) => [key, signal<string[]>([])])) as Record<PinSetting, Signal<string[]>>;
 /** Whether the Include loans switch is off, leaving loans out of net worth. Kept on this device as "netWorthWithoutLoans". */
 export const loansLeftOut = signal(false);
 
 export async function loadSettings(): Promise<void> {
-  pinnedTags.value = (await getSetting("pinnedTags")) ?? [];
+  const saved = await Promise.all(PIN_SETTINGS.map((key) => getSetting(key)));
+  PIN_SETTINGS.forEach((key, i) => (pins[key].value = saved[i] ?? []));
   loansLeftOut.value = (await getSetting("netWorthWithoutLoans")) ?? false;
 }
 
@@ -86,9 +88,9 @@ export function saveIraLimit(cents: number | null): Promise<void> {
   });
 }
 
-export async function savePinnedTags(ids: string[]): Promise<void> {
-  await setSetting("pinnedTags", ids);
-  pinnedTags.value = ids;
+export async function savePins(key: PinSetting, ids: string[]): Promise<void> {
+  await setSetting(key, ids);
+  pins[key].value = ids;
 }
 
 export async function saveLoansLeftOut(without: boolean): Promise<void> {
@@ -122,18 +124,31 @@ export async function openYear(year?: number): Promise<void> {
   const saved = await getSetting("activeYear");
   const pick = [year, saved, stored[0]].find((y) => y !== undefined && stored.includes(y));
   let data = pick === undefined ? null : await loadYear(pick);
-  // Bring older years up to date: drop people, owed shares and the old loan expense role, and give open years Uncategorized.
-  // An open year is saved that way the first time; a closed one is only cleaned in memory, never rewritten.
-  if (data) {
-    const cleaned = withoutPeople(data);
-    const base = cleaned ?? { setup: data.setup };
-    const change = { ...base, setup: data.setup.closed ? base.setup : withUncategorized(base.setup) };
-    if (cleaned || change.setup !== data.setup) {
-      data = data.setup.closed ? withChange(data, change) : await saveChange(data, change);
-    }
-  }
+  // An open year is saved up to date the first time; a closed one is only cleaned in memory, never rewritten.
+  const change = data && upgrade(data);
+  if (data && change) data = data.setup.closed ? withChange(data, change) : await saveChange(data, change, true);
   current.value = data;
   if (pick !== undefined && pick !== saved) await setSetting("activeYear", pick);
+}
+
+/**
+ * What brings an older year up to date: drop people, owed shares and the old loan expense role,
+ * and give open years Uncategorized. Null when there's nothing to change.
+ */
+function upgrade(data: YearData): YearChange | null {
+  const cleaned = withoutPeople(data);
+  const base = cleaned ?? { setup: data.setup };
+  const change = { ...base, setup: data.setup.closed ? base.setup : withUncategorized(base.setup) };
+  return cleaned || change.setup !== data.setup ? change : null;
+}
+
+/** Every stored year, oldest first, brought up to date in memory only (for Over the years). */
+export async function loadAllYears(): Promise<YearData[]> {
+  const all = await Promise.all(years.value.map((y) => loadYear(y.setup.year)));
+  return all.filter((d) => d !== null).map((d) => {
+    const change = upgrade(d);
+    return change ? withChange(d, change) : d;
+  }).sort((a, b) => a.setup.year - b.setup.year);
 }
 
 // Changes run one at a time. Each one reads the current state only when its turn comes,
@@ -226,8 +241,16 @@ function touched(setup: YearSetup): YearSetup {
   return { ...setup, lastChangedAt: new Date().toISOString() };
 }
 
-async function saveSetup(setup: YearSetup): Promise<void> {
+/** The setup stamped with now as when it last changed itself (not its entries). */
+function setupTouched(setup: YearSetup): YearSetup {
+  return { ...setup, setupChangedAt: new Date().toISOString() };
+}
+
+async function saveSetup(change: YearSetup): Promise<void> {
   const data = editable();
+  // A save that changes nothing (Save on an untouched form) isn't a change, so it isn't stamped.
+  if (JSON.stringify(change) === JSON.stringify(data.setup)) return;
+  const setup = setupTouched(change);
   await putSetup(setup);
   current.value = { ...data, setup };
 }
@@ -260,11 +283,16 @@ export function updateSetup(change: (setup: YearSetup, usage: Usage) => YearSetu
   });
 }
 
-/** Save a change (new setup plus the entries it touched) in one transaction, then show it. */
-async function saveChange(data: YearData, change: YearChange): Promise<YearData> {
+/**
+ * Save a change (new setup plus the entries it touched) in one transaction, then show it.
+ * An `upgrade` (bringing an older year up to date on opening) isn't the user's change: neither
+ * the setup nor the ledger is stamped, as importing the same backup again would redo it.
+ */
+async function saveChange(data: YearData, change: YearChange, upgrade = false): Promise<YearData> {
   const { expenses = [], earnings = [], transfers = [] } = change;
-  // Entries moved off a deleted category, tag or person count as a change to the ledger.
-  const setup = expenses.length || earnings.length || transfers.length ? touched(change.setup) : change.setup;
+  // Entries moved off a deleted category, tag or person count as a change to the ledger too.
+  const entriesChanged = expenses.length + earnings.length + transfers.length > 0;
+  const setup = upgrade ? change.setup : entriesChanged ? touched(setupTouched(change.setup)) : setupTouched(change.setup);
   await putSetupAndEntries(setup, { expenses, earnings, transfers });
   return withChange(data, { ...change, setup });
 }
@@ -371,7 +399,7 @@ export async function eraseEverything(): Promise<void> {
   await inTurn(async () => {
     await eraseAll();
     current.value = null;
-    pinnedTags.value = [];
+    for (const key of PIN_SETTINGS) pins[key].value = [];
   });
   await refreshYears();
 }

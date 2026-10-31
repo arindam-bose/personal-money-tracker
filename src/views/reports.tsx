@@ -5,14 +5,15 @@
 import { useSignal, useSignalEffect } from "@preact/signals";
 import type { ComponentChildren } from "preact";
 import {
-  MONTH_SHORT, balanceSeries, cardSpending, earningsByMonth, hasLoanAccount, moneyFlow, monthlySummaries, shortDate, spendingByMonth, weeklyEarnings, weeklySpending,
+  MONTH_SHORT, balanceSeries, cardSpending, earningsByMonth, hasLoanAccount, moneyFlow, monthlySummaries, ratio, shortDate, spendingByMonth, weeklyEarnings, weeklySpending,
   type FlowGroup, type Ledger,
 } from "../derive";
 import { formatCents, formatCompact, formatPercent } from "../money";
 import { membersOf } from "../setup";
 import { current, ledger, loansLeftOut } from "../state";
 import { IncludeLoans } from "./dashboard";
-import { Chart, axisStyle, baseOption, seriesColors, token, type ChartOption } from "./chart";
+import { Chart, axisStyle, baseOption, money, moneyAxis, narrowScreen, seriesColors, token, type ChartOption } from "./chart";
+import { CardTitle } from "./help";
 import { showInLedger } from "./ledger";
 import { MemberPicker, viewedLedger, viewedMember } from "./people";
 import { dayBefore, firstMonth, yearStart } from "../year";
@@ -25,9 +26,6 @@ const TOP_CARDS = 10;
 
 /** A stacked bar segment, rounded at the top only when it's the bar's top segment. */
 const stackSegment = (value: number, isTop: boolean) => ({ value, itemStyle: { borderRadius: isTop ? [4, 4, 0, 0] : 0 } });
-
-/** Tooltip values in dollars and cents. */
-const money = (v: unknown) => formatCents(Number(v));
 
 export function ReportsView() {
   const all = ledger.value;
@@ -57,6 +55,8 @@ export function ReportsView() {
     <div class="reports">
       {membersOf(data.setup).length > 1 && <div class="filters"><MemberPicker /></div>}
       {member && <p class="muted member-note">{member.name}’s entries only. Account balances are shared, so they’re under All people.</p>}
+      {/* First: where the balances stand. Account balances are shared, so it's left out for one person. */}
+      {!member && <BalancesCard ledger={l} year={year} start={start} lastDate={balancesEnd} />}
       <MoneyFlowCard ledger={l} year={year} />
       <CashFlowCard ledger={l} months={months} />
       <ReportTabs title="Earning reports" id="earning" tabs={{
@@ -66,15 +66,18 @@ export function ReportsView() {
       <ReportTabs title="Expense reports" id="expense" tabs={{
         category: { label: "Spending by category", body: <CategoryCard ledger={l} months={months} kind="expense" /> },
         weekly: { label: "Weekly spending", body: <WeeklyCard ledger={l} year={year} start={start} lastDate={lastDate} /> },
+        cards: { label: "Credit card usage", body: <CardUsageCard ledger={l} /> },
       }} />
-      <CardUsageCard ledger={l} />
-      {!member && <BalancesCard ledger={l} year={year} start={start} lastDate={balancesEnd} />}
+      <ReportTabs title="Savings and investment reports" id="saving" tabs={{
+        savings: { label: "Monthly savings", body: <SavingsCard ledger={l} months={months} /> },
+        investment: { label: "Monthly investment", body: <InvestmentCard ledger={l} months={months} /> },
+      }} />
     </div>
   );
 }
 
 /**
- * A titled section of reports, one shown at a time under tabs (Earning reports, Expense reports).
+ * A titled section of reports, one shown at a time under tabs (Earning, Expense, Savings and investment reports).
  * Each section's tab lasts until the browser tab is closed.
  */
 function ReportTabs(props: { title: string; id: string; tabs: Record<string, { label: string; body: ComponentChildren }> }) {
@@ -119,11 +122,10 @@ function Card(props: { title: string; subtitle: string; action?: ComponentChildr
     <section class="card report">
       {props.action ? (
         <div class="card-head">
-          <h3>{props.title}</h3>
+          <CardTitle title={props.title}>{props.subtitle}</CardTitle>
           {props.action}
         </div>
-      ) : <h3>{props.title}</h3>}
-      <p class="muted small">{props.subtitle}</p>
+      ) : <CardTitle title={props.title}>{props.subtitle}</CardTitle>}
       {props.children}
     </section>
   );
@@ -143,19 +145,21 @@ function TableView(props: { head: string[]; rows: (string | number)[][]; foot?: 
   return (
     <details class="table-view">
       <summary>Show as a table</summary>
-      <table class="data-table">
-        <thead>
-          <tr>{props.head.map((h, i) => <th class={i ? "num" : ""}>{h}</th>)}</tr>
-        </thead>
-        <tbody>
-          {props.rows.map((r) => <tr>{r.map((c, i) => <td class={i ? "num" : ""}>{c}</td>)}</tr>)}
-        </tbody>
-        {props.foot && (
-          <tfoot>
-            <tr>{props.foot.map((c, i) => <td class={i ? "num" : ""}>{c}</td>)}</tr>
-          </tfoot>
-        )}
-      </table>
+      <div class="table-scroll">
+        <table class="data-table">
+          <thead>
+            <tr>{props.head.map((h, i) => <th class={i ? "num" : ""}>{h}</th>)}</tr>
+          </thead>
+          <tbody>
+            {props.rows.map((r) => <tr>{r.map((c, i) => <td class={i ? "num" : ""}>{c}</td>)}</tr>)}
+          </tbody>
+          {props.foot && (
+            <tfoot>
+              <tr>{props.foot.map((c, i) => <td class={i ? "num" : ""}>{c}</td>)}</tr>
+            </tfoot>
+          )}
+        </table>
+      </div>
     </details>
   );
 }
@@ -229,7 +233,10 @@ function MoneyFlowCard({ ledger: l, year }: { ledger: Ledger; year: number }) {
       <ul class="legend" aria-label="Colours">
         {usedGroups.map((g) => <li><span class="swatch" style={{ background: color[g] }} />{GROUP_LABEL[g]}</li>)}
       </ul>
-      <Chart option={option} height={height} label={`Money flow for ${year}: ${formatCents(total)} in total`} />
+      {/* Its labels need the width: on a phone it keeps it, and scrolls sideways. */}
+      <div class="wide-chart">
+        <Chart option={option} height={height} label={`Money flow for ${year}: ${formatCents(total)} in total`} />
+      </div>
       <TableView head={["From", "To", "Amount"]}
         rows={flow.links.map((x) => [
           flow.nodes.find((n) => n.id === x.source)!.name,
@@ -289,7 +296,7 @@ function CashFlowCard({ ledger: l, months }: { ledger: Ledger; months: MonthRang
       splitLine: { show: true, interval: 0, lineStyle: { color: surface, width: 3 } },
       splitArea: { show: true, interval: 0, areaStyle: { color: bands } },
     },
-    yAxis: { type: "value", ...axisStyle(), axisLine: { show: false }, axisLabel: { color: token("--muted"), formatter: formatCompact } },
+    yAxis: moneyAxis(),
     series: [
       ...pair("earned", c1!, "Net earned", "Earned", sums.map((s) => s.netEarnings), sums.map((s) => s.earned)),
       ...pair("spent", c2!, "Net spending", "Spent", sums.map((s) => s.netSpent), sums.map((s) => s.spent)),
@@ -334,7 +341,7 @@ function CategoryCard({ ledger: l, months, kind }: { ledger: Ledger; months: Mon
     ...baseOption(),
     tooltip: { ...(baseOption().tooltip as object), trigger: "axis", axisPointer: { type: "shadow" }, valueFormatter: money },
     xAxis: { type: "category", data: labels, ...axisStyle(), splitLine: { show: false } },
-    yAxis: { type: "value", ...axisStyle(), axisLine: { show: false }, axisLabel: { color: token("--muted"), formatter: formatCompact } },
+    yAxis: moneyAxis(),
     series: stacks.map((st, i) => ({
       name: st.name, type: "bar", stack: "spend", data: st.data, barMaxWidth: 24,
       // A thin surface-coloured edge makes the 2px gap between stacked segments.
@@ -400,7 +407,7 @@ function WeeklyCard({ ledger: l, year, start, lastDate }: { ledger: Ledger; year
     ...baseOption(),
     tooltip: { ...(baseOption().tooltip as object), trigger: "axis", axisPointer: { type: "shadow" }, valueFormatter: money },
     xAxis: { type: "category", data: weeks.map((w) => label(w.start)), ...axisStyle(), splitLine: { show: false } },
-    yAxis: { type: "value", ...axisStyle(), axisLine: { show: false }, axisLabel: { color: token("--muted"), formatter: formatCompact } },
+    yAxis: moneyAxis(),
     series: sources.map((src, i) => ({
       name: src.name, type: "bar", stack: "week", barMaxWidth: 24,
       data: weeks.map((w) => w.bySource[src.key]),
@@ -429,7 +436,7 @@ function WeeklyEarningCard({ ledger: l, year, start, lastDate }: { ledger: Ledge
     ...baseOption(),
     tooltip: { ...(baseOption().tooltip as object), trigger: "axis", axisPointer: { type: "shadow" }, valueFormatter: money },
     xAxis: { type: "category", data: weeks.map((w) => label(w.start)), ...axisStyle(), splitLine: { show: false } },
-    yAxis: { type: "value", ...axisStyle(), axisLine: { show: false }, axisLabel: { color: token("--muted"), formatter: formatCompact } },
+    yAxis: moneyAxis(),
     series: [
       { name: "Net earned", type: "bar", stack: "week", barMaxWidth: 24, data: weeks.map((w) => stackSegment(w.net, w.other === 0)),
         itemStyle: { color: c1, borderColor: surface, borderWidth: 1 } },
@@ -513,6 +520,82 @@ function CardUsageCard({ ledger: l }: { ledger: Ledger }) {
   );
 }
 
+// --- Monthly savings: moved into savings minus taken out ---
+
+function SavingsCard({ ledger: l, months }: { ledger: Ledger; months: MonthRange }) {
+  const sums = inRange(monthlySummaries(l), months);
+  const labels = inRange(MONTH_SHORT, months);
+  const [, , c3] = seriesColors();
+  const total = sums.reduce((a, s) => a + s.netSavings, 0);
+  const paid = sums.reduce((a, s) => a + s.paycheck, 0);
+  if (!sums.some((s) => s.netSavings)) {
+    return (
+      <Card title="Monthly savings" subtitle="Moved into savings minus taken out, each month.">
+        <p class="muted">No savings yet. They come from transfers in categories whose role is Into savings or Out of savings (see Accounts).</p>
+      </Card>
+    );
+  }
+  // Same colour as Savings in Where the money went. A month more was taken out than put in dips below zero.
+  const option: ChartOption = {
+    ...baseOption(),
+    legend: undefined,
+    tooltip: { ...(baseOption().tooltip as object), trigger: "axis", axisPointer: { type: "shadow" }, valueFormatter: money },
+    xAxis: { type: "category", data: labels, ...axisStyle(), splitLine: { show: false } },
+    yAxis: moneyAxis(),
+    series: [{
+      name: "Saved", type: "bar", barMaxWidth: 24, itemStyle: { color: c3 },
+      data: sums.map((s) => ({ value: s.netSavings, itemStyle: { borderRadius: s.netSavings < 0 ? [0, 0, 4, 4] : [4, 4, 0, 0] } })),
+    }],
+  };
+  return (
+    <Card title="Monthly savings" subtitle="Moved into savings minus taken out, each month. A month more came out than went in drops below the line.">
+      <Chart option={option} height={300} label={`Savings per month, ${formatCents(total)} in all`} />
+      <TableView head={["Month", "Saved", "Of paychecks"]}
+        rows={sums.map((s, i) => [labels[i]!, formatCents(s.netSavings), formatPercent(s.savingsRate)])}
+        foot={["Total", formatCents(total), formatPercent(ratio(total, paid))]} />
+    </Card>
+  );
+}
+
+// --- Monthly investment: retirement and taxable ---
+
+function InvestmentCard({ ledger: l, months }: { ledger: Ledger; months: MonthRange }) {
+  const sums = inRange(monthlySummaries(l), months);
+  const labels = inRange(MONTH_SHORT, months);
+  const [, , , c4] = seriesColors();
+  const surface = token("--surface");
+  const total = sums.reduce((a, s) => a + s.investment, 0);
+  const paid = sums.reduce((a, s) => a + s.paycheck, 0);
+  if (!total) {
+    return (
+      <Card title="Monthly investment" subtitle="Retirement and taxable investing, each month.">
+        <p class="muted">No investing yet. It comes from transfers in categories whose role is Retirement investing or Taxable investing (see Accounts).</p>
+      </Card>
+    );
+  }
+  // Same colour as Investing in Where the money went: retirement solid, taxable lighter on top.
+  const option: ChartOption = {
+    ...baseOption(),
+    tooltip: { ...(baseOption().tooltip as object), trigger: "axis", axisPointer: { type: "shadow" }, valueFormatter: money },
+    xAxis: { type: "category", data: labels, ...axisStyle(), splitLine: { show: false } },
+    yAxis: moneyAxis(),
+    series: [
+      { name: "Retirement", type: "bar", stack: "invest", barMaxWidth: 24, data: sums.map((s) => stackSegment(s.investRetirement, s.investTaxable === 0)),
+        itemStyle: { color: c4, borderColor: surface, borderWidth: 1 } },
+      { name: "Taxable", type: "bar", stack: "invest", barMaxWidth: 24, data: sums.map((s) => stackSegment(s.investTaxable, true)),
+        itemStyle: { color: c4, opacity: 0.4, borderColor: surface, borderWidth: 1 } },
+    ],
+  };
+  return (
+    <Card title="Monthly investment" subtitle="Retirement and taxable investing, each month. Retirement is solid; taxable is lighter on top.">
+      <Chart option={option} height={300} label={`Investment per month, retirement and taxable, ${formatCents(total)} in all`} />
+      <TableView head={["Month", "Retirement", "Taxable", "Total", "Of paychecks"]}
+        rows={sums.map((s, i) => [labels[i]!, formatCents(s.investRetirement), formatCents(s.investTaxable), formatCents(s.investment), formatPercent(s.investmentRate)])}
+        foot={["Total", ...(["investRetirement", "investTaxable"] as const).map((k) => formatCents(sums.reduce((a, s) => a + s[k], 0))), formatCents(total), formatPercent(ratio(total, paid))]} />
+    </Card>
+  );
+}
+
 // --- Balances over time ---
 
 function BalancesCard({ ledger: l, year, start, lastDate }: { ledger: Ledger; year: number; start: string; lastDate: string }) {
@@ -525,6 +608,7 @@ function BalancesCard({ ledger: l, year, start, lastDate }: { ledger: Ledger; ye
   const withoutLoans = hasLoans && loansLeftOut.value;
   const series = balanceSeries(l, points).map((p) => (withoutLoans ? { ...p, netWorth: p.netWorthWithoutLoans } : p));
   const [c1, c2, c3, c4, c5, c6] = seriesColors();
+  // Colours match Where the money went: savings c3, investing c4, loans c6.
   // Once an investment account has a balance update, what it's worth gets a line; contributions go dashed beside it.
   const hasWorth = l.accounts.some((a) => a.type === "investment" && a.valuations?.length);
   const hasAssets = l.accounts.some((a) => a.type === "asset" && a.valuations?.length);
@@ -533,30 +617,33 @@ function BalancesCard({ ledger: l, year, start, lastDate }: { ledger: Ledger; ye
     { key: "cardDebt", name: "Card debt", color: c2 },
     ...(hasLoans ? [{ key: "loanDebt", name: "Loans owed", color: c6 }] as const : []),
     { key: "netWorth", name: "Net worth", color: c5 },
-    ...(hasWorth ? [{ key: "investmentsWorth", name: "Investments worth", color: c3 }] as const : []),
-    { key: "invested", name: "Invested this year", color: c3, dashed: hasWorth },
+    ...(hasWorth ? [{ key: "investmentsWorth", name: "Investments worth", color: c4 }] as const : []),
+    { key: "invested", name: "Invested this year", color: c4, dashed: hasWorth },
     ...(hasAssets ? [{ key: "assetsWorth", name: "Assets worth", color: token("--series-other") }] as const : []),
-    { key: "saved", name: "Saved this year", color: c4 },
+    { key: "saved", name: "Saved this year", color: c3 },
   ] as const;
   const label = (d: string) => (d === opening ? "Start" : shortDate(d));
+  // The end labels take 200px: on a phone the lines get that room instead, and the legend
+  // and tooltip still name them.
+  const endLabels = !narrowScreen.value;
   const option: ChartOption = {
     ...baseOption(),
     tooltip: { ...(baseOption().tooltip as object), trigger: "axis", valueFormatter: money },
     xAxis: { type: "category", boundaryGap: false, data: series.map((p) => label(p.date)), ...axisStyle(), splitLine: { show: false } },
-    yAxis: { type: "value", ...axisStyle(), axisLine: { show: false }, axisLabel: { color: token("--muted"), formatter: formatCompact } },
+    yAxis: moneyAxis(),
     series: lines.map((ln) => ({
       name: ln.name, type: "line", data: series.map((p) => p[ln.key]),
       showSymbol: false, symbolSize: 8, itemStyle: { color: ln.color },
       lineStyle: { width: 2, color: ln.color, type: "dashed" in ln && ln.dashed ? "dashed" : "solid" },
       // With five to seven lines, each is named at its end as well as in the legend.
       endLabel: {
-        show: true, color: token("--muted"),
+        show: endLabels, color: token("--muted"),
         formatter: (p: { seriesName: string; value: number }) => `${p.seriesName} ${formatCompact(p.value)}`,
       },
       // Net worth ends close to available cash: nudge labels apart instead of overlapping.
       labelLayout: { moveOverlap: "shiftY" },
     })),
-    grid: { ...(baseOption().grid as object), right: 200 },
+    grid: { ...(baseOption().grid as object), right: endLabels ? 200 : 16 },
   };
   return (
     <Card title="Balances over time" action={hasLoans && <IncludeLoans />}

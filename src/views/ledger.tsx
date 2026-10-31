@@ -5,7 +5,7 @@ import { useComputed, useSignal, useSignalEffect } from "@preact/signals";
 import { useEffect, useRef } from "preact/hooks";
 import { MONTH_NAMES, dateTime, inMonth, localToday, monthsBefore, shortDate } from "../derive";
 import { draftFrom, emptyDraft, type AnyEntry, type Draft, type Kind } from "../entries";
-import { formatCents } from "../money";
+import { amountPrefix, amountText, formatCents } from "../money";
 import { membersOf } from "../setup";
 import { current, duplicate, readOnly } from "../state";
 import type { YearSetup } from "../types";
@@ -25,7 +25,7 @@ export interface Filters {
   tag: string;
   /** Member id, or "" for everyone. */
   member: string;
-  /** Text search in item and notes. */
+  /** Text search in item and notes; one that reads as an amount also finds entries of that amount. */
   q: string;
 }
 
@@ -118,8 +118,8 @@ function dateWindow(f: Filters, today: string): [string, string] | null {
   return null;
 }
 
-/** `window` is dateWindow(f), worked out once for all rows. */
-function matches(e: AnyEntry, f: Filters, window: [string, string] | null, defaultMember: string): boolean {
+/** `window` is dateWindow(f) and `amount` is amountPrefix(f.q), worked out once for all rows. */
+function matches(e: AnyEntry, f: Filters, window: [string, string] | null, amount: string | null, defaultMember: string): boolean {
   if (f.member && (e.entry.member ?? defaultMember) !== f.member) return false;
   const date = e.entry.date;
   if (window) {
@@ -134,7 +134,8 @@ function matches(e: AnyEntry, f: Filters, window: [string, string] | null, defau
   if (f.tag && !(e.kind === "expense" && e.entry.tags.includes(f.tag))) return false;
   if (f.q) {
     const q = f.q.toLowerCase();
-    if (!e.entry.item.toLowerCase().includes(q) && !e.entry.notes.toLowerCase().includes(q)) return false;
+    const byAmount = amount !== null && amountText(e.entry.amount).startsWith(amount);
+    if (!byAmount && !e.entry.item.toLowerCase().includes(q) && !e.entry.notes.toLowerCase().includes(q)) return false;
   }
   return true;
 }
@@ -182,8 +183,9 @@ export function LedgerView() {
   const rows = useComputed(() => {
     const f = live.value;
     const window = dateWindow(f, localToday());
+    const amount = amountPrefix(f.q);
     const defaultMember = membersOf(current.value?.setup ?? {})[0]!.id;
-    const out = allEntries().filter((e) => matches(e, f, window, defaultMember));
+    const out = allEntries().filter((e) => matches(e, f, window, amount, defaultMember));
     return oldestFirst.value ? out.reverse() : out;
   });
   const totals = useComputed(() => {
@@ -286,11 +288,17 @@ export function LedgerView() {
         {setup.accounts.length === 0 ? (
           <span class="muted">Add your accounts on the <a href="#/accounts">Accounts</a> page first, then log entries here.</span>
         ) : !readOnly.value ? (
-          <>
-            <button type="button" class="add add-earning" onClick={() => openNew("earning")}>+ Earning <kbd>I</kbd></button>
-            <button type="button" class="add add-expense" onClick={() => openNew("expense")}>- Expense <kbd>E</kbd></button>
-            <button type="button" class="add add-transfer" onClick={() => openNew("transfer")}>⇄ Transfer <kbd>T</kbd></button>
-          </>
+          <div class="add-buttons">
+            <button type="button" class="add add-earning" title="Add money that came in (I)" onClick={() => openNew("earning")}>
+              <span class="add-icon" aria-hidden="true">+</span> <span class="add-verb">Add</span> earning <kbd>I</kbd>
+            </button>
+            <button type="button" class="add add-expense" title="Add money that went out (E)" onClick={() => openNew("expense")}>
+              <span class="add-icon" aria-hidden="true">−</span> <span class="add-verb">Add</span> expense <kbd>E</kbd>
+            </button>
+            <button type="button" class="add add-transfer" title="Add money moved between your own accounts (T)" onClick={() => openNew("transfer")}>
+              <span class="add-icon" aria-hidden="true">⇄</span> <span class="add-verb">Add</span> transfer <kbd>T</kbd>
+            </button>
+          </div>
         ) : (
           <span class="muted">{setup.year} is closed, so it can't be changed.</span>
         )}
