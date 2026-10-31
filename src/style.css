@@ -143,6 +143,67 @@ a {
   padding: 4px 10px;
 }
 
+.menu-btn {
+  display: none;
+}
+
+/* Phones, tablets and narrow windows: the links don't fit in a row, so they fold into a menu under ☰,
+   and the reminders shorten to "Back up" and "Reload" (their tooltips keep the rest). */
+@media (max-width: 999px) {
+  .topbar {
+    padding: 0 16px;
+    gap: 8px;
+  }
+
+  .topbar h1 {
+    margin: 0;
+    white-space: nowrap;
+  }
+
+  .topbar .version,
+  .topbar-right .long {
+    display: none;
+  }
+
+  .topbar-right {
+    gap: 8px;
+  }
+
+  .menu-btn {
+    display: block;
+    padding: 4px 10px;
+    font-size: 18px;
+    line-height: 1.2;
+  }
+
+  .topbar nav {
+    display: none;
+    position: absolute;
+    top: calc(100% + 4px);
+    right: 16px;
+    flex-direction: column;
+    min-width: 180px;
+    padding: 6px;
+    background: var(--surface);
+    border: 1px solid var(--border);
+    border-radius: 8px;
+    box-shadow: 0 6px 20px rgba(0, 0, 0, 0.15);
+  }
+
+  .topbar nav.open {
+    display: flex;
+  }
+
+  .topbar nav a {
+    padding: 10px 12px;
+  }
+
+  main {
+    margin: 16px auto;
+    padding: 0 16px;
+  }
+}
+
 /* A column as tall as the window, so the footer sits at the bottom even on a short page. */
 #app {
   display: flex;

@@ -56,15 +56,34 @@ function pageFromHash(): Page {
 
 export function App() {
   const page = useSignal<Page>(pageFromHash());
+  /** On a phone the page links fold into a menu, opened by ☰. */
+  const menuOpen = useSignal(false);
 
   useEffect(() => {
     requestPersistence().then((s) => (persistState.value = s));
     openYear();
     loadSettings();
-    const onHash = () => (page.value = pageFromHash());
+    const onHash = () => {
+      page.value = pageFromHash();
+      menuOpen.value = false;
+    };
     window.addEventListener("hashchange", onHash);
     return () => window.removeEventListener("hashchange", onHash);
   }, []);
+
+  // An open menu closes on Esc, or on a tap anywhere outside it.
+  useEffect(() => {
+    if (!menuOpen.value) return;
+    const close = (e: Event) => {
+      if (e instanceof KeyboardEvent ? e.key === "Escape" : !(e.target as Element).closest(".topbar nav, .menu-btn")) menuOpen.value = false;
+    };
+    document.addEventListener("keydown", close);
+    document.addEventListener("pointerdown", close);
+    return () => {
+      document.removeEventListener("keydown", close);
+      document.removeEventListener("pointerdown", close);
+    };
+  }, [menuOpen.value]);
 
   const View = PAGES[page.value].view;
   const setup = current.value?.setup;
@@ -82,7 +101,7 @@ export function App() {
     <>
       <header class="topbar">
         <h1>Money Tracker <span class="version">v{version}</span></h1>
-        <nav>
+        <nav id="pages" class={menuOpen.value ? "open" : ""}>
           {(Object.keys(PAGES) as Page[]).filter((p) => p !== "years" || years.value.length > 1).map((p) => (
             <a href={`#/${p}`} class={p === page.value ? "active" : ""} aria-current={p === page.value ? "page" : undefined}>
               {PAGES[p].label}
@@ -93,13 +112,13 @@ export function App() {
           {updateReady.value && (
             <button type="button" class="backup-nag" onClick={() => location.reload()}
               title="A newer version is downloaded and ready.">
-              v{updateReady.value} is ready · Reload
+              <span class="long">v{updateReady.value} is ready · </span>Reload
             </button>
           )}
           {needsBackup && (
             <button type="button" class="backup-nag" onClick={backUpNow}
               title="Downloads this year as a JSON file. Your data lives only in this browser.">
-              {backupDays === null ? "Not backed up yet" : `Last backup ${backupDays} days ago`} · Back up now
+              <span class="long">{backupDays === null ? "Not backed up yet" : `Last backup ${backupDays} days ago`} · </span>Back up<span class="long"> now</span>
             </button>
           )}
           {/* Over the years covers every year, so the picker steps aside there. */}
@@ -108,6 +127,8 @@ export function App() {
               {years.value.map((y) => <option value={y.setup.year}>{y.setup.year}</option>)}
             </select>
           )}
+          <button type="button" class="menu-btn" aria-label="Pages" aria-controls="pages" aria-expanded={menuOpen.value}
+            onClick={() => (menuOpen.value = !menuOpen.value)}>☰</button>
         </div>
       </header>
       <main>
