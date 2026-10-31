@@ -100,6 +100,14 @@ describe("last updated", () => {
     await removeTag(current.value!.setup.tags[0]!.id); // a change that also moves entries
     expect(Date.parse((await setupStamp())!)).toBeGreaterThanOrEqual(Date.parse(at!));
   });
+
+  it("doesn't stamp a save that changes nothing", async () => {
+    await setBudget("default", "ce_food", 1);
+    const at = (await loadYear(2026))!.setup.setupChangedAt;
+    await new Promise((r) => setTimeout(r, 5));
+    await setBudget("default", "ce_food", 1); // the same target again
+    expect((await loadYear(2026))!.setup.setupChangedAt).toBe(at);
+  });
 });
 
 describe("years saved before people were dropped", () => {
@@ -113,8 +121,12 @@ describe("years saved before people were dropped", () => {
 
   it("cleans an open year and saves it that way", async () => {
     await storeOldShape(false);
+    const before = (await loadYear(2026))!.setup;
     await openYear(2026);
     const stored = (await loadYear(2026))!;
+    // Bringing it up to date isn't the user's change: neither stamp moves, so no backup reminder.
+    expect(stored.setup.lastChangedAt).toBe(before.lastChangedAt);
+    expect(stored.setup.setupChangedAt).toBe(before.setupChangedAt);
     expect(stored.setup).not.toHaveProperty("people");
     expect(stored.setup.categories.earning.find((c) => c.id === "ci_payback")!.role).toBe("offset");
     expect(stored.expenses[2]).not.toHaveProperty("owed");

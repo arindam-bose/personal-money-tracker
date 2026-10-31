@@ -269,6 +269,8 @@ function setupTouched(setup: YearSetup): YearSetup {
 
 async function saveSetup(change: YearSetup): Promise<void> {
   const data = editable();
+  // A save that changes nothing (Save on an untouched form) isn't a change, so it isn't stamped.
+  if (JSON.stringify(change) === JSON.stringify(data.setup)) return;
   const setup = setupTouched(change);
   await putSetup(setup);
   current.value = { ...data, setup };
@@ -304,14 +306,14 @@ export function updateSetup(change: (setup: YearSetup, usage: Usage) => YearSetu
 
 /**
  * Save a change (new setup plus the entries it touched) in one transaction, then show it.
- * An `upgrade` (bringing an older year up to date on opening) isn't the user's change: the setup
- * isn't stamped, as importing the same backup again would redo it.
+ * An `upgrade` (bringing an older year up to date on opening) isn't the user's change: neither
+ * the setup nor the ledger is stamped, as importing the same backup again would redo it.
  */
 async function saveChange(data: YearData, change: YearChange, upgrade = false): Promise<YearData> {
   const { expenses = [], earnings = [], transfers = [] } = change;
   // Entries moved off a deleted category, tag or person count as a change to the ledger too.
-  const changed = upgrade ? change.setup : setupTouched(change.setup);
-  const setup = expenses.length || earnings.length || transfers.length ? touched(changed) : changed;
+  const entriesChanged = expenses.length + earnings.length + transfers.length > 0;
+  const setup = upgrade ? change.setup : entriesChanged ? touched(setupTouched(change.setup)) : setupTouched(change.setup);
   await putSetupAndEntries(setup, { expenses, earnings, transfers });
   return withChange(data, { ...change, setup });
 }
