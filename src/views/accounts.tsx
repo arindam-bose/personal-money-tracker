@@ -14,6 +14,7 @@ import { uncategorizedId, type CategoryKind } from "../categories";
 import { current, ledger, readOnly, removeCategory, removeMember, removeTag, setClosed, setStart, updateSetup } from "../state";
 import type { Account, AccountType, EarningRole, YearSetup } from "../types";
 import { startsMidYear, yearStart } from "../year";
+import { DateField } from "./date-field";
 
 const TYPE_LABEL: Record<AccountType, string> = {
   checking: "Checking", savings: "Savings", cash: "Cash", credit: "Credit card", investment: "Investment", loan: "Loan / mortgage", asset: "Asset",
@@ -266,10 +267,7 @@ function ValuationForm(props: { account: Account; setup: YearSetup; onDone: () =
           : <>What {a.name} is worth, as your broker shows it. Until the next update it counts at this amount in net worth. A new year starts without one.</>}
       </p>
       <div class="fields">
-        <label class="field w-date">
-          <span class="field-label">On</span>
-          <input type="date" value={date.value} min={first} max={last} onInput={(e) => (date.value = e.currentTarget.value)} />
-        </label>
+        <DateField label="On" value={date.value} min={first} max={last} onChange={(d) => (date.value = d)} />
         <label class="field w-amount">
           <span class="field-label">{a.type === "asset" ? "Value" : "Balance"}</span>
           <input ref={amountRef} type="text" inputMode="decimal" class="num" value={amount.value} placeholder="0.00"
@@ -323,11 +321,7 @@ function CloseForm(props: { account: Account; setup: YearSetup; onDone: () => vo
         {" "}It won't come into the next year. You can reopen it.
       </p>
       <div class="fields">
-        <label class="field w-date">
-          <span class="field-label">Closed on</span>
-          <input type="date" value={date.value} min={yearStart(setup)} max={updateDay(setup)}
-            onInput={(e) => (date.value = e.currentTarget.value)} />
-        </label>
+        <DateField label="Closed on" value={date.value} min={yearStart(setup)} max={updateDay(setup)} onChange={(d) => (date.value = d)} />
       </div>
       {error.value && <p class="form-error" role="alert">{error.value}</p>}
       <div class="form-actions">

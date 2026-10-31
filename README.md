@@ -64,7 +64,8 @@ entry, a loan, investments and a car, and accounts that were closed.
   **Close…** an account on the day you sold, paid off or shut it: from then it's
   left out of net worth and the next year. To keep an account that's still open
   out of the way, **Hide** it instead: new entries stop offering it, but it still
-  counts in net worth and carries into the next year.
+  counts in net worth and carries into the next year. These forms' dates have
+  **Today** too, and T in them.
   A **Loan / mortgage** account takes the day it began, the amount borrowed and
   the interest rate. Interest is added monthly on what's still owed, each payment
   is a transfer into the loan (in **Loan Payments**), and what it owes comes off
