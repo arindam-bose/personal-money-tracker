@@ -56,10 +56,25 @@ function namesInAllYears(all: YearData[], list: (d: YearData) => Named[]): Map<s
 
 /**
  * A pinned tag or category in one year: the same id, or else one of the same name. Each year
- * has its own, and one made separately in two years can have different ids.
+ * has its own, and one made separately in two years can have different ids. A same-named one
+ * that was renamed since (its newest name, in `names`, differs) belongs to the chart for that
+ * name instead, so no year's spending is counted twice.
  */
-function idIn(list: Named[], id: string, name: string): string | undefined {
-  return list.find((x) => x.id === id)?.id ?? list.find((x) => x.name.toLowerCase() === name.toLowerCase())?.id;
+function idIn(list: Named[], id: string, name: string, names: Map<string, string>): string | undefined {
+  const same = (n: string) => n.toLowerCase() === name.toLowerCase();
+  return list.find((x) => x.id === id)?.id ?? list.find((x) => same(x.name) && same(names.get(x.id) ?? x.name))?.id;
+}
+
+/** Pin choices of one kind: not pinned yet, and one per name (the newest year's), however many ids it had. */
+function pinChoices(names: Map<string, string>, pinned: string[], kind: string, group: string) {
+  const seen = new Set(pinned.map((id) => names.get(id)?.toLowerCase()));
+  const choices = [];
+  for (const [id, name] of names) {
+    if (seen.has(name.toLowerCase())) continue;
+    seen.add(name.toLowerCase());
+    choices.push({ value: `${kind}:${id}`, label: name, group });
+  }
+  return choices;
 }
 
 export function YearsView() {
@@ -105,7 +120,7 @@ export function YearsView() {
       return [{
         key: `${kind}:${id}`, label: name, color: () => colors[1]!,
         values: all.map((d) => {
-          const own = idIn(list(d), id, name);
+          const own = idIn(list(d), id, name, names);
           return own ? total(d, own) : 0;
         }),
         onRemove: () => save(ids.filter((x) => x !== id)),
@@ -119,9 +134,8 @@ export function YearsView() {
     ...pinned(pinnedYearTags.value, tagNames, tagsOf, "tag", (d, id) => tagTotal(ledgerOf(d), id), savePinnedYearTags),
   ];
   const choices = [
-    ...[...categoryNames].filter(([id]) => !pinnedYearCategories.value.includes(id))
-      .map(([id, name]) => ({ value: `cat:${id}`, label: name, group: "Spending categories" })),
-    ...[...tagNames].filter(([id]) => !pinnedYearTags.value.includes(id)).map(([id, name]) => ({ value: `tag:${id}`, label: name, group: "Tags" })),
+    ...pinChoices(categoryNames, pinnedYearCategories.value, "cat", "Spending categories"),
+    ...pinChoices(tagNames, pinnedYearTags.value, "tag", "Tags"),
   ];
 
   return (
