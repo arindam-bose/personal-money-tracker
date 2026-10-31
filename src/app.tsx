@@ -100,7 +100,8 @@ export function App() {
   return (
     <>
       <header class="topbar">
-        <h1>Money Tracker <span class="version">v{version}</span></h1>
+        {/* The title goes home: the Dashboard. */}
+        <h1><a href="#/" class="home-link">Money Tracker</a> <span class="version">v{version}</span></h1>
         <nav id="pages" class={menuOpen.value ? "open" : ""}>
           {(Object.keys(PAGES) as Page[]).filter((p) => p !== "years" || years.value.length > 1).map((p) => (
             <a href={`#/${p}`} class={p === page.value ? "active" : ""} aria-current={p === page.value ? "page" : undefined}>
