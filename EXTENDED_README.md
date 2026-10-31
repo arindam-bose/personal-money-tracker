@@ -217,7 +217,7 @@ Tests).
 | Loans owed | −(loan balances), interest included |
 | Investments worth | Each investment account's latest balance update; accounts without one aren't counted |
 | Assets worth | Each asset account's latest value |
-| Net worth | Available cash − card debt − loans owed + investments worth + assets worth. The **Include loans** switch (Dashboard, and Balances over time in Reports) can leave loans out too |
+| Net worth | What you own minus what you owe: available cash + investments worth + assets worth − card debt − loans owed. The **Include loans** switch (Dashboard, and Balances over time in Reports) can leave loans out too |
 
 Investment accounts' ledger balances are contributions this year, not market
 value; they open at 0 every year. What they're worth is only what the user enters.

@@ -125,11 +125,13 @@ export function DashboardView() {
             {hasLoans && <IncludeLoans />}
           </div>
           <div class={`hero-value ${worth < 0 ? "neg" : ""}`}>{formatCents(worth)}</div>
+          {/* What you own, then what you owe. */}
           <div class="muted">
-            Available cash <b>{formatCents(accounts.availableCash)}</b> − card debt <b>{formatCents(accounts.cardDebt)}</b>
-            {hasLoans && (withoutLoans ? <> · loans (<b>{formatCents(accounts.loanDebt)}</b> owed) left out</> : <> − loans owed <b>{formatCents(accounts.loanDebt)}</b></>)}
+            Available cash <b>{formatCents(accounts.availableCash)}</b>
             {valued("investment") && <> + investments <b>{formatCents(accounts.investmentsWorth)}</b></>}
             {valued("asset") && <> + assets <b>{formatCents(accounts.assetsWorth)}</b></>}
+            {" "}− card debt <b>{formatCents(accounts.cardDebt)}</b>
+            {hasLoans && (withoutLoans ? <> · loans (<b>{formatCents(accounts.loanDebt)}</b> owed) left out</> : <> − loans owed <b>{formatCents(accounts.loanDebt)}</b></>)}
           </div>
         </section>
       )}
