@@ -557,7 +557,11 @@ function CategoryCard({ kind, setup, usage }: { kind: CategoryKind; setup: YearS
             {/* Uncategorized's role is fixed, so entries moved there stay out of the headline figures. */}
             <select value={c.role ?? ""} disabled={locked || c.id === fallback} aria-label={`What ${c.name} is for`}
               title={c.id === fallback ? "Fixed, so entries from deleted categories don't count as pay, savings or investing" : undefined}
-              onChange={(e) => attempt((s) => saveCategory(s, kind, { ...c, role: e.currentTarget.value }), setError)}>
+              onChange={(e) => {
+                // Read now: the change runs later, in turn with other saves, when the event no longer has a target.
+                const role = e.currentTarget.value;
+                attempt((s) => saveCategory(s, kind, { ...c, role }), setError);
+              }}>
               {Object.entries(ROLE_LABEL[kind]).map(([role, label]) => <option value={role}>{label}</option>)}
             </select>
             {kind === "earning" && <NetTick cat={c} locked={locked || c.id === fallback} onChange={(net) => attempt((s) => saveCategory(s, kind, { ...c, net }), setError)} />}
