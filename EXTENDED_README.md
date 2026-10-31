@@ -336,11 +336,13 @@ A backup holds everything needed to rebuild the year on a clean device:
   limit applies (`IRA_LIMITS` in `setup.ts`; years past the list use the
   latest one). Add the new limit there when the IRS announces it. A closed
   year's limit doesn't carry into the next year.
-- `settings.pinnedTags`, the dashboard's pinned tags, and `settings.pinnedYearTags`,
-  the tags charted on Over the years. They are app-wide, so importing applies each
+- `settings.pinnedTags` and `settings.pinnedCategories`, the dashboard's pinned tags
+  and spending categories, and `settings.pinnedYearTags` and `settings.pinnedYearCategories`,
+  the ones charted on Over the years. A category's total is all its spending, before
+  refunds, as in Spending by category. They are app-wide, so importing applies each
   only when the device has none saved yet; restoring an old year never undoes
-  today's pins. On Over the years a pinned tag is found in each year by its id, or
-  else by name, since each year has its own tags.
+  today's pins. On Over the years a pinned tag or category is found in each year by
+  its id, or else by name, since each year has its own.
 
 All four are optional on import, so older backups still import. `tests/transfer.test.ts`
 moves a year that uses every optional field to a clean device and back; its file

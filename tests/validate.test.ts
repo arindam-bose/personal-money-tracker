@@ -69,13 +69,14 @@ describe("validateYearFile", () => {
   });
 
   it("checks closed, the IRA limit and settings when they are there", () => {
-    expect(errorsAfter((f) => { f.closed = true; f.iraLimit = 750000; f.settings = { pinnedTags: ["t_x"], pinnedYearTags: ["t_y"] }; })).toEqual([]);
+    expect(errorsAfter((f) => { f.closed = true; f.iraLimit = 750000; f.settings = { pinnedTags: ["t_x"], pinnedYearTags: ["t_y"], pinnedCategories: ["ce_a"], pinnedYearCategories: ["ce_b"] }; })).toEqual([]);
     expect(errorsAfter((f) => (f.closed = "yes"))).toEqual(['"closed" must be true or false.']);
     expect(errorsAfter((f) => (f.iraLimit = 7500.5))).toEqual(['"iraLimit" is not whole cents.']);
     expect(errorsAfter((f) => (f.iraLimit = -1))).toEqual(['"iraLimit" is not whole cents.']);
     expect(errorsAfter((f) => (f.settings = []))).toEqual(['"settings" must be an object.']);
     expect(errorsAfter((f) => (f.settings = { pinnedTags: "t_x" }))).toEqual(['"settings.pinnedTags" must be a list of tag ids.']);
     expect(errorsAfter((f) => (f.settings = { pinnedYearTags: [1] }))).toEqual(['"settings.pinnedYearTags" must be a list of tag ids.']);
+    expect(errorsAfter((f) => (f.settings = { pinnedCategories: "ce_a" }))).toEqual(['"settings.pinnedCategories" must be a list of category ids.']);
   });
 
   it("catches duplicate ids", () => {

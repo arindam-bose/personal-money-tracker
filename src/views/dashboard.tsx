@@ -7,7 +7,9 @@ import {
   MONTH_NAMES, accountsOverview, hasLoanAccount, budgetView, earningsByCategory, localToday, monthProgress, netEarningCategories, remainingRetirement, shortDate, spendingOffsetCategories, spendByCategory, summarize, tagTotal,
 } from "../derive";
 import { formatCents, formatPercent } from "../money";
-import { current, iraLimit, ledger, loansLeftOut, pinnedTags, saveLoansLeftOut, savePinnedTags } from "../state";
+import {
+  current, iraLimit, ledger, loansLeftOut, pinnedCategories, pinnedTags, saveLoansLeftOut, savePinnedCategories, savePinnedTags,
+} from "../state";
 
 /** The switch for whether net worth counts loans. One setting, shared by the Dashboard and Reports. */
 export function IncludeLoans() {
@@ -160,7 +162,15 @@ export function DashboardView() {
               onRemove={() => savePinnedTags(pinnedTags.value.filter((t) => t !== id))} />
           ) : null;
         })}
-        <PinTag />
+        {/* All spending in the category, before refunds, as in Spending by category. */}
+        {pinnedCategories.value.map((id) => {
+          const cat = setup.categories.expense.find((c) => c.id === id);
+          return cat ? (
+            <Tile label={cat.name} value={formatCents(cats.get(id)?.gross ?? 0)} detail="Pinned category"
+              onRemove={() => savePinnedCategories(pinnedCategories.value.filter((c) => c !== id))} />
+          ) : null;
+        })}
+        <PinTotal />
       </div>
 
       {member ? (
@@ -246,15 +256,24 @@ function Figures(props: { text: string }) {
 }
 
 /** A tile-sized control to pin another tag's total to the dashboard. */
-function PinTag() {
+/** Pin a spending category's or a tag's total as one more tile. */
+function PinTotal() {
   const setup = current.value!.setup;
-  const choices = setup.tags.filter((t) => !pinnedTags.value.includes(t.id));
+  const choices = [
+    ...setup.categories.expense.filter((c) => !pinnedCategories.value.includes(c.id))
+      .map((c) => ({ value: `cat:${c.id}`, label: c.name, group: "Spending categories" })),
+    ...setup.tags.filter((t) => !pinnedTags.value.includes(t.id)).map((t) => ({ value: `tag:${t.id}`, label: t.name, group: "Tags" })),
+  ];
   if (!choices.length) return null;
   return (
     <label class="tile card pin-tile">
-      <span class="tile-label">Pin a tag total</span>
-      <SearchSelect value="" placeholder="Choose a tag…" aria-label="Tag to pin"
-        choices={choices.map((t) => ({ value: t.id, label: t.name }))} onChange={(id) => savePinnedTags([...pinnedTags.value, id])} />
+      <span class="tile-label">Pin a total</span>
+      <SearchSelect value="" placeholder="Category or tag…" aria-label="Category or tag to pin" choices={choices}
+        onChange={(v) => {
+          const [kind, id] = [v.slice(0, 3), v.slice(4)];
+          if (kind === "cat") savePinnedCategories([...pinnedCategories.value, id]);
+          else savePinnedTags([...pinnedTags.value, id]);
+        }} />
     </label>
   );
 }

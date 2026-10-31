@@ -40,6 +40,10 @@ export interface Settings {
   pinnedTags: string[];
   /** Tag ids whose yearly totals are charted on Over the years. */
   pinnedYearTags: string[];
+  /** Spending category ids whose totals show on the dashboard, after the pinned tags. */
+  pinnedCategories: string[];
+  /** Spending category ids whose yearly totals are charted on Over the years. */
+  pinnedYearCategories: string[];
   /** True to leave what loans owe out of net worth on the dashboard. Left out, they count. */
   netWorthWithoutLoans: boolean;
 }

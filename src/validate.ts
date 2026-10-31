@@ -124,10 +124,10 @@ export function validateYearFile(raw: unknown): ValidationResult {
   if (data.settings !== undefined) {
     if (!isObj(data.settings)) err(`"settings" must be an object.`);
     else {
-      for (const key of ["pinnedTags", "pinnedYearTags"]) {
-        const pinned = data.settings[key];
+      for (const [key, what] of [["pinnedTags", "tag"], ["pinnedYearTags", "tag"], ["pinnedCategories", "category"], ["pinnedYearCategories", "category"]]) {
+        const pinned = data.settings[key!];
         if (pinned !== undefined && !(Array.isArray(pinned) && pinned.every((t) => typeof t === "string"))) {
-          err(`"settings.${key}" must be a list of tag ids.`);
+          err(`"settings.${key}" must be a list of ${what} ids.`);
         }
       }
     }

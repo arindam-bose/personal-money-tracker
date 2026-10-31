@@ -4,9 +4,11 @@
 
 import { useSignal, useSignalEffect } from "@preact/signals";
 import type { YearData } from "../db";
-import { ledgerOf, ratio, summarize, tagTotal, type Summary } from "../derive";
+import { ledgerOf, ratio, spendByCategory, summarize, tagTotal, type Summary } from "../derive";
 import { formatCents, formatCompact, formatPercent } from "../money";
-import { current, loadAllYears, pinnedYearTags, savePinnedYearTags, years, type YearSummary } from "../state";
+import {
+  current, loadAllYears, pinnedYearCategories, pinnedYearTags, savePinnedYearCategories, savePinnedYearTags, years, type YearSummary,
+} from "../state";
 import { Chart, axisStyle, baseOption, money, moneyAxis, seriesColors, token, type ChartOption } from "./chart";
 import { CardTitle, PageHelp } from "./help";
 import { SearchSelect } from "./search-select";
@@ -40,19 +42,24 @@ interface Figure {
   onRemove?: () => void;
 }
 
-/** Every tag in any year, by id, under its newest name. */
-function tagsOfAllYears(all: YearData[]): Map<string, string> {
+type Named = { id: string; name: string };
+/** A year's tags, or its spending categories: what can be pinned. */
+const tagsOf = (d: YearData): Named[] => d.setup.tags;
+const categoriesOf = (d: YearData): Named[] => d.setup.categories.expense;
+
+/** Everything of one kind in any year, by id, under its newest name. */
+function namesInAllYears(all: YearData[], list: (d: YearData) => Named[]): Map<string, string> {
   const names = new Map<string, string>();
-  for (const d of [...all].reverse()) for (const t of d.setup.tags) if (!names.has(t.id)) names.set(t.id, t.name);
+  for (const d of [...all].reverse()) for (const x of list(d)) if (!names.has(x.id)) names.set(x.id, x.name);
   return names;
 }
 
 /**
- * A pinned tag in one year: the same id, or else a tag of the same name. Each year has its own
- * tags, and one made separately in two years can have different ids.
+ * A pinned tag or category in one year: the same id, or else one of the same name. Each year
+ * has its own, and one made separately in two years can have different ids.
  */
-function tagIn(d: YearData, id: string, name: string): string | undefined {
-  return d.setup.tags.find((t) => t.id === id)?.id ?? d.setup.tags.find((t) => t.name.toLowerCase() === name.toLowerCase())?.id;
+function idIn(list: Named[], id: string, name: string): string | undefined {
+  return list.find((x) => x.id === id)?.id ?? list.find((x) => x.name.toLowerCase() === name.toLowerCase())?.id;
 }
 
 export function YearsView() {
@@ -87,24 +94,35 @@ export function YearsView() {
   // Past four years, the axes say '24 to fit; the table keeps the full year.
   const short = (y: string) => (all.length > 4 ? `’${y.slice(2)}` : y);
 
-  const tagNames = tagsOfAllYears(all);
-  const figures: Figure[] = [
-    ...MEASURES.map((m) => ({ key: m.key, label: m.label, values: sums.map((s) => value(s, m.key)), color: (v: number) => m.color(colors, v) })),
-    // Pinned tags are spending, so they take Spent's colour. A tag deleted from every year drops out.
-    ...pinnedYearTags.value.flatMap((id) => {
-      const name = tagNames.get(id);
+  const tagNames = namesInAllYears(all, tagsOf);
+  const categoryNames = namesInAllYears(all, categoriesOf);
+  /** Charts for pinned tags or categories. They're spending, so they take Spent's colour; one deleted from every year drops out. */
+  const pinned = (ids: string[], names: Map<string, string>, list: (d: YearData) => Named[], kind: string,
+    total: (d: YearData, id: string) => number, save: (ids: string[]) => void): Figure[] =>
+    ids.flatMap((id) => {
+      const name = names.get(id);
       if (name === undefined) return [];
       return [{
-        key: `tag:${id}`, label: name, color: () => colors[1]!,
+        key: `${kind}:${id}`, label: name, color: () => colors[1]!,
         values: all.map((d) => {
-          const tag = tagIn(d, id, name);
-          return tag ? tagTotal(ledgerOf(d), tag) : 0;
+          const own = idIn(list(d), id, name);
+          return own ? total(d, own) : 0;
         }),
-        onRemove: () => savePinnedYearTags(pinnedYearTags.value.filter((t) => t !== id)),
+        onRemove: () => save(ids.filter((x) => x !== id)),
       }];
-    }),
+    });
+  const figures: Figure[] = [
+    ...MEASURES.map((m) => ({ key: m.key, label: m.label, values: sums.map((s) => value(s, m.key)), color: (v: number) => m.color(colors, v) })),
+    // All spending in the category, before refunds, as in Spending by category.
+    ...pinned(pinnedYearCategories.value, categoryNames, categoriesOf, "cat",
+      (d, id) => spendByCategory(ledgerOf(d)).get(id)?.gross ?? 0, savePinnedYearCategories),
+    ...pinned(pinnedYearTags.value, tagNames, tagsOf, "tag", (d, id) => tagTotal(ledgerOf(d), id), savePinnedYearTags),
   ];
-  const unpinned = [...tagNames].filter(([id]) => !pinnedYearTags.value.includes(id));
+  const choices = [
+    ...[...categoryNames].filter(([id]) => !pinnedYearCategories.value.includes(id))
+      .map(([id, name]) => ({ value: `cat:${id}`, label: name, group: "Spending categories" })),
+    ...[...tagNames].filter(([id]) => !pinnedYearTags.value.includes(id)).map(([id, name]) => ({ value: `tag:${id}`, label: name, group: "Tags" })),
+  ];
 
   return (
     <div class="over-years">
@@ -146,12 +164,15 @@ export function YearsView() {
             </section>
           );
         })}
-        {unpinned.length > 0 && (
+        {choices.length > 0 && (
           <label class="card pin-tile">
-            <span class="tile-label">Pin a tag total</span>
-            <SearchSelect value="" placeholder="Choose a tag…" aria-label="Tag to chart over the years"
-              choices={unpinned.map(([id, name]) => ({ value: id, label: name }))}
-              onChange={(id) => savePinnedYearTags([...pinnedYearTags.value, id])} />
+            <span class="tile-label">Pin a total</span>
+            <SearchSelect value="" placeholder="Category or tag…" aria-label="Category or tag to chart over the years" choices={choices}
+              onChange={(v) => {
+                const [kind, id] = [v.slice(0, 3), v.slice(4)];
+                if (kind === "cat") savePinnedYearCategories([...pinnedYearCategories.value, id]);
+                else savePinnedYearTags([...pinnedYearTags.value, id]);
+              }} />
           </label>
         )}
       </div>

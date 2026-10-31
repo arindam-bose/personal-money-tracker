@@ -39,7 +39,8 @@ entry, a loan, investments and a car, and accounts that were closed.
 - **Dashboard**: the month or year at a glance: what you have after card debt,
   earned, spent, surplus, savings, investment and card payments, spending and
   earnings by category, budgets, account balances and how much of your card
-  limits you're using.
+  limits you're using. **Pin a total** adds a tile for a spending category or a
+  tag; × takes it off.
 - **Ledger**: every earning, expense and transfer in one list, 100 at a time,
   newest or oldest first. Filter by month, the last 1 to 12 months, or dates you
   pick, and by kind, account, category, tag or person; every filter list can be
@@ -79,8 +80,8 @@ entry, a loan, investments and a car, and accounts that were closed.
 - **Over the years**: once two or more years are stored, each Dashboard figure
   for every year side by side, with a table and the change from the year
   before. It's always everyone together; the year still under way is marked *.
-  **Pin a tag total** adds a chart of that tag's spending each year, like the
-  Dashboard's pinned tiles; × takes it off. Pins go into your backups.
+  **Pin a total** adds a chart of a spending category's or a tag's spending each
+  year, like the Dashboard's pinned tiles; × takes it off. Pins go into your backups.
 - **A household**: everything belongs to **Person A** until you add someone on
   the Accounts page. Then each entry can be logged for one person, and the
   Dashboard, Ledger and Reports can show **All people** or one person at a time.

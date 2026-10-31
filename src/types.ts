@@ -204,6 +204,10 @@ export interface FileSettings {
   pinnedTags?: string[];
   /** Tag ids whose yearly totals are charted on Over the years. */
   pinnedYearTags?: string[];
+  /** Spending category ids whose totals show on the dashboard. */
+  pinnedCategories?: string[];
+  /** Spending category ids whose yearly totals are charted on Over the years. */
+  pinnedYearCategories?: string[];
 }
 
 /** The parts of a YearFile that are set up once, not entered day to day. */

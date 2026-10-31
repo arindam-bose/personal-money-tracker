@@ -5,8 +5,11 @@ import { getSetting, loadYear, putSetup, replaceYear, setSetting } from "./db";
 import { localToday } from "./derive";
 import { detectDevice, type Device } from "./device";
 import { iraLimitOf, withChange, withoutPeople } from "./setup";
-import type { YearFile } from "./types";
+import type { FileSettings, YearFile } from "./types";
 import { validateYearFile, type ValidationResult } from "./validate";
+
+/** The app-wide pins a backup carries: what the Dashboard and Over the years show beyond their own figures. */
+const PIN_SETTINGS = ["pinnedTags", "pinnedYearTags", "pinnedCategories", "pinnedYearCategories"] as const;
 
 /** Build the backup file for a stored year, or null if the year isn't stored. */
 export async function exportYear(year: number, now = new Date()): Promise<YearFile | null> {
@@ -16,12 +19,11 @@ export async function exportYear(year: number, now = new Date()): Promise<YearFi
   const cleaned = withoutPeople(stored);
   const data = cleaned ? withChange(stored, cleaned) : stored;
   const { setup } = data;
-  const pinnedTags = await getSetting("pinnedTags");
-  const pinnedYearTags = await getSetting("pinnedYearTags");
-  const settings = {
-    ...(pinnedTags?.length ? { pinnedTags } : {}),
-    ...(pinnedYearTags?.length ? { pinnedYearTags } : {}),
-  };
+  const settings: FileSettings = {};
+  for (const key of PIN_SETTINGS) {
+    const pinned = await getSetting(key);
+    if (pinned?.length) settings[key] = pinned;
+  }
   return {
     app: "money-tracker",
     schema: 1,
@@ -58,7 +60,7 @@ export async function importYear(data: unknown): Promise<ValidationResult> {
   // A file without a usable export time (hand-made, say) still imports; it just isn't a dated backup.
   const exported = Date.parse(file.exportedAt);
   await replaceYear(file, Number.isNaN(exported) ? {} : { lastBackupAt: new Date(exported).toISOString() });
-  for (const key of ["pinnedTags", "pinnedYearTags"] as const) {
+  for (const key of PIN_SETTINGS) {
     const pinned = file.settings?.[key];
     if (pinned && (await getSetting(key)) === undefined) await setSetting(key, pinned);
   }

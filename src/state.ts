@@ -64,12 +64,17 @@ export function setMemberView(id: string): void {
 export const pinnedTags = signal<string[]>([]);
 /** Tags whose yearly totals are charted on Over the years. Kept on this device as "pinnedYearTags", and in backups. */
 export const pinnedYearTags = signal<string[]>([]);
+/** Spending categories pinned on the dashboard and on Over the years, kept like the tags. */
+export const pinnedCategories = signal<string[]>([]);
+export const pinnedYearCategories = signal<string[]>([]);
 /** Whether the Include loans switch is off, leaving loans out of net worth. Kept on this device as "netWorthWithoutLoans". */
 export const loansLeftOut = signal(false);
 
 export async function loadSettings(): Promise<void> {
   pinnedTags.value = (await getSetting("pinnedTags")) ?? [];
   pinnedYearTags.value = (await getSetting("pinnedYearTags")) ?? [];
+  pinnedCategories.value = (await getSetting("pinnedCategories")) ?? [];
+  pinnedYearCategories.value = (await getSetting("pinnedYearCategories")) ?? [];
   loansLeftOut.value = (await getSetting("netWorthWithoutLoans")) ?? false;
 }
 
@@ -97,6 +102,16 @@ export async function savePinnedTags(ids: string[]): Promise<void> {
 export async function savePinnedYearTags(ids: string[]): Promise<void> {
   await setSetting("pinnedYearTags", ids);
   pinnedYearTags.value = ids;
+}
+
+export async function savePinnedCategories(ids: string[]): Promise<void> {
+  await setSetting("pinnedCategories", ids);
+  pinnedCategories.value = ids;
+}
+
+export async function savePinnedYearCategories(ids: string[]): Promise<void> {
+  await setSetting("pinnedYearCategories", ids);
+  pinnedYearCategories.value = ids;
 }
 
 export async function saveLoansLeftOut(without: boolean): Promise<void> {
@@ -405,6 +420,8 @@ export async function eraseEverything(): Promise<void> {
     current.value = null;
     pinnedTags.value = [];
     pinnedYearTags.value = [];
+    pinnedCategories.value = [];
+    pinnedYearCategories.value = [];
   });
   await refreshYears();
 }
