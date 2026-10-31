@@ -80,12 +80,16 @@ function pinChoices(names: Map<string, string>, pinned: string[], kind: string, 
 export function YearsView() {
   // Each load remembers the list of years it was for: one made before the list changed is never shown.
   const loaded = useSignal<{ list: YearSummary[]; data: YearData[] } | null>(null);
+  const failed = useSignal<string | null>(null);
   // Reload when years are added or removed, or the open year changes. A load overtaken by a newer one is dropped.
   useSignalEffect(() => {
     const list = years.value;
     void current.value;
     let overtaken = false;
-    loadAllYears().then((data) => { if (!overtaken) loaded.value = { list, data }; });
+    loadAllYears().then(
+      (data) => { if (!overtaken) { loaded.value = { list, data }; failed.value = null; } },
+      (e) => { if (!overtaken) failed.value = e instanceof Error ? e.message : String(e); },
+    );
     return () => { overtaken = true; };
   });
 
@@ -98,7 +102,14 @@ export function YearsView() {
       </section>
     );
   }
-  if (!all) return <p class="muted">Loading years…</p>;
+  if (!all) {
+    return failed.value ? (
+      <p class="form-error" role="alert">
+        The years couldn't be loaded: {failed.value}{" "}
+        <button type="button" class="link" onClick={() => location.reload()}>Reload</button>
+      </p>
+    ) : <p class="muted">Loading years…</p>;
+  }
 
   const sums = all.map((d) => summarize(ledgerOf(d)));
   const labels = all.map((d) => `${d.setup.year}${inProgress(d) ? "*" : ""}`);
