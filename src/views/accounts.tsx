@@ -23,9 +23,9 @@ const TYPE_LABEL: Record<AccountType, string> = {
 
 /** Plain-language names for the roles that drive the reports. */
 const ROLE_LABEL: Record<CategoryKind, Record<string, string>> = {
-  expense: { "": "Regular", charity: "Charity" },
+  expense: { "": "Regular", charity: "Charity", transfer_out: "Transfer to external" },
   earning: {
-    paycheck: "Paycheck", income: "Other income", offset: "Lowers spending",
+    paycheck: "Paycheck", income: "Other income", offset: "Lowers spending", transfer_in: "Transfer from external",
   },
   transfer: {
     cc_payment: "Card payment", savings_in: "Into savings", savings_out: "Out of savings",
@@ -545,8 +545,8 @@ function CategoryCard({ kind, setup, usage }: { kind: CategoryKind; setup: YearS
   return (
     <section class="card">
       <CardTitle title={KIND_TITLE[kind]}>{{
-        expense: "Rename freely: entries keep their category. Delete one and its entries move to Uncategorized. Charity shows as a share of pay on the dashboard.",
-        earning: "Tick “Net” for the earnings that make up net earnings on the dashboard; untick one-offs. “Lowers spending” is for refunds, points and money paid back: they lower net spending instead. Uncategorized counts in neither.",
+        expense: "Rename freely: entries keep their category. Delete one and its entries move to Uncategorized. Charity shows as a share of pay on the dashboard. “Transfer to external” is money sent to your own accounts outside the tracker: it counts in Spent, but not in net spending.",
+        earning: "Tick “Net” for the earnings that make up net earnings on the dashboard; untick one-offs. “Lowers spending” is for refunds, points and money paid back: they lower net spending instead. “Transfer from external” is money from your own accounts outside the tracker: it counts in Earned, but not in net earnings. Uncategorized counts in neither.",
         transfer: "What each one is for drives the savings, investing, card-payment and loan-payment figures.",
       }[kind]}</CardTitle>
       <ul class={`name-list ${kind === "earning" ? "with-net" : ""}`}>
@@ -703,7 +703,9 @@ function PeopleCard({ setup, usage }: { setup: YearSetup; usage: Usage }) {
 function NetTick(props: { cat: { name: string; role?: string; net?: boolean }; locked: boolean; onChange: (net: boolean) => void }) {
   const eligible = props.cat.role === "paycheck" || props.cat.role === "income";
   return (
-    <label class="net-tick" title={eligible ? "Ticked: counts in net earnings. Unticked: counts in neither net earnings nor net spending." : "Refunds, points and paybacks lower net spending, so they never count as earnings"}>
+    <label class="net-tick" title={eligible ? "Ticked: counts in net earnings. Unticked: counts in neither net earnings nor net spending."
+      : props.cat.role === "transfer_in" ? "Money from your own accounts elsewhere: it counts in Earned, never in net earnings"
+      : "Refunds, points and paybacks lower net spending, so they never count as earnings"}>
       <input type="checkbox" checked={eligible && countsInNetEarnings(props.cat as { role?: EarningRole; net?: boolean })}
         disabled={props.locked || !eligible} aria-label={`${props.cat.name} counts in net earnings`}
         onChange={(e) => props.onChange(e.currentTarget.checked)} />

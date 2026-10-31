@@ -10,8 +10,8 @@ export type ValidationResult = { ok: true; file: YearFile } | { ok: false; error
 const ACCOUNT_TYPES = Object.keys({
   checking: 1, savings: 1, cash: 1, credit: 1, investment: 1, loan: 1, asset: 1,
 } satisfies Record<AccountType, 1>) as AccountType[];
-const EXPENSE_ROLES = ["charity"];
-const EARNING_ROLES = ["paycheck", "income", "offset"];
+const EXPENSE_ROLES = ["charity", "transfer_out"];
+const EARNING_ROLES = ["paycheck", "income", "offset", "transfer_in"];
 const TRANSFER_ROLES = [
   "cc_payment", "savings_in", "savings_out", "invest_retirement",
   "invest_taxable", "cash_withdrawal", "loan_payment", "general",

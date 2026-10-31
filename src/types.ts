@@ -56,8 +56,10 @@ export interface Valuation {
 
 // Roles are hidden tags on categories, so users can rename categories
 // and the reports still know what each one means.
-export type ExpenseRole = "charity";
-export type EarningRole = "paycheck" | "income" | "offset";
+/** "transfer_out" / "transfer_in": money to or from accounts outside the tracker. They count in
+ * Spent and Earned, but never in net spending or net earnings. */
+export type ExpenseRole = "charity" | "transfer_out";
+export type EarningRole = "paycheck" | "income" | "offset" | "transfer_in";
 export type TransferRole =
   | "cc_payment"
   | "savings_in"

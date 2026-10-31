@@ -162,6 +162,13 @@ export function BudgetView() {
                 <td colSpan={2} />
               </tr>
             )}
+            {view.transfersOut > 0 && (
+              <tr>
+                <td colSpan={month ? 3 : 2}>Transfers to external, not net spending</td>
+                <td class="num">−{formatCents(view.transfersOut)}</td>
+                <td colSpan={2} />
+              </tr>
+            )}
             <tr class="total">
               <td colSpan={month ? 3 : 2}>Net spending</td>
               <td class="num">{formatCents(view.netSpent)}</td>
