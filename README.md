@@ -79,6 +79,8 @@ entry, a loan, investments and a car, and accounts that were closed.
 - **Over the years**: once two or more years are stored, each Dashboard figure
   for every year side by side, with a table and the change from the year
   before. It's always everyone together; the year still under way is marked *.
+  **Pin a tag total** adds a chart of that tag's spending each year, like the
+  Dashboard's pinned tiles; × takes it off. Pins go into your backups.
 - **A household**: everything belongs to **Person A** until you add someone on
   the Accounts page. Then each entry can be logged for one person, and the
   Dashboard, Ledger and Reports can show **All people** or one person at a time.

@@ -202,6 +202,8 @@ export interface YearFile {
 export interface FileSettings {
   /** Tag ids whose totals show on the dashboard. */
   pinnedTags?: string[];
+  /** Tag ids whose yearly totals are charted on Over the years. */
+  pinnedYearTags?: string[];
 }
 
 /** The parts of a YearFile that are set up once, not entered day to day. */

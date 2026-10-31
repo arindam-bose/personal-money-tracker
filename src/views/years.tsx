@@ -4,11 +4,12 @@
 
 import { useSignal, useSignalEffect } from "@preact/signals";
 import type { YearData } from "../db";
-import { ledgerOf, ratio, summarize, type Summary } from "../derive";
+import { ledgerOf, ratio, summarize, tagTotal, type Summary } from "../derive";
 import { formatCents, formatCompact, formatPercent } from "../money";
-import { current, loadAllYears, years, type YearSummary } from "../state";
+import { current, loadAllYears, pinnedYearTags, savePinnedYearTags, years, type YearSummary } from "../state";
 import { Chart, axisStyle, baseOption, money, moneyAxis, seriesColors, token, type ChartOption } from "./chart";
 import { CardTitle, PageHelp } from "./help";
+import { SearchSelect } from "./search-select";
 
 /** The Dashboard's tiles, in its order. Colours match Reports: earning, spending, savings, investing, loans. */
 const MEASURES: { key: keyof Summary; label: string; color: (c: string[], value: number) => string }[] = [
@@ -27,6 +28,32 @@ const MEASURES: { key: keyof Summary; label: string; color: (c: string[], value:
 
 /** A year still under way: not closed, and not over yet. Its figures are so far, marked with an asterisk. */
 const inProgress = (d: YearData) => !d.setup.closed && d.setup.year >= new Date().getFullYear();
+
+/** One chart, and one row of the table: a Dashboard figure, or a pinned tag's total. */
+interface Figure {
+  key: string;
+  label: string;
+  /** One per year, oldest first. */
+  values: number[];
+  color: (value: number) => string;
+  /** For a pinned tag: takes it off the page. */
+  onRemove?: () => void;
+}
+
+/** Every tag in any year, by id, under its newest name. */
+function tagsOfAllYears(all: YearData[]): Map<string, string> {
+  const names = new Map<string, string>();
+  for (const d of [...all].reverse()) for (const t of d.setup.tags) if (!names.has(t.id)) names.set(t.id, t.name);
+  return names;
+}
+
+/**
+ * A pinned tag in one year: the same id, or else a tag of the same name. Each year has its own
+ * tags, and one made separately in two years can have different ids.
+ */
+function tagIn(d: YearData, id: string, name: string): string | undefined {
+  return d.setup.tags.find((t) => t.id === id)?.id ?? d.setup.tags.find((t) => t.name.toLowerCase() === name.toLowerCase())?.id;
+}
 
 export function YearsView() {
   // Each load remembers the list of years it was for: one made before the list changed is never shown.
@@ -60,6 +87,25 @@ export function YearsView() {
   // Past four years, the axes say '24 to fit; the table keeps the full year.
   const short = (y: string) => (all.length > 4 ? `’${y.slice(2)}` : y);
 
+  const tagNames = tagsOfAllYears(all);
+  const figures: Figure[] = [
+    ...MEASURES.map((m) => ({ key: m.key, label: m.label, values: sums.map((s) => value(s, m.key)), color: (v: number) => m.color(colors, v) })),
+    // Pinned tags are spending, so they take Spent's colour. A tag deleted from every year drops out.
+    ...pinnedYearTags.value.flatMap((id) => {
+      const name = tagNames.get(id);
+      if (name === undefined) return [];
+      return [{
+        key: `tag:${id}`, label: name, color: () => colors[1]!,
+        values: all.map((d) => {
+          const tag = tagIn(d, id, name);
+          return tag ? tagTotal(ledgerOf(d), tag) : 0;
+        }),
+        onRemove: () => savePinnedYearTags(pinnedYearTags.value.filter((t) => t !== id)),
+      }];
+    }),
+  ];
+  const unpinned = [...tagNames].filter(([id]) => !pinnedYearTags.value.includes(id));
+
   return (
     <div class="over-years">
       <PageHelp>
@@ -67,8 +113,8 @@ export function YearsView() {
         {ongoing.length > 0 && <> * {ongoing.join(", ")} so far.</>}
       </PageHelp>
       <div class={`year-charts${all.length > 4 ? " many" : ""}`}>
-        {MEASURES.map((m) => {
-          const values = sums.map((s) => value(s, m.key));
+        {figures.map((f) => {
+          const values = f.values;
           const option: ChartOption = {
             ...baseOption(),
             legend: undefined,
@@ -81,22 +127,33 @@ export function YearsView() {
             xAxis: { type: "category", data: labels, ...axisStyle(), axisLabel: { color: token("--muted"), interval: 0, fontSize: 11, formatter: short }, splitLine: { show: false } },
             yAxis: { ...moneyAxis(), splitNumber: 3 },
             series: [{
-              name: m.label, type: "bar", barMaxWidth: 32,
+              name: f.label, type: "bar", barMaxWidth: 32,
               // Only the latest year is labelled with its amount; the tooltip and the table have the rest.
               data: values.map((v, i) => ({
                 value: v,
-                itemStyle: { color: m.color(colors, v), borderRadius: v < 0 ? [0, 0, 4, 4] : [4, 4, 0, 0] },
+                itemStyle: { color: f.color(v), borderRadius: v < 0 ? [0, 0, 4, 4] : [4, 4, 0, 0] },
                 label: { show: i === last, position: v < 0 ? "bottom" : "top", color: token("--muted"), fontSize: 11, formatter: (p: { value: number }) => formatCompact(p.value) },
               })),
             }],
           };
           return (
-            <section class="card report">
-              <h3>{m.label}</h3>
-              <Chart option={option} height={200} label={`${m.label} by year: ${labels.map((y, i) => `${y} ${formatCents(values[i]!)}`).join(", ")}`} />
+            <section class="card report" key={f.key}>
+              <div class="year-chart-head">
+                <h3>{f.label}</h3>
+                {f.onRemove && <button type="button" class="unpin" aria-label={`Unpin ${f.label}`} title="Unpin" onClick={f.onRemove}>×</button>}
+              </div>
+              <Chart option={option} height={200} label={`${f.label} by year: ${labels.map((y, i) => `${y} ${formatCents(values[i]!)}`).join(", ")}`} />
             </section>
           );
         })}
+        {unpinned.length > 0 && (
+          <label class="card pin-tile">
+            <span class="tile-label">Pin a tag total</span>
+            <SearchSelect value="" placeholder="Choose a tag…" aria-label="Tag to chart over the years"
+              choices={unpinned.map(([id, name]) => ({ value: id, label: name }))}
+              onChange={(id) => savePinnedYearTags([...pinnedYearTags.value, id])} />
+          </label>
+        )}
       </div>
       <section class="card report">
         <CardTitle title="All figures">† Change is {labels[last]} against {labels[last - 1]}.</CardTitle>
@@ -110,15 +167,15 @@ export function YearsView() {
               </tr>
             </thead>
             <tbody>
-              {MEASURES.map((m) => {
-                const now = value(sums[last]!, m.key);
-                const before = value(sums[last - 1]!, m.key);
+              {figures.map((f) => {
+                const now = f.values[last]!;
+                const before = f.values[last - 1]!;
                 // Against a negative year (a deficit, or more taken out of savings) a percentage means little.
                 const change = before > 0 ? ratio(now - before, before) : null;
                 return (
-                  <tr>
-                    <td>{m.label}</td>
-                    {sums.map((s) => <td class="num">{formatCents(value(s, m.key))}</td>)}
+                  <tr key={f.key}>
+                    <td>{f.label}</td>
+                    {f.values.map((v) => <td class="num">{formatCents(v)}</td>)}
                     <td class="num">{change === null ? "–" : `${change > 0 ? "+" : ""}${formatPercent(change)}`}</td>
                   </tr>
                 );

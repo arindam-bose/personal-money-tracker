@@ -1107,7 +1107,8 @@ button.help-btn:focus-visible {
 .tile-investing { border-left: 3px solid var(--series-4); }
 .tile-loans { border-left: 3px solid var(--series-6); }
 
-.tile .unpin {
+.tile .unpin,
+.year-chart-head .unpin {
   border: none;
   background: none;
   color: var(--muted);
@@ -1420,6 +1421,14 @@ button.help-btn:focus-visible {
 
 .year-charts .chart {
   margin-top: auto;
+}
+
+/* A chart's title, with × beside it on a pinned tag's. */
+.year-chart-head {
+  display: flex;
+  justify-content: space-between;
+  align-items: baseline;
+  gap: 8px;
 }
 
 /* Earning, Expense, and Savings and investment reports: a heading, tabs, then the open tab's card. */

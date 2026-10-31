@@ -38,6 +38,8 @@ export interface Settings {
   activeYear: number;
   /** Tag ids whose totals show on the dashboard (e.g. "t_india"). */
   pinnedTags: string[];
+  /** Tag ids whose yearly totals are charted on Over the years. */
+  pinnedYearTags: string[];
   /** True to leave what loans owe out of net worth on the dashboard. Left out, they count. */
   netWorthWithoutLoans: boolean;
 }

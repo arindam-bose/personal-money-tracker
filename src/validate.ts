@@ -122,10 +122,14 @@ export function validateYearFile(raw: unknown): ValidationResult {
     err(`"iraBeforeStart" is not whole cents.`);
   }
   if (data.settings !== undefined) {
-    const pinned = isObj(data.settings) ? data.settings.pinnedTags : undefined;
     if (!isObj(data.settings)) err(`"settings" must be an object.`);
-    else if (pinned !== undefined && !(Array.isArray(pinned) && pinned.every((t) => typeof t === "string"))) {
-      err(`"settings.pinnedTags" must be a list of tag ids.`);
+    else {
+      for (const key of ["pinnedTags", "pinnedYearTags"]) {
+        const pinned = data.settings[key];
+        if (pinned !== undefined && !(Array.isArray(pinned) && pinned.every((t) => typeof t === "string"))) {
+          err(`"settings.${key}" must be a list of tag ids.`);
+        }
+      }
     }
   }
   if (errors.length) return { ok: false, errors };

@@ -140,6 +140,22 @@ describe("a backup restores everything on a clean device", () => {
     await importYear(backup);
     expect(await getSetting("pinnedTags")).toEqual([]);
   });
+
+  it("carries the tags charted on Over the years the same way", async () => {
+    await importYear(sample());
+    await setSetting("pinnedTags", ["t_india"]);
+    await setSetting("pinnedYearTags", ["t_costco"]);
+    const backup = (await exportYear(2026))!;
+    expect(backup.settings).toEqual({ pinnedTags: ["t_india"], pinnedYearTags: ["t_costco"] });
+
+    await freshDb();
+    await importYear(backup);
+    expect(await getSetting("pinnedYearTags")).toEqual(["t_costco"]);
+
+    await setSetting("pinnedYearTags", []);
+    await importYear(backup);
+    expect(await getSetting("pinnedYearTags")).toEqual([]);
+  });
 });
 
 describe("IRA limit", () => {

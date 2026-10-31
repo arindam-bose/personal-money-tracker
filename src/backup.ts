@@ -17,6 +17,11 @@ export async function exportYear(year: number, now = new Date()): Promise<YearFi
   const data = cleaned ? withChange(stored, cleaned) : stored;
   const { setup } = data;
   const pinnedTags = await getSetting("pinnedTags");
+  const pinnedYearTags = await getSetting("pinnedYearTags");
+  const settings = {
+    ...(pinnedTags?.length ? { pinnedTags } : {}),
+    ...(pinnedYearTags?.length ? { pinnedYearTags } : {}),
+  };
   return {
     app: "money-tracker",
     schema: 1,
@@ -36,7 +41,7 @@ export async function exportYear(year: number, now = new Date()): Promise<YearFi
     budgets: setup.budgets,
     iraLimit: iraLimitOf(setup),
     ...(setup.iraBeforeStart !== undefined ? { iraBeforeStart: setup.iraBeforeStart } : {}),
-    ...(pinnedTags?.length ? { settings: { pinnedTags } } : {}),
+    ...(Object.keys(settings).length ? { settings } : {}),
   };
 }
 
@@ -53,8 +58,10 @@ export async function importYear(data: unknown): Promise<ValidationResult> {
   // A file without a usable export time (hand-made, say) still imports; it just isn't a dated backup.
   const exported = Date.parse(file.exportedAt);
   await replaceYear(file, Number.isNaN(exported) ? {} : { lastBackupAt: new Date(exported).toISOString() });
-  const pinned = file.settings?.pinnedTags;
-  if (pinned && (await getSetting("pinnedTags")) === undefined) await setSetting("pinnedTags", pinned);
+  for (const key of ["pinnedTags", "pinnedYearTags"] as const) {
+    const pinned = file.settings?.[key];
+    if (pinned && (await getSetting(key)) === undefined) await setSetting(key, pinned);
+  }
   return result;
 }
 
