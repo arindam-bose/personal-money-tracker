@@ -1,4 +1,4 @@
-// A card's title with a round ? beside it. Hovering or focusing the ? shows what the card is about.
+// A card's title, with a round ? in the card's top right corner. Hovering or focusing the ? shows what the card is about.
 
 import type { ComponentChildren } from "preact";
 import { useId } from "preact/hooks";
@@ -12,9 +12,11 @@ export function CardTitle(props: { title: ComponentChildren; children: Component
   return (
     <div class="card-title">
       <h3>{props.title}</h3>
-      <button type="button" class="help-btn" aria-label="About this card" aria-describedby={id}
-        onKeyDown={(e) => e.key === "Escape" && e.currentTarget.blur()}>?</button>
-      <span class="help-tip" role="tooltip" id={id}>{props.children}</span>
+      <span class="card-help">
+        <button type="button" class="help-btn" aria-label="About this card" aria-describedby={id}
+          onKeyDown={(e) => e.key === "Escape" && e.currentTarget.blur()}>?</button>
+        <span class="help-tip" role="tooltip" id={id}>{props.children}</span>
+      </span>
     </div>
   );
 }

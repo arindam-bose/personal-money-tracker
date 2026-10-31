@@ -697,13 +697,25 @@ button.link.field-action {
   margin: 2px 0 12px;
 }
 
-/* A card's title and its ? (src/views/help.tsx); the description shows under it on hover or focus. */
+/* A card's title and its ? (src/views/help.tsx). The ? sits in the card's top right corner,
+   and the description shows under it, right-aligned, on hover or focus. */
 .card-title {
-  position: relative;
-  display: flex;
-  align-items: center;
-  gap: 6px;
   margin-bottom: 12px;
+}
+
+.card:has(.card-help) {
+  position: relative;
+}
+
+/* Room for the ? beside a head's own buttons (+ Add account, Include loans). */
+.card:has(.card-help) .card-head {
+  padding-right: 28px;
+}
+
+.card-help {
+  position: absolute;
+  top: 14px;
+  right: 14px;
 }
 
 button.help-btn {
@@ -731,7 +743,7 @@ button.help-btn:focus-visible {
 .help-tip {
   position: absolute;
   top: calc(100% + 4px);
-  left: 0;
+  right: 0;
   z-index: 30;
   width: max-content;
   max-width: min(360px, calc(100vw - 64px));
