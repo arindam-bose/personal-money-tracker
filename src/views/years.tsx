@@ -8,7 +8,7 @@ import { ledgerOf, ratio, summarize, type Summary } from "../derive";
 import { formatCents, formatCompact, formatPercent } from "../money";
 import { current, loadAllYears, years, type YearSummary } from "../state";
 import { Chart, axisStyle, baseOption, money, moneyAxis, seriesColors, token, type ChartOption } from "./chart";
-import { PageHelp } from "./help";
+import { CardTitle, PageHelp } from "./help";
 
 /** The Dashboard's tiles, in its order. Colours match Reports: earning, spending, savings, investing, loans. */
 const MEASURES: { key: keyof Summary; label: string; color: (c: string[], value: number) => string }[] = [
@@ -99,8 +99,7 @@ export function YearsView() {
         })}
       </div>
       <section class="card report">
-        <h3>All figures</h3>
-        <p class="muted small">Change is {labels[last]} against {labels[last - 1]}.</p>
+        <CardTitle title="All figures">Change is {labels[last]} against {labels[last - 1]}.</CardTitle>
         <div class="heatmap-wrap">
           <table class="data-table">
             <thead>
