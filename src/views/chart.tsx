@@ -1,6 +1,7 @@
 // A thin Preact wrapper around ECharts. Only the chart types we use are bundled.
 // Colours come from the CSS tokens in style.css, so charts follow light/dark mode.
 
+import { signal } from "@preact/signals";
 import { BarChart, LineChart, PieChart, SankeyChart } from "echarts/charts";
 import { GridComponent, LegendComponent, TitleComponent, TooltipComponent } from "echarts/components";
 import * as echarts from "echarts/core";
@@ -13,6 +14,14 @@ import { theme } from "../theme";
 echarts.use([BarChart, LineChart, PieChart, SankeyChart, GridComponent, LegendComponent, TitleComponent, TooltipComponent, LabelLayout, SVGRenderer]);
 
 export type ChartOption = echarts.EChartsCoreOption;
+
+/**
+ * Phone-width screens, where a chart can drop its side labels to give the plot the room.
+ * It follows the screen, so turning a phone redraws the charts that read it.
+ */
+const phoneWidth = matchMedia("(max-width: 700px)");
+export const narrowScreen = signal(phoneWidth.matches);
+phoneWidth.addEventListener("change", (e) => (narrowScreen.value = e.matches));
 
 
 /** The current value of a CSS colour token, e.g. token("--series-1"). */

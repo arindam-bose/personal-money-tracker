@@ -12,7 +12,7 @@ import { formatCents, formatCompact, formatPercent } from "../money";
 import { membersOf } from "../setup";
 import { current, ledger, loansLeftOut } from "../state";
 import { IncludeLoans } from "./dashboard";
-import { Chart, axisStyle, baseOption, money, moneyAxis, seriesColors, token, type ChartOption } from "./chart";
+import { Chart, axisStyle, baseOption, money, moneyAxis, narrowScreen, seriesColors, token, type ChartOption } from "./chart";
 import { CardTitle } from "./help";
 import { showInLedger } from "./ledger";
 import { MemberPicker, viewedLedger, viewedMember } from "./people";
@@ -622,6 +622,9 @@ function BalancesCard({ ledger: l, year, start, lastDate }: { ledger: Ledger; ye
     { key: "saved", name: "Saved this year", color: c3 },
   ] as const;
   const label = (d: string) => (d === opening ? "Start" : shortDate(d));
+  // The end labels take 200px: on a phone the lines get that room instead, and the legend
+  // and tooltip still name them.
+  const endLabels = !narrowScreen.value;
   const option: ChartOption = {
     ...baseOption(),
     tooltip: { ...(baseOption().tooltip as object), trigger: "axis", valueFormatter: money },
@@ -633,13 +636,13 @@ function BalancesCard({ ledger: l, year, start, lastDate }: { ledger: Ledger; ye
       lineStyle: { width: 2, color: ln.color, type: "dashed" in ln && ln.dashed ? "dashed" : "solid" },
       // With five to seven lines, each is named at its end as well as in the legend.
       endLabel: {
-        show: true, color: token("--muted"),
+        show: endLabels, color: token("--muted"),
         formatter: (p: { seriesName: string; value: number }) => `${p.seriesName} ${formatCompact(p.value)}`,
       },
       // Net worth ends close to available cash: nudge labels apart instead of overlapping.
       labelLayout: { moveOverlap: "shiftY" },
     })),
-    grid: { ...(baseOption().grid as object), right: 200 },
+    grid: { ...(baseOption().grid as object), right: endLabels ? 200 : 16 },
   };
   return (
     <Card title="Balances over time" action={hasLoans && <IncludeLoans />}
