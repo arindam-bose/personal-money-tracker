@@ -171,15 +171,15 @@ export function SettingsView() {
           <tbody>
             {years.value.map(({ setup, expenses, earnings, transfers }) => (
               <tr key={setup.year}>
-                <td>
+                <td class="y-year">
                   {setup.year}
                   {setup.closed && <span class="badge">closed</span>}
                 </td>
-                <td class="num">{expenses}</td>
-                <td class="num">{earnings}</td>
-                <td class="num">{transfers}</td>
-                <td>{backupText(setup.lastBackupAt)}</td>
-                <td>
+                <td class="num y-count" data-label="Expenses">{expenses}</td>
+                <td class="num y-count" data-label="Earnings">{earnings}</td>
+                <td class="num y-count" data-label="Transfers">{transfers}</td>
+                <td class="y-backup">{backupText(setup.lastBackupAt)}</td>
+                <td class="y-actions">
                   {deleting.value === setup.year ? (
                     <div class="row-actions asking">
                       <span>

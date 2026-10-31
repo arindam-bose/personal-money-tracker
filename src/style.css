@@ -264,6 +264,63 @@ table.years th {
   font-size: 13px;
 }
 
+/* Phones: each year is a block: the year and its last backup, its entry counts in small print,
+   then its buttons. */
+@media (max-width: 600px) {
+  table.years,
+  table.years tbody {
+    display: block;
+  }
+
+  table.years thead {
+    display: none;
+  }
+
+  table.years tbody tr {
+    display: flex;
+    flex-wrap: wrap;
+    align-items: baseline;
+    gap: 4px 12px;
+    padding: 10px 0;
+    border-bottom: 1px solid var(--border);
+  }
+
+  table.years td {
+    padding: 0;
+    border-bottom: none;
+  }
+
+  table.years .y-year { order: 1; flex: 1 1 auto; font-weight: 600; }
+  table.years .y-backup { order: 2; font-size: 13px; color: var(--muted); }
+
+  /* A line break, so the counts start a line of their own. */
+  table.years tbody tr::after {
+    content: "";
+    order: 3;
+    flex-basis: 100%;
+  }
+
+  table.years .y-count {
+    order: 4;
+    font-size: 13px;
+    color: var(--muted);
+  }
+
+  table.years .y-count::before {
+    content: attr(data-label) " ";
+  }
+
+  table.years .y-actions {
+    order: 5;
+    flex: 1 1 100%;
+  }
+
+  table.years .row-actions {
+    justify-content: flex-start;
+    flex-wrap: wrap;
+  }
+}
+
 .num {
   text-align: right !important;
   font-variant-numeric: tabular-nums;
