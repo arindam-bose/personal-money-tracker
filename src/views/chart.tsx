@@ -1,7 +1,7 @@
 // A thin Preact wrapper around ECharts. Only the chart types we use are bundled.
 // Colours come from the CSS tokens in style.css, so charts follow light/dark mode.
 
-import { signal } from "@preact/signals";
+import { signal, useSignal } from "@preact/signals";
 import { BarChart, LineChart, PieChart, SankeyChart } from "echarts/charts";
 import { GridComponent, LegendComponent, TitleComponent, TooltipComponent } from "echarts/components";
 import * as echarts from "echarts/core";
@@ -54,8 +54,8 @@ export function baseOption(): ChartOption {
       textStyle: { color: text, fontSize: 13 },
       confine: true,
     },
-    // One line that scrolls when it doesn't fit (on a phone): wrapped onto more lines, it ran into the chart.
-    legend: { type: "scroll", top: 0, left: 0, icon: "roundRect", itemWidth: 10, itemHeight: 10, textStyle: { color: muted } },
+    // Not drawn by the chart: Chart draws it above, as a list that wraps.
+    legend: { top: 0, left: 0, icon: "roundRect", itemWidth: 10, itemHeight: 10, textStyle: { color: muted } },
     grid: { left: 8, right: 16, top: 36, bottom: 8, containLabel: true },
   };
 }
@@ -87,9 +87,47 @@ interface Props {
   onPick?: (item: { dataIndex: number; name: string }) => void;
 }
 
+interface LegendEntry {
+  name: string;
+  color: string;
+  /** A lighter shade ("the rest" of a stack), drawn at 40% like its bars. */
+  faded: boolean;
+  dashed: boolean;
+}
+
+interface SeriesLike {
+  type?: string;
+  name?: string;
+  itemStyle?: { color?: string; opacity?: number };
+  lineStyle?: { type?: string };
+  data?: unknown[];
+}
+
+/**
+ * What the chart's own legend would list, with each name's colour: the legend's data if it names
+ * them, otherwise every series (or a pie's slices) in order. None when the chart has no legend.
+ */
+function legendEntries(option: ChartOption): LegendEntry[] | null {
+  const legend = option.legend as { data?: string[]; show?: boolean } | undefined;
+  if (!legend || legend.show === false) return null;
+  const entries = new Map<string, LegendEntry>();
+  const add = (name: string | undefined, style: SeriesLike["itemStyle"], dashed = false) => {
+    if (name && !entries.has(name)) entries.set(name, { name, color: style?.color ?? "", faded: (style?.opacity ?? 1) < 1, dashed });
+  };
+  for (const s of (option.series ?? []) as SeriesLike[]) {
+    if (s.type === "pie") for (const d of (s.data ?? []) as SeriesLike[]) add(d.name, d.itemStyle);
+    else add(s.name, s.itemStyle, s.lineStyle?.type === "dashed");
+  }
+  return legend.data ? legend.data.flatMap((n) => entries.get(n) ?? []) : [...entries.values()];
+}
+
 export function Chart({ option, height, label, onPick }: Props) {
   const el = useRef<HTMLDivElement>(null);
   const chart = useRef<echarts.ECharts | null>(null);
+  // The legend is drawn here, above the chart, so it wraps on a narrow screen: the chart's own
+  // legend can only scroll, which hid names on a phone. Clicking a name still hides its series.
+  const legend = legendEntries(option);
+  const hidden = useSignal<ReadonlySet<string>>(new Set());
   // The latest handler, read at click time, so the listener is added once.
   const pick = useRef(onPick);
   pick.current = onPick;
@@ -107,8 +145,40 @@ export function Chart({ option, height, label, onPick }: Props) {
   }, []);
 
   useEffect(() => {
-    chart.current?.setOption(option, { notMerge: true });
+    // The chart keeps its legend (it holds which series are shown) but doesn't draw it, and the
+    // plot moves up into the room it took.
+    chart.current?.setOption(legend ? {
+      ...option,
+      legend: { ...(option.legend as object), show: false },
+      grid: { ...(option.grid as object), top: 12 },
+    } : option, { notMerge: true });
+    // A new option shows every series again.
+    hidden.value = new Set();
   }, [option]);
 
-  return <div ref={el} class="chart" style={{ height }} role="img" aria-label={label} />;
+  function toggle(name: string) {
+    chart.current?.dispatchAction({ type: "legendToggleSelect", name });
+    const next = new Set(hidden.value);
+    if (!next.delete(name)) next.add(name);
+    hidden.value = next;
+  }
+
+  return (
+    <>
+      {legend && (
+        <ul class="legend chart-legend" aria-label="Series">
+          {legend.map((x) => (
+            <li>
+              <button type="button" aria-pressed={!hidden.value.has(x.name)} title={hidden.value.has(x.name) ? `Show ${x.name}` : `Hide ${x.name}`}
+                onClick={() => toggle(x.name)}>
+                <span class={`swatch ${x.dashed ? "dashed" : ""}`} style={{ "--c": x.color, opacity: x.faded ? 0.4 : 1 }} />
+                {x.name}
+              </button>
+            </li>
+          ))}
+        </ul>
+      )}
+      <div ref={el} class="chart" style={{ height }} role="img" aria-label={label} />
+    </>
+  );
 }

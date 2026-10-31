@@ -1433,6 +1433,33 @@ button.help-btn:focus-visible {
   vertical-align: -1px;
 }
 
+/* Charts' legends (src/views/chart.tsx): each name is a button that hides or shows its series. */
+.chart-legend {
+  gap: 4px 14px;
+}
+
+.chart-legend button {
+  border: none;
+  background: none;
+  padding: 2px 0;
+  font: inherit;
+  color: inherit;
+}
+
+.chart-legend button[aria-pressed="false"] {
+  text-decoration: line-through;
+  opacity: 0.5;
+}
+
+.chart-legend .swatch {
+  background: var(--c);
+}
+
+/* A dashed line's series (Invested this year) gets a dashed swatch. */
+.chart-legend .swatch.dashed {
+  background: repeating-linear-gradient(90deg, var(--c) 0 3px, transparent 3px 5px);
+}
+
 .table-view {
   margin-top: 8px;
 }
