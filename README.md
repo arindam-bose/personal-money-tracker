@@ -49,8 +49,8 @@ entry, a loan, investments and a car, and accounts that were closed.
   Transfers (paying a card, moving money to savings) are shown apart, because
   they aren't spending.
 - **Budget**: a monthly target for each spending category, with what's left.
-- **Reports**: where the money went, monthly cash flow (surplus months blue,
-  deficit months orange), earning and expense reports by category and by week,
+- **Reports**: where the money went, monthly cash flow (surplus months green,
+  deficit months red), earning and expense reports by category and by week,
   what each credit card paid for, and savings and investment month by month.
   On Reports and Accounts, hover (or tab to) the **?** in a card's top right corner to see
   what it shows.

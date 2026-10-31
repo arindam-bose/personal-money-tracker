@@ -266,10 +266,10 @@ function CashFlowCard({ ledger: l, months }: { ledger: Ledger; months: MonthRang
         itemStyle: { color, opacity: 0.4, borderColor: surface, borderWidth: 1 }, barMaxWidth: 24 },
     ];
   };
-  // Each month's background: income blue when it ended in surplus, spending orange in deficit,
-  // none when even. The axis's split areas take one colour per month, in order.
-  const tint = (hex: string) => `${hex}1f`; // at 12% opacity
-  const bands = sums.map((s) => (s.surplus > 0 ? tint(c1!) : s.surplus < 0 ? tint(c2!) : "transparent"));
+  // Each month's background: green when it ended in surplus, red in deficit, none when even.
+  // The axis's split areas take one colour per month, in order.
+  const tint = (tone: string) => `${token(tone)}1f`; // the token's hex, at 12% opacity
+  const bands = sums.map((s) => (s.surplus > 0 ? tint("--earning") : s.surplus < 0 ? tint("--expense") : "transparent"));
   const dot = (color: string, faded: boolean) =>
     `<span style="display:inline-block;width:10px;height:10px;border-radius:2px;margin-right:6px;background:${color};opacity:${faded ? 0.4 : 1}"></span>`;
   const row = (marker: string, name: string, cents: number) =>
@@ -285,13 +285,13 @@ function CashFlowCard({ ledger: l, months }: { ledger: Ledger; months: MonthRang
         return `<div style="margin-bottom:4px">${labels[m]}</div>`
           + row(dot(c1!, true), "Earned", s.earned) + row(dot(c1!, false), "Net earned", s.netEarnings)
           + row(dot(c2!, true), "Spent", s.spent) + row(dot(c2!, false), "Net spending", s.netSpent)
-          + (s.surplus === 0 ? "" : row(dot(s.surplus > 0 ? c1! : c2!, true), s.surplus > 0 ? "Surplus" : "Deficit", Math.abs(s.surplus)));
+          + (s.surplus === 0 ? "" : row(dot(token(s.surplus > 0 ? "--earning" : "--expense"), true), s.surplus > 0 ? "Surplus" : "Deficit", Math.abs(s.surplus)));
       },
     },
     legend: { ...(baseOption().legend as object), data: ["Earned", "Net earned", "Spent", "Net spending"] },
     xAxis: {
       type: "category", data: labels, ...axisStyle(),
-      // A gap in the card's colour between months, so two shaded months don't run together.
+      // A gap in the card's colour between months, so two green months don't run together.
       splitLine: { show: true, interval: 0, lineStyle: { color: surface, width: 3 } },
       splitArea: { show: true, interval: 0, areaStyle: { color: bands } },
     },
@@ -303,7 +303,7 @@ function CashFlowCard({ ledger: l, months }: { ledger: Ledger; months: MonthRang
   };
   const keys = ["earned", "netEarnings", "spent", "netSpent", "surplus"] as const;
   return (
-    <Card title="Monthly cash flow" subtitle="Earned and spent each month. The solid part of each bar is the net amount: net earned within Earned, net spending within Spent. A blue month ended in surplus, an orange one in deficit.">
+    <Card title="Monthly cash flow" subtitle="Earned and spent each month. The solid part of each bar is the net amount: net earned within Earned, net spending within Spent. A green month ended in surplus, a red one in deficit.">
       <Chart option={option} height={300} label="Earned and net earned, spent and net spending, per month" />
       <TableView head={["Month", "Earned", "Net earned", "Spent", "Net spending", "Surplus"]}
         rows={sums.map((s, i) => [labels[i]!, ...keys.map((k) => formatCents(s[k]))])}

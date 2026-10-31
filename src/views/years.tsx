@@ -15,8 +15,8 @@ const MEASURES: { key: keyof Summary; label: string; color: (c: string[], value:
   { key: "netEarnings", label: "Net earnings", color: (c) => c[0]! },
   { key: "spent", label: "Spent", color: (c) => c[1]! },
   { key: "netSpent", label: "Net spending", color: (c) => c[1]! },
-  // Blue or orange per year, as Monthly cash flow shades surplus and deficit months.
-  { key: "surplus", label: "Surplus", color: (c, v) => c[v < 0 ? 1 : 0]! },
+  // Green or red per year, as in Monthly cash flow.
+  { key: "surplus", label: "Surplus", color: (_, v) => token(v < 0 ? "--expense" : "--earning") },
   { key: "netSavings", label: "Savings", color: (c) => c[2]! },
   { key: "investment", label: "Investment", color: (c) => c[3]! },
   { key: "ccPayments", label: "Credit card payments", color: () => token("--transfer") },
