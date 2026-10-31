@@ -160,7 +160,6 @@ a {
     white-space: nowrap;
   }
 
-  .topbar .version,
   .topbar-right .long {
     display: none;
   }
@@ -201,6 +200,19 @@ a {
   main {
     margin: 16px auto;
     padding: 0 16px;
+  }
+}
+
+/* Phones: the version goes under the title, small, to leave the bar room for its buttons. */
+@media (max-width: 600px) {
+  .topbar h1 {
+    display: flex;
+    flex-direction: column;
+    line-height: 1.15;
+  }
+
+  .topbar .version {
+    font-size: 11px;
   }
 }
 
