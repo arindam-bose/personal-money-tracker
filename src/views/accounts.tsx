@@ -16,6 +16,7 @@ import type { Account, AccountType, EarningRole, YearSetup } from "../types";
 import { startsMidYear, yearStart } from "../year";
 import { DateField } from "./date-field";
 import { CardTitle } from "./help";
+import { idByName, useSaved } from "./saved";
 
 const TYPE_LABEL: Record<AccountType, string> = {
   checking: "Checking", savings: "Savings", cash: "Cash", credit: "Credit card", investment: "Investment", loan: "Loan / mortgage", asset: "Asset",
@@ -54,6 +55,13 @@ function attempt(change: (s: YearSetup, u: Usage) => YearSetup, onError: (msg: s
   return tryAction(() => updateSetup(change), onError);
 }
 
+/** Calls `then` when the save went through, and passes the result on. */
+async function after(saving: Promise<boolean>, then: () => void): Promise<boolean> {
+  const ok = await saving;
+  if (ok) then();
+  return ok;
+}
+
 export function AccountsView() {
   const data = current.value;
   if (!data) {
@@ -90,17 +98,18 @@ function AccountsCard({ setup, usage }: { setup: YearSetup; usage: Usage }) {
   /** The account whose Close form is open, or null. */
   const closing = useSignal<string | null>(null);
   const error = useSignal<string | null>(null);
+  const saved = useSaved();
   const bal = balances(ledger.value!);
   // Open accounts first, then hidden ones, then closed ones.
   const rank = (a: Account) => (a.closedOn ? 2 : a.archived ? 1 : 0);
   const sorted = [...setup.accounts].sort((a, b) => rank(a) - rank(b));
 
   async function reopen(a: Account) {
-    await attempt((s) => reopenAccount(s, a.id), (m) => (error.value = m));
+    await after(attempt((s) => reopenAccount(s, a.id), (m) => (error.value = m)), () => saved.flash(a.id));
   }
 
   async function toggleArchive(a: Account) {
-    await attempt((s) => saveAccount(s, { ...a, archived: !a.archived }), (m) => (error.value = m));
+    await after(attempt((s) => saveAccount(s, { ...a, archived: !a.archived }), (m) => (error.value = m)), () => saved.flash(a.id));
   }
   async function copy(a: Account) {
     let id = "";
@@ -126,7 +135,8 @@ function AccountsCard({ setup, usage }: { setup: YearSetup; usage: Usage }) {
               ? <>on the morning of {shortDate(yearStart(setup))}, when tracking began. Nothing before that day is in the ledger.</>
               : <>on January 1, {setup.year}.</>}
           </CardTitle>
-          <StartField key={yearStart(setup)} setup={setup} onError={(m) => (error.value = m)} />
+          <StartField key={yearStart(setup)} setup={setup} onError={(m) => (error.value = m)} onSaved={() => saved.flash("start")} />
+          {saved.mark("start")}
         </div>
         {!readOnly.value && editing.value === null && (
           <button type="button" onClick={() => (editing.value = "new")}>+ Add account</button>
@@ -134,7 +144,7 @@ function AccountsCard({ setup, usage }: { setup: YearSetup; usage: Usage }) {
       </div>
 
       {editing.value === "new" && (
-        <AccountForm onDone={() => (editing.value = null)} first={setup.accounts.length === 0} />
+        <AccountForm onDone={() => (editing.value = null)} onSaved={saved.flash} first={setup.accounts.length === 0} />
       )}
       {error.value && <p class="form-error" role="alert">{error.value}</p>}
 
@@ -149,7 +159,7 @@ function AccountsCard({ setup, usage }: { setup: YearSetup; usage: Usage }) {
           </thead>
           <tbody>
             {sorted.map((a) => editing.value === a.id ? (
-              <tr key={a.id}><td colSpan={9}><AccountForm account={a} onDone={() => (editing.value = null)} /></td></tr>
+              <tr key={a.id}><td colSpan={9}><AccountForm account={a} onDone={() => (editing.value = null)} onSaved={saved.flash} /></td></tr>
             ) : (
               <Fragment key={a.id}>
                 <tr class={a.archived || a.closedOn ? "archived" : ""}>
@@ -202,15 +212,16 @@ function AccountsCard({ setup, usage }: { setup: YearSetup; usage: Usage }) {
                           </>
                         )}
                         {!usage.accounts.get(a.id) && <button type="button" class="danger" onClick={() => remove(a)}>Delete</button>}
+                        {saved.mark(a.id)}
                       </div>
                     )}
                   </td>
                 </tr>
                 {valuing.value === a.id && (
-                  <tr><td colSpan={9}><ValuationForm account={a} setup={setup} onDone={() => (valuing.value = null)} /></td></tr>
+                  <tr><td colSpan={9}><ValuationForm account={a} setup={setup} onDone={() => (valuing.value = null)} onSaved={saved.flash} /></td></tr>
                 )}
                 {closing.value === a.id && !a.closedOn && (
-                  <tr><td colSpan={9}><CloseForm account={a} setup={setup} onDone={() => (closing.value = null)} /></td></tr>
+                  <tr><td colSpan={9}><CloseForm account={a} setup={setup} onDone={() => (closing.value = null)} onSaved={saved.flash} /></td></tr>
                 )}
               </Fragment>
             ))}
@@ -242,7 +253,7 @@ function updateDay(setup: YearSetup): string {
  * Note what an investment account is worth: today by default, or another day in the year.
  * Lists the earlier updates, newest first, so a wrong one can be deleted.
  */
-function ValuationForm(props: { account: Account; setup: YearSetup; onDone: () => void }) {
+function ValuationForm(props: { account: Account; setup: YearSetup; onDone: () => void; onSaved: (id: string) => void }) {
   const { account: a, setup } = props;
   const first = yearStart(setup), last = `${setup.year}-12-31`;
   const word = valueWord(a);
@@ -256,7 +267,10 @@ function ValuationForm(props: { account: Account; setup: YearSetup; onDone: () =
     e.preventDefault();
     const cents = parseCents(amount.value);
     if (cents === null) return void (error.value = `Enter the ${word} like 1234.56.`);
-    if (await attempt((s) => saveValuation(s, a.id, date.value, cents), (m) => (error.value = m))) amount.value = "";
+    if (await attempt((s) => saveValuation(s, a.id, date.value, cents), (m) => (error.value = m))) {
+      amount.value = "";
+      props.onSaved(a.id);
+    }
   }
 
   return (
@@ -302,14 +316,17 @@ function ValuationForm(props: { account: Account; setup: YearSetup; onDone: () =
  * Close an account on a day. What closing means depends on the account: an asset or investment
  * is worth nothing from then; any other account must already be at 0, its money moved by a transfer.
  */
-function CloseForm(props: { account: Account; setup: YearSetup; onDone: () => void }) {
+function CloseForm(props: { account: Account; setup: YearSetup; onDone: () => void; onSaved: (id: string) => void }) {
   const { account: a, setup } = props;
   const date = useSignal(updateDay(setup));
   const error = useSignal<string | null>(null);
 
   async function onSubmit(e: Event) {
     e.preventDefault();
-    if (await tryAction(() => setClosed(a.id, date.value), (m) => (error.value = m))) props.onDone();
+    if (await tryAction(() => setClosed(a.id, date.value), (m) => (error.value = m))) {
+      props.onSaved(a.id);
+      props.onDone();
+    }
   }
 
   return (
@@ -352,7 +369,7 @@ function owedText(balance: number): string {
  * date passes through other valid dates on the way (the 2nd before the 21st), and each would
  * otherwise be saved.
  */
-function StartField(props: { setup: YearSetup; onError: (msg: string | null) => void }) {
+function StartField(props: { setup: YearSetup; onError: (msg: string | null) => void; onSaved: () => void }) {
   const saved = yearStart(props.setup);
   const draft = useSignal(saved);
   const changed = draft.value !== saved && draft.value !== "";
@@ -361,7 +378,8 @@ function StartField(props: { setup: YearSetup; onError: (msg: string | null) => 
     e.preventDefault();
     if (!changed) return;
     // On success the field remounts with the new start (its key); on failure it goes back.
-    if (!(await tryAction(() => setStart(draft.value), props.onError))) draft.value = saved;
+    if (await tryAction(() => setStart(draft.value), props.onError)) props.onSaved();
+    else draft.value = saved;
   }
 
   return (
@@ -388,7 +406,7 @@ function openingLabel(isCard: boolean, isInvestment: boolean, setup: YearSetup):
   return isCard ? `Owed on ${day}` : `Balance on ${day}`;
 }
 
-function AccountForm(props: { account?: Account; first?: boolean; onDone: () => void }) {
+function AccountForm(props: { account?: Account; first?: boolean; onDone: () => void; onSaved: (id: string) => void }) {
   const a = props.account;
   const name = useSignal(a?.name ?? "");
   const type = useSignal<AccountType>(a?.type ?? "checking");
@@ -439,13 +457,15 @@ function AccountForm(props: { account?: Account; first?: boolean; onDone: () => 
       ...(a?.valuations ? { valuations: a.valuations } : {}),
       ...(a?.closedOn ? { closedOn: a.closedOn } : {}),
     };
+    let id = a?.id ?? "";
     const ok = await attempt((s, u) => {
       const saved = saveAccount(s, account, u);
+      id ||= saved.accounts.find((x) => !s.accounts.some((y) => y.id === x.id))!.id;
       if (!isAsset || a || opening.value.trim() === "") return saved;
-      const added = saved.accounts.find((x) => !s.accounts.some((y) => y.id === x.id))!;
-      return saveValuation(saved, added.id, updateDay(s), amount);
+      return saveValuation(saved, id, updateDay(s), amount);
     }, (m) => (error.value = m));
     if (!ok) return;
+    props.onSaved(id);
     if (a) return props.onDone();
     // Ready for the next account.
     name.value = ""; ref.value = ""; opening.value = ""; limit.value = ""; loanStart.value = ""; loanAmount.value = ""; rate.value = "";
@@ -530,10 +550,16 @@ function CategoryCard({ kind, setup, usage }: { kind: CategoryKind; setup: YearS
   const locked = readOnly.value;
   const fallback = uncategorizedId(setup, kind);
   const setError = (m: string | null) => (error.value = m);
+  const saved = useSaved();
 
   async function add(e: Event) {
     e.preventDefault();
-    if (await attempt((s) => saveCategory(s, kind, { id: "", name: newName.value, role: newRole.value }), setError)) newName.value = "";
+    const name = newName.value;
+    if (await attempt((s) => saveCategory(s, kind, { id: "", name, role: newRole.value }), setError)) {
+      newName.value = "";
+      const id = idByName(current.value!.setup.categories[kind], name);
+      if (id) saved.flash(id);
+    }
   }
 
   async function remove(c: { id: string; name: string }) {
@@ -553,18 +579,18 @@ function CategoryCard({ kind, setup, usage }: { kind: CategoryKind; setup: YearS
         {list.map((c) => (
           <li key={c.id}>
             <NameInput value={c.name} disabled={locked} label={`Rename ${c.name}`}
-              onCommit={(name) => attempt((s) => saveCategory(s, kind, { ...c, name }), setError)} />
+              onCommit={(name) => after(attempt((s) => saveCategory(s, kind, { ...c, name }), setError), () => saved.flash(c.id))} />
             {/* Uncategorized's role is fixed, so entries moved there stay out of the headline figures. */}
             <select value={c.role ?? ""} disabled={locked || c.id === fallback} aria-label={`What ${c.name} is for`}
               title={c.id === fallback ? "Fixed, so entries from deleted categories don't count as pay, savings or investing" : undefined}
               onChange={(e) => {
                 // Read now: the change runs later, in turn with other saves, when the event no longer has a target.
                 const role = e.currentTarget.value;
-                attempt((s) => saveCategory(s, kind, { ...c, role }), setError);
+                after(attempt((s) => saveCategory(s, kind, { ...c, role }), setError), () => saved.flash(c.id));
               }}>
               {Object.entries(ROLE_LABEL[kind]).map(([role, label]) => <option value={role}>{label}</option>)}
             </select>
-            {kind === "earning" && <NetTick cat={c} locked={locked || c.id === fallback} onChange={(net) => attempt((s) => saveCategory(s, kind, { ...c, net }), setError)} />}
+            {kind === "earning" && <NetTick cat={c} locked={locked || c.id === fallback} onChange={(net) => after(attempt((s) => saveCategory(s, kind, { ...c, net }), setError), () => saved.flash(c.id))} />}
             <span class="uses" title="Entries using it">{usage.categories.get(c.id) ?? 0}</span>
             {!locked && (c.id === fallback ? (
               <span class="del-placeholder" title="Entries from deleted categories go here, so it can't be deleted." />
@@ -575,6 +601,7 @@ function CategoryCard({ kind, setup, usage }: { kind: CategoryKind; setup: YearS
                 ×
               </button>
             ))}
+            {saved.mark(c.id)}
           </li>
         ))}
       </ul>
@@ -600,10 +627,16 @@ function TagsCard({ tags, uses }: { tags: { id: string; name: string }[]; uses: 
   const newName = useSignal("");
   const locked = readOnly.value;
   const setError = (m: string | null) => (error.value = m);
+  const saved = useSaved();
 
   async function add(e: Event) {
     e.preventDefault();
-    if (await attempt((s) => saveTag(s, { id: "", name: newName.value }), setError)) newName.value = "";
+    const name = newName.value;
+    if (await attempt((s) => saveTag(s, { id: "", name }), setError)) {
+      newName.value = "";
+      const id = idByName(current.value!.setup.tags, name);
+      if (id) saved.flash(id);
+    }
   }
 
   async function remove(t: { id: string; name: string }) {
@@ -623,7 +656,7 @@ function TagsCard({ tags, uses }: { tags: { id: string; name: string }[]; uses: 
         {tags.map((t) => (
           <li key={t.id}>
             <NameInput value={t.name} disabled={locked} label={`Rename ${t.name}`}
-              onCommit={(name) => attempt((s) => saveTag(s, { id: t.id, name }), setError)} />
+              onCommit={(name) => after(attempt((s) => saveTag(s, { id: t.id, name }), setError), () => saved.flash(t.id))} />
             <span class="uses" title="Entries using it">{uses.get(t.id) ?? 0}</span>
             {!locked && (
               <button type="button" class="icon-btn danger" aria-label={`Delete ${t.name}`}
@@ -632,6 +665,7 @@ function TagsCard({ tags, uses }: { tags: { id: string; name: string }[]; uses: 
                 ×
               </button>
             )}
+            {saved.mark(t.id)}
           </li>
         ))}
       </ul>
@@ -656,10 +690,16 @@ function PeopleCard({ setup, usage }: { setup: YearSetup; usage: Usage }) {
   const members = membersOf(setup);
   const first = members[0]!;
   const setError = (m: string | null) => (error.value = m);
+  const saved = useSaved();
 
   async function add(e: Event) {
     e.preventDefault();
-    if (await attempt((s) => saveMember(s, { id: "", name: newName.value }), setError)) newName.value = "";
+    const name = newName.value;
+    if (await attempt((s) => saveMember(s, { id: "", name }), setError)) {
+      newName.value = "";
+      const id = idByName(membersOf(current.value!.setup), name);
+      if (id) saved.flash(id);
+    }
   }
 
   async function remove(m: { id: string; name: string }) {
@@ -678,7 +718,7 @@ function PeopleCard({ setup, usage }: { setup: YearSetup; usage: Usage }) {
         {members.map((m) => (
           <li key={m.id}>
             <NameInput value={m.name} disabled={locked} label={`Rename ${m.name}`}
-              onCommit={(name) => attempt((s) => saveMember(s, { id: m.id, name }), setError)} />
+              onCommit={(name) => after(attempt((s) => saveMember(s, { id: m.id, name }), setError), () => saved.flash(m.id))} />
             <span class="uses" title="Entries for them">{memberUses(setup, usage, m.id)}</span>
             {!locked && (m.id === first.id ? (
               <span class="del-placeholder" title="The default person: new entries are theirs unless you pick someone else. Rename instead." />
@@ -688,6 +728,7 @@ function PeopleCard({ setup, usage }: { setup: YearSetup; usage: Usage }) {
                 ×
               </button>
             ))}
+            {saved.mark(m.id)}
           </li>
         ))}
       </ul>
