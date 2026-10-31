@@ -601,6 +601,64 @@ tr.row-transfer td {
   color: var(--transfer);
 }
 
+/* Phones: a table row of seven columns has no room, so each entry takes two lines, with
+   item and amount on the first, then date, category, account and person in small print.
+   Tags are left out here; the entry's form shows them. */
+@media (max-width: 600px) {
+  table.entries,
+  table.entries tbody {
+    display: block;
+  }
+
+  table.entries thead {
+    display: none;
+  }
+
+  table.entries tbody tr {
+    display: grid;
+    /* Category and account take what they need; when the line runs short, they share it. */
+    grid-template-columns: 24px auto minmax(0, max-content) minmax(0, max-content) 1fr auto;
+    grid-template-areas:
+      "act item item item item amount"
+      "act date cat account . person";
+    column-gap: 10px;
+    row-gap: 2px;
+    padding: 8px 12px 8px 4px;
+    border-bottom: 1px solid var(--border);
+  }
+
+  table.entries tbody tr:last-child {
+    border-bottom: none;
+  }
+
+  table.entries td {
+    width: auto;
+    padding: 0;
+    border-bottom: none;
+  }
+
+  table.entries .c-act { grid-area: act; align-self: center; padding: 0 !important; }
+  table.entries .c-item { grid-area: item; }
+  table.entries .c-amount { grid-area: amount; }
+  table.entries .c-date { grid-area: date; }
+  table.entries .c-cat { grid-area: cat; }
+  table.entries .c-account { grid-area: account; }
+  table.entries .c-person { grid-area: person; text-align: right; }
+  table.entries .c-tags { display: none; }
+
+  table.entries .c-date,
+  table.entries .c-cat,
+  table.entries .c-account,
+  table.entries .c-person {
+    font-size: 12px;
+    color: var(--muted);
+  }
+
+  table.entries .kind-dot {
+    margin-right: 5px;
+  }
+}
+
 .chip {
   display: inline-flex;
   align-items: center;
