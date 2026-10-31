@@ -55,6 +55,8 @@ export function ReportsView() {
     <div class="reports">
       {membersOf(data.setup).length > 1 && <div class="filters"><MemberPicker /></div>}
       {member && <p class="muted member-note">{member.name}’s entries only. Account balances are shared, so they’re under All people.</p>}
+      {/* First: where the balances stand. Account balances are shared, so it's left out for one person. */}
+      {!member && <BalancesCard ledger={l} year={year} start={start} lastDate={balancesEnd} />}
       <MoneyFlowCard ledger={l} year={year} />
       <CashFlowCard ledger={l} months={months} />
       <ReportTabs title="Earning reports" id="earning" tabs={{
@@ -70,7 +72,6 @@ export function ReportsView() {
         savings: { label: "Monthly savings", body: <SavingsCard ledger={l} months={months} /> },
         investment: { label: "Monthly investment", body: <InvestmentCard ledger={l} months={months} /> },
       }} />
-      {!member && <BalancesCard ledger={l} year={year} start={start} lastDate={balancesEnd} />}
     </div>
   );
 }
