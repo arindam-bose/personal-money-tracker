@@ -132,7 +132,11 @@ export interface Summary {
 
   /** Earnings that lower spending instead of counting as income: see spendingOffsetCategories. */
   offsets: Cents;
-  /** Expenses in "Transfer to external" categories: in Spent, but not in net spending. */
+  /**
+   * Expenses in "Transfer to external" categories, less refunds aimed at them: in Spent, but not
+   * in net spending. (A refund aimed at one is among the offsets; taking it off here too keeps it
+   * from lowering net spending, which never had the transfer in it.)
+   */
   transfersOut: Cents;
 
   /** What you really spent: spent − offsets − transfers out. */
@@ -168,7 +172,10 @@ export function summarize(ledger: Ledger, month?: number): Summary {
     if (!inMonth(i.date, month)) continue;
     earned += i.amount;
     if (counted.has(i.cat)) netEarnings += i.amount;
-    if (lowering.has(i.cat)) offsets += i.amount;
+    if (lowering.has(i.cat)) {
+      offsets += i.amount;
+      if (i.offsets && roles.expense.get(i.offsets) === "transfer_out") transfersOut -= i.amount;
+    }
     if (roles.earning.get(i.cat) === "paycheck") paycheck += i.amount;
   }
 
@@ -764,7 +771,7 @@ export interface BudgetView {
   spentUnbudgeted: Cents;
   /** Refunds and points not aimed at a category: they lower the total, not any line. */
   untargetedOffsets: Cents;
-  /** Spending in "Transfer to external" categories: on their lines, but out of the total. */
+  /** Spending in "Transfer to external" categories, net of refunds aimed at them: on their lines, but out of the total. */
   transfersOut: Cents;
   /** All lines − untargeted offsets − transfers out. Equals Summary.netSpent for the same months. */
   netSpent: Cents;
@@ -782,12 +789,12 @@ export function budgetView(ledger: Ledger, budgets: Budgets, year: number, wante
   const lowering = spendingOffsetCategories(ledger);
   const outward = new Set(ledger.categories.expense.filter((c) => c.role === "transfer_out").map((c) => c.id));
   const spent = new Map<string, Cents>();
-  // Gross, as Summary.transfersOut counts it, so the two totals agree.
+  // Net of refunds aimed at them, as Summary.transfersOut counts it, so the two totals agree.
   let untargetedOffsets = 0, transfersOut = 0;
   for (const m of months) {
     for (const [cat, c] of spendByCategory(ledger, m)) {
       spent.set(cat, (spent.get(cat) ?? 0) + c.net);
-      if (outward.has(cat)) transfersOut += c.gross;
+      if (outward.has(cat)) transfersOut += c.net;
     }
     for (const i of ledger.earnings) {
       if (inMonth(i.date, m) && lowering.has(i.cat) && !i.offsets) untargetedOffsets += i.amount;

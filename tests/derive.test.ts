@@ -154,10 +154,16 @@ describe("transfers to and from external accounts", () => {
     expect(feb.netSpent).toBe(summarize(l, 2).netSpent);
   });
 
-  it("keep the budget total equal to net spending, even with a refund aimed at one", () => {
+  it("take a refund aimed at one off the transfer, not off net spending", () => {
     const l = withExternal();
+    const before = summarize(l, 2).netSpent;
     l.earnings.push({ id: "i10", date: "2026-02-20", item: "Fee refunded", amount: 1000, account: "a_checking", cat: "ci_refunds", notes: "", offsets: "ce_out" });
-    expect(budgetView(l, { default: {} }, 2026, [2]).netSpent).toBe(summarize(l, 2).netSpent);
+    const s = summarize(l, 2);
+    expect(s.transfersOut).toBe(60000 - 1000);
+    expect(s.netSpent).toBe(before); // the transfer was never in net spending, so its refund isn't either
+    const feb = budgetView(l, { default: {} }, 2026, [2]);
+    expect(feb.transfersOut).toBe(60000 - 1000);
+    expect(feb.netSpent).toBe(s.netSpent);
   });
 });
 
