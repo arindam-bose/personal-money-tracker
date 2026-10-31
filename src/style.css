@@ -1036,8 +1036,12 @@ button.help-btn:focus-visible {
   content: "• ";
 }
 
-.tile-earning { border-left: 3px solid var(--earning); }
-.tile-expense { border-left: 3px solid var(--expense); }
+/* The colours Reports gives each concept (series 1 to 4, and 6 for loans). */
+.tile-income { border-left: 3px solid var(--series-1); }
+.tile-spending { border-left: 3px solid var(--series-2); }
+.tile-savings { border-left: 3px solid var(--series-3); }
+.tile-investing { border-left: 3px solid var(--series-4); }
+.tile-loans { border-left: 3px solid var(--series-6); }
 
 .tile .unpin {
   border: none;
@@ -1230,9 +1234,9 @@ button.help-btn:focus-visible {
   border-radius: 0 4px 4px 0;
 }
 
-/* The ledger's kind colours: earnings green, spending red. */
-.hbar-fill.earning { background: var(--earning); }
-.hbar-fill.expense { background: var(--expense); }
+/* Reports' colours: income blue, spending orange. */
+.hbar-fill.income { background: var(--series-1); }
+.hbar-fill.spending { background: var(--series-2); }
 
 .hbar-value,
 .hbar-share {

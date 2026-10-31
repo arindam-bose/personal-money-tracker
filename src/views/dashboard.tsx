@@ -89,7 +89,7 @@ export function DashboardView() {
     <section class="card">
       <h3>Earnings by category</h3>
       <p class="muted small">{periodName}, including refunds, points and money paid back. Click a category to see its entries.</p>
-      <CategoryBars tone="earning" amounts={earningsByCategory(l, month)}
+      <CategoryBars tone="income" amounts={earningsByCategory(l, month)}
         names={new Map(setup.categories.earning.map((c) => [c.id, c.name]))} empty="No earnings in this period."
         onPick={(cat) => showInLedger({ ...inLedger, cat, kind: "earning" })} />
     </section>
@@ -98,7 +98,7 @@ export function DashboardView() {
     <section class="card">
       <h3>Spending by category</h3>
       <p class="muted small">{periodName}. Click a category to see its entries.</p>
-      <CategoryBars tone="expense" amounts={new Map([...cats].map(([id, c]) => [id, c.gross]))}
+      <CategoryBars tone="spending" amounts={new Map([...cats].map(([id, c]) => [id, c.gross]))}
         names={new Map(setup.categories.expense.map((c) => [c.id, c.name]))} empty="No spending in this period."
         onPick={(cat) => showInLedger({ ...inLedger, cat, kind: "expense" })} />
     </section>
@@ -135,22 +135,22 @@ export function DashboardView() {
       )}
 
       <div class="tiles">
-        <Tile label="Earned" kind="earning" value={formatCents(sum.earned)}
+        <Tile label="Earned" concept="income" value={formatCents(sum.earned)}
           detail={[`Paychecks ${formatCents(sum.paycheck)}`, `Other ${formatCents(sum.otherEarned)}`]} />
-        <Tile label="Net earnings" kind="earning" value={formatCents(sum.netEarnings)} detail={netEarningsDetail(l)} />
-        <Tile label="Spent" kind="expense" value={formatCents(sum.spent)}
+        <Tile label="Net earnings" concept="income" value={formatCents(sum.netEarnings)} detail={netEarningsDetail(l)} />
+        <Tile label="Spent" concept="spending" value={formatCents(sum.spent)}
           detail={[`Bank ${formatCents(sum.spentBySource.bank)}`, `Card ${formatCents(sum.spentBySource.card)}`, `Cash ${formatCents(sum.spentBySource.cash)}`]} />
-        <Tile label="Net spending" kind="expense" value={formatCents(sum.netSpent)}
+        <Tile label="Net spending" concept="spending" value={formatCents(sum.netSpent)}
           detail={netSpendingDetail(l, sum.offsets)} />
         <Tile label="Surplus" value={formatCents(sum.surplus)} tone={sum.surplus > 0 ? "pos" : sum.surplus < 0 ? "neg" : undefined}
           detail={`Earned ${formatCents(sum.earned)} − spent ${formatCents(sum.spent)}`} />
-        <Tile label="Savings" value={formatCents(sum.netSavings)}
+        <Tile label="Savings" concept="savings" value={formatCents(sum.netSavings)}
           detail={`${formatPercent(sum.savingsRate)} of paychecks`} />
-        <Tile label="Investment" value={formatCents(sum.investment)}
+        <Tile label="Investment" concept="investing" value={formatCents(sum.investment)}
           detail={[`${formatPercent(sum.investmentRate)} of paychecks`, `Retirement ${formatPercent(sum.investment ? sum.investRetirement / sum.investment : null)}`, `Taxable ${formatPercent(sum.investment ? sum.investTaxable / sum.investment : null)}`]} />
         <Tile label="Credit card payments" value={formatCents(sum.ccPayments)} detail="Transfers, not counted in spending" />
         <Tile label="Charity" value={formatCents(sum.charity)} detail={`${formatPercent(sum.charityRate)} of paychecks`} />
-        <Tile label="Loan payments" value={formatCents(sum.loanPayments)} detail="Transfers to loans, not counted in spending" />
+        <Tile label="Loan payments" concept="loans" value={formatCents(sum.loanPayments)} detail="Transfers to loans, not counted in spending" />
         {pinnedTags.value.map((id) => {
           const tag = setup.tags.find((t) => t.id === id);
           return tag ? (
@@ -201,10 +201,16 @@ function netSpendingDetail(l: Ledger, offsets: number): string {
   return names.length ? `After ${formatCents(offsets)} of ${names.join(" + ")}` : "No earning category lowers spending, so nothing comes off.";
 }
 
-/** A dashboard figure. A detail given as a list shows one "• item" per line; kind adds the ledger's colour stripe. */
-function Tile(props: { label: string; value: string; detail?: string | string[]; kind?: "earning" | "expense"; tone?: "pos" | "neg"; onRemove?: () => void }) {
+/**
+ * A dashboard figure. A detail given as a list shows one "• item" per line. A concept adds a colour
+ * stripe, the same colour Reports gives it: income blue, spending orange, savings green, investing amber, loans plum.
+ */
+function Tile(props: {
+  label: string; value: string; detail?: string | string[]; concept?: "income" | "spending" | "savings" | "investing" | "loans";
+  tone?: "pos" | "neg"; onRemove?: () => void;
+}) {
   return (
-    <div class={`tile card ${props.kind ? `tile-${props.kind}` : ""}`}>
+    <div class={`tile card ${props.concept ? `tile-${props.concept}` : ""}`}>
       <div class="tile-label">
         {props.label}
         {props.onRemove && (
@@ -249,8 +255,8 @@ function PinTag() {
 
 /** Horizontal bars, one hue: the job is comparing amounts, not telling categories apart. */
 function CategoryBars(props: {
-  /** Bar colour: green for earnings, red for spending, matching the ledger. */
-  tone: "earning" | "expense";
+  /** Bar colour: Reports' income blue or spending orange. */
+  tone: "income" | "spending";
   /** Category id -> amount. Categories at 0 are left out. */
   amounts: Map<string, number>;
   names: Map<string, string>;
