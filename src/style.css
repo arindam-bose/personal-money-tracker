@@ -2024,7 +2024,7 @@ button.danger-solid {
     align-items: baseline;
     column-gap: 10px;
     row-gap: 4px;
-    padding: 10px 0;
+    padding: 8px 0;
     border-bottom: 1px solid var(--border);
   }
 
@@ -2058,8 +2058,8 @@ button.danger-solid {
     text-align: left !important;
   }
 
-  .setup-table .a-meta:empty,
-  .setup-table .a-balance:empty {
+  /* An empty balance (an asset's) still holds its place, so the small print stays on the second line. */
+  .setup-table .a-meta:empty {
     display: none;
   }
 
@@ -2097,6 +2097,37 @@ button.danger-solid {
 
   .card-head > button {
     white-space: nowrap;
+  }
+}
+
+/* Tablets and narrow windows have the room for two lines: the small print on the left of the
+   second, the buttons at its right end, then Duplicate (invisible until hovered, so it goes
+   last rather than leave a gap at the start). */
+@media (min-width: 601px) and (max-width: 1199px) {
+  .setup-table tbody tr {
+    padding: 6px 0;
+  }
+
+  .setup-table tbody tr::after {
+    display: none;
+  }
+
+  .setup-table .a-actions {
+    flex: 0 0 auto;
+    margin-left: auto;
+  }
+
+  .setup-table .row-actions {
+    justify-content: flex-end;
+  }
+
+  .setup-table .c-act {
+    order: 6;
+  }
+
+  .setup-table .row-actions button {
+    padding: 3px 10px;
+    font-size: 13px;
   }
 }
 
