@@ -27,6 +27,12 @@
   --series-9: #0aa5c9;
   --series-10: #86a800;
   --series-other: #a3a29c;
+  /* Reports' colours for earnings and spending, used across the app, and versions deep enough
+     to read as text (orange on white alone is too faint). They follow dark mode with the series. */
+  --income: var(--series-1);
+  --spending: var(--series-2);
+  --income-text: color-mix(in srgb, var(--series-1) 85%, var(--text));
+  --spending-text: color-mix(in srgb, var(--series-2) 72%, var(--text));
   --chart-grid: #ecebe6;
   --chart-axis: #c3c2b7;
   --heat: 42, 120, 214; /* sequential hue (blue) as r, g, b for the heatmap */
@@ -452,7 +458,7 @@ button.add {
   gap: 6px;
   padding: 9px 12px;
   font-weight: 600;
-  color: var(--kind);
+  color: var(--kind-text, var(--kind));
   background: color-mix(in srgb, var(--kind) 7%, var(--surface));
   border-color: color-mix(in srgb, var(--kind) 35%, var(--surface));
   border-left: 3px solid var(--kind);
@@ -463,8 +469,8 @@ button.add:hover {
   background: color-mix(in srgb, var(--kind) 14%, var(--surface));
 }
 
-.add-earning { --kind: var(--earning); }
-.add-expense { --kind: var(--expense); }
+.add-earning { --kind: var(--income); --kind-text: var(--income-text); }
+.add-expense { --kind: var(--spending); --kind-text: var(--spending-text); }
 .add-transfer { --kind: var(--transfer); }
 
 .add-icon {
@@ -543,8 +549,8 @@ button.add kbd {
   font-variant-numeric: tabular-nums;
 }
 
-.totals b.neg { color: var(--expense); }
-.totals b.pos { color: var(--earning); }
+.totals b.neg { color: var(--spending-text); }
+.totals b.pos { color: var(--income-text); }
 
 table.entries {
   width: 100%;
@@ -658,12 +664,12 @@ tr.flash td {
   vertical-align: 1px;
 }
 
-.dot-expense { background: var(--expense); }
-.dot-earning { background: var(--earning); }
+.dot-expense { background: var(--spending); }
+.dot-earning { background: var(--income); }
 .dot-transfer { background: var(--transfer); }
 
 .amt-expense { color: var(--text); }
-.amt-earning { color: var(--earning); }
+.amt-earning { color: var(--income-text); }
 
 /* Transfers move money without spending it: muted throughout. */
 tr.row-transfer td {
@@ -767,13 +773,13 @@ tr.row-transfer td {
 .entry-form {
   background: var(--surface);
   border: 1px solid var(--border);
-  border-left: 4px solid var(--expense);
+  border-left: 4px solid var(--spending);
   border-radius: 8px;
   padding: 12px 16px 16px;
   margin-bottom: 16px;
 }
 
-.entry-form.kind-earning { border-left-color: var(--earning); }
+.entry-form.kind-earning { border-left-color: var(--income); }
 .entry-form.kind-transfer { border-left-color: var(--transfer); }
 
 .kind-tabs {
