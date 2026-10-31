@@ -2031,13 +2031,21 @@ button.icon-action:hover {
   background: var(--row-hover);
 }
 
-button.icon-action.danger {
-  color: var(--danger);
+/* Delete in red and Update balance / value in green, each tinted like the "+ Add" buttons
+   (without the stripe, which a small square can't carry). */
+button.icon-action.danger { --kind: var(--danger); }
+button.icon-action.icon-update { --kind: var(--earning); }
+
+button.icon-action.danger,
+button.icon-action.icon-update {
+  color: var(--kind);
+  background: color-mix(in srgb, var(--kind) 7%, var(--surface));
+  border-color: color-mix(in srgb, var(--kind) 35%, var(--surface));
 }
 
-/* Update balance / value: its rising line in green. */
-button.icon-action.icon-update {
-  color: var(--earning);
+button.icon-action.danger:hover,
+button.icon-action.icon-update:hover {
+  background: color-mix(in srgb, var(--kind) 14%, var(--surface));
 }
 
 /* Phones: a bigger target for a finger. */
