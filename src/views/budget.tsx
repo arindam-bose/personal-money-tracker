@@ -196,7 +196,7 @@ function Left({ line }: { line: BudgetLine }) {
 }
 
 /**
- * Spent against target as a bar. Over budget fills completely in the warning colour.
+ * Spent against target as a bar, in spending orange. Over budget fills completely, in red stripes.
  * The tick marks how much of the month has passed, so you can see if spending is ahead of pace.
  */
 export function BudgetBar({ line, pace }: { line: BudgetLine; pace: number | null }) {

@@ -1789,12 +1789,13 @@ button.danger-solid {
   font-weight: 600;
 }
 
+/* Spending orange, as Reports colours spending. */
 .budget-bar {
   position: relative;
   display: block;
   height: 8px;
   border-radius: 4px;
-  background: rgba(var(--heat), 0.15);
+  background: color-mix(in srgb, var(--series-2) 18%, transparent);
 }
 
 .budget-bar .fill {
@@ -1802,11 +1803,13 @@ button.danger-solid {
   height: 100%;
   min-width: 2px;
   border-radius: 4px;
-  background: var(--series-1);
+  background: var(--series-2);
 }
 
+/* Over budget: red stripes, not just a redder colour. Dark mode's red is close to the orange,
+   and the stripes don't rely on colour at all ("Over by" says it in words too). */
 .budget-bar.over .fill {
-  background: var(--expense);
+  background: repeating-linear-gradient(-45deg, var(--danger) 0 4px, color-mix(in srgb, var(--danger) 45%, transparent) 4px 7px);
 }
 
 /* "Today" mark: where spending would be if it were spread evenly over the month. */
