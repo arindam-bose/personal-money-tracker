@@ -1111,6 +1111,12 @@ button.help-btn:focus-visible {
   }
 }
 
+/* Grid items default to min-width: auto, and a wide table would stretch the whole column past the screen. */
+.columns > *,
+.stack > * {
+  min-width: 0;
+}
+
 .hbars {
   list-style: none;
   margin: 0;
@@ -1165,6 +1171,23 @@ button.help-btn:focus-visible {
 .hbar-share {
   color: var(--muted);
   font-size: 12px;
+}
+
+/* Phones: the bar moves under its row, so the name and amounts get the whole width
+   (the Dashboard's budget list does the same, next to its own rules). */
+@media (max-width: 600px) {
+  .hbars button {
+    grid-template-columns: minmax(0, 1fr) auto 48px;
+    grid-template-areas:
+      "name value share"
+      "track track track";
+    row-gap: 4px;
+  }
+
+  .hbar-name { grid-area: name; }
+  .hbar-value { grid-area: value; }
+  .hbar-share { grid-area: share; }
+  .hbar-track { grid-area: track; height: 6px; }
 }
 
 .acct-table {
@@ -1641,6 +1664,20 @@ button.danger-solid {
 .budget-list .num {
   text-align: right;
   font-variant-numeric: tabular-nums;
+}
+
+@media (max-width: 600px) {
+  .budget-list li {
+    grid-template-columns: minmax(0, 1fr) auto;
+    grid-template-areas:
+      "name left"
+      "bar bar";
+    row-gap: 4px;
+  }
+
+  .budget-list .hbar-name { grid-area: name; }
+  .budget-list .num { grid-area: left; }
+  .budget-list .budget-bar { grid-area: bar; }
 }
 
 .sr-only {
