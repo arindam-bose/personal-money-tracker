@@ -45,7 +45,8 @@ export function baseOption(): ChartOption {
       textStyle: { color: text, fontSize: 13 },
       confine: true,
     },
-    legend: { top: 0, left: 0, icon: "roundRect", itemWidth: 10, itemHeight: 10, textStyle: { color: muted } },
+    // One line that scrolls when it doesn't fit (on a phone): wrapped onto more lines, it ran into the chart.
+    legend: { type: "scroll", top: 0, left: 0, icon: "roundRect", itemWidth: 10, itemHeight: 10, textStyle: { color: muted } },
     grid: { left: 8, right: 16, top: 36, bottom: 8, containLabel: true },
   };
 }
