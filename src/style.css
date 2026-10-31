@@ -317,6 +317,15 @@ select {
   min-width: 0;
 }
 
+/* Phones zoom the page into any field with text under 16px when it's tapped. */
+@media (max-width: 600px) {
+  input,
+  select,
+  textarea {
+    font-size: 16px;
+  }
+}
+
 input:focus-visible,
 select:focus-visible,
 button:focus-visible,
@@ -705,6 +714,17 @@ button.link.field-action {
 .w-cat { width: 210px; }
 .w-tags { flex: 1 1 300px; }
 .w-notes { flex: 1 1 100%; }
+
+/* Phones: one field per line, at full width. The keyboard hint has no keyboard to speak of. */
+@media (max-width: 600px) {
+  .entry-form .field {
+    flex: 1 1 100%;
+  }
+
+  .kind-tabs .hint {
+    display: none;
+  }
+}
 
 .tag-picker {
   position: relative;
