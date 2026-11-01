@@ -15,7 +15,7 @@ import { yearStart } from "../year";
 import { DateField } from "./date-field";
 import { SearchSelect, matching } from "./search-select";
 
-const KIND_LABEL: Record<Kind, string> = { expense: "Expense", earning: "Earning", transfer: "Transfer" };
+const KIND_LABEL: Record<Kind, string> = { earning: "Earning", expense: "Expense", transfer: "Transfer" };
 
 interface Props {
   initial: Draft;
@@ -129,7 +129,7 @@ export function EntryForm({ initial, onClose }: Props) {
   return (
     <form class={`entry-form kind-${d.kind}`} onSubmit={onSubmit} onKeyDown={onKeyDown} noValidate>
       <div class="kind-tabs" role="tablist">
-        {(["expense", "earning", "transfer"] as Kind[]).map((k) => (
+        {(["earning", "expense", "transfer"] as Kind[]).map((k) => (
           <button type="button" role="tab" aria-selected={d.kind === k} class={d.kind === k ? "active" : ""} onClick={() => switchKind(k)}>
             {KIND_LABEL[k]}
           </button>
