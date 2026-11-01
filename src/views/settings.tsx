@@ -14,6 +14,7 @@ import {
 } from "../state";
 import { IRA_LIMITS, iraLimitOf } from "../setup";
 import { AboutCard } from "./about";
+import { IconButton } from "./icons";
 import { checkForUpdates, offlineChanged, offlineStatus } from "../offline";
 import { detectDevice } from "../device";
 import { installState, installSteps, promptInstall } from "../install";
@@ -192,16 +193,21 @@ export function SettingsView() {
                       <button type="button" class="danger-solid" onClick={() => onDelete(setup.year)}>Delete</button>
                     </div>
                   ) : (
+                    // Icons, as on the Accounts page: each says what it does in its tooltip.
                     <div class="row-actions">
-                      <button type="button" onClick={() => onExport(setup.year)}>
-                        Export JSON
-                      </button>
+                      <IconButton icon="export" label={`Export ${setup.year} as JSON`}
+                        title="Export JSON: download this year as a backup file" onClick={() => onExport(setup.year)} />
                       {setup.closed ? (
-                        <button type="button" onClick={() => onReopen(setup.year)}>Reopen</button>
+                        <IconButton icon="reopen" label={`Reopen ${setup.year}`}
+                          title="Reopen: make this year editable again" onClick={() => onReopen(setup.year)} />
                       ) : (
-                        <button type="button" onClick={() => (closing.value = setup.year)}>Close year…</button>
+                        <IconButton icon="close" label={`Close ${setup.year}…`}
+                          title="Close year…: it's finished. It stops taking changes, and the next year starts from its closing balances."
+                          onClick={() => (closing.value = setup.year)} />
                       )}
-                      <button type="button" class="danger" onClick={() => (deleting.value = setup.year)}>Delete…</button>
+                      <IconButton icon="delete" danger label={`Delete ${setup.year}…`}
+                        title="Delete…: remove this year from this browser. Import its backup to bring it back."
+                        onClick={() => (deleting.value = setup.year)} />
                     </div>
                   )}
                 </td>
