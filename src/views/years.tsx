@@ -8,24 +8,29 @@ import { ledgerOf, ratio, spendByCategory, summarize, tagTotal, type Summary } f
 import { formatCents, formatCompact, formatPercent } from "../money";
 import { current, loadAllYears, pins, savePins, years, type YearSummary } from "../state";
 import type { PinSetting } from "../types";
-import { Chart, axisStyle, baseOption, money, moneyAxis, seriesColors, token, type ChartOption } from "./chart";
+import { theme } from "../theme";
+import { Chart, axisStyle, baseOption, money, moneyAxis, token, type ChartOption } from "./chart";
+import { CONCEPT_TOKEN, FIGURE_CONCEPT, PINNED_CONCEPT, surplusConcept, type Concept } from "./concepts";
 import { CardTitle, PageHelp } from "./help";
 import { PinTotal } from "./pin-total";
 
-/** The Dashboard's tiles, in its order. Colours match Reports: earning, spending, savings, investing, loans. */
-const MEASURES: { key: keyof Summary; label: string; color: (c: string[], value: number) => string }[] = [
-  { key: "earned", label: "Earned", color: (c) => c[0]! },
-  { key: "netEarnings", label: "Net earnings", color: (c) => c[0]! },
-  { key: "spent", label: "Spent", color: (c) => c[1]! },
-  { key: "netSpent", label: "Net spending", color: (c) => c[1]! },
+/** The Dashboard's tiles, in its order, each in its tile's stripe colour (concepts.ts). */
+const MEASURES: { key: keyof Summary; label: string; concept: (value: number) => Concept }[] = [
+  { key: "earned", label: "Earned", concept: () => FIGURE_CONCEPT.earned },
+  { key: "netEarnings", label: "Net earnings", concept: () => FIGURE_CONCEPT.netEarnings },
+  { key: "spent", label: "Spent", concept: () => FIGURE_CONCEPT.spent },
+  { key: "netSpent", label: "Net spending", concept: () => FIGURE_CONCEPT.netSpent },
   // Green or red per year, as in Monthly cash flow.
-  { key: "surplus", label: "Surplus", color: (_, v) => token(v < 0 ? "--expense" : "--earning") },
-  { key: "netSavings", label: "Savings", color: (c) => c[2]! },
-  { key: "investment", label: "Investment", color: (c) => c[3]! },
-  { key: "ccPayments", label: "Credit card payments", color: () => token("--transfer") },
-  { key: "charity", label: "Charity", color: (c) => c[1]! },
-  { key: "loanPayments", label: "Loan payments", color: (c) => c[5]! },
+  { key: "surplus", label: "Surplus", concept: surplusConcept },
+  { key: "netSavings", label: "Savings", concept: () => FIGURE_CONCEPT.netSavings },
+  { key: "investment", label: "Investment", concept: () => FIGURE_CONCEPT.investment },
+  { key: "ccPayments", label: "Credit card payments", concept: () => FIGURE_CONCEPT.ccPayments },
+  { key: "charity", label: "Charity", concept: () => FIGURE_CONCEPT.charity },
+  { key: "loanPayments", label: "Loan payments", concept: () => FIGURE_CONCEPT.loanPayments },
 ];
+
+/** A concept's colour, read from the page so it follows light or dark. */
+const colorOf = (concept: Concept) => token(CONCEPT_TOKEN[concept]);
 
 /** A year still under way: not closed, and not over yet. Its figures are so far, marked with an asterisk. */
 const inProgress = (d: YearData) => !d.setup.closed && d.setup.year >= new Date().getFullYear();
@@ -103,7 +108,7 @@ export function YearsView() {
   const sums = ledgers.map((l) => summarize(l));
   const labels = all.map((d) => `${d.setup.year}${inProgress(d) ? "*" : ""}`);
   const ongoing = all.filter(inProgress).map((d) => d.setup.year);
-  const colors = seriesColors();
+  void theme.value; // read, so the charts redraw in the new colours on a switch
   const value = (s: Summary, key: keyof Summary) => s[key] as number;
   const last = sums.length - 1;
   // Past four years, the axes say '24 to fit; the table keeps the full year.
@@ -111,7 +116,7 @@ export function YearsView() {
 
   const tagNames = namesInAllYears(all, tagsOf);
   const categoryNames = namesInAllYears(all, categoriesOf);
-  /** Charts for pinned tags or categories. They're spending, so they take Spent's colour; one deleted from every year drops out. */
+  /** Charts for pinned tags or categories, in their tiles' colour (spending); one deleted from every year drops out. */
   const pinned = (key: PinSetting, names: Map<string, string>, list: (d: YearData) => Named[],
     total: (year: number, id: string) => number): Figure[] => {
     const ids = pins[key].value;
@@ -119,7 +124,7 @@ export function YearsView() {
       const name = names.get(id);
       if (name === undefined) return [];
       return [{
-        key: `${key}:${id}`, label: name, color: () => colors[1]!,
+        key: `${key}:${id}`, label: name, color: () => colorOf(PINNED_CONCEPT),
         values: all.map((d, year) => {
           const own = idIn(list(d), id, name, names);
           return own ? total(year, own) : 0;
@@ -131,7 +136,7 @@ export function YearsView() {
   // Worked out once per year, for every pinned category.
   const categorySpend = pins.pinnedYearCategories.value.length ? ledgers.map((l) => spendByCategory(l)) : [];
   const figures: Figure[] = [
-    ...MEASURES.map((m) => ({ key: m.key, label: m.label, values: sums.map((s) => value(s, m.key)), color: (v: number) => m.color(colors, v) })),
+    ...MEASURES.map((m) => ({ key: m.key, label: m.label, values: sums.map((s) => value(s, m.key)), color: (v: number) => colorOf(m.concept(v)) })),
     // All spending in the category, before refunds, as in Spending by category.
     ...pinned("pinnedYearCategories", categoryNames, categoriesOf, (year, id) => categorySpend[year]!.get(id)?.gross ?? 0),
     ...pinned("pinnedYearTags", tagNames, tagsOf, (year, id) => tagTotal(ledgers[year]!, id)),

@@ -22,6 +22,7 @@ import type { Ledger } from "../derive";
 import type { Account } from "../types";
 import { firstMonth, yearStart } from "../year";
 import { BudgetBar } from "./budget";
+import { FIGURE_CONCEPT as FIG, PINNED_CONCEPT, surplusConcept, type Concept } from "./concepts";
 import { PinTotal } from "./pin-total";
 import { showInLedger } from "./ledger";
 import { MemberPicker, viewedLedger, viewedMember } from "./people";
@@ -137,26 +138,26 @@ export function DashboardView() {
       )}
 
       <div class="tiles">
-        <Tile label="Earned" concept="income" value={formatCents(sum.earned)}
+        <Tile label="Earned" concept={FIG.earned} value={formatCents(sum.earned)}
           detail={[`Paychecks ${formatCents(sum.paycheck)}`, `Other ${formatCents(sum.otherEarned)}`]} />
-        <Tile label="Net earnings" concept="income" value={formatCents(sum.netEarnings)} detail={netEarningsDetail(l)} />
-        <Tile label="Spent" concept="spending" value={formatCents(sum.spent)}
+        <Tile label="Net earnings" concept={FIG.netEarnings} value={formatCents(sum.netEarnings)} detail={netEarningsDetail(l)} />
+        <Tile label="Spent" concept={FIG.spent} value={formatCents(sum.spent)}
           detail={[`Bank ${formatCents(sum.spentBySource.bank)}`, `Card ${formatCents(sum.spentBySource.card)}`, `Cash ${formatCents(sum.spentBySource.cash)}`]} />
-        <Tile label="Net spending" concept="spending" value={formatCents(sum.netSpent)}
+        <Tile label="Net spending" concept={FIG.netSpent} value={formatCents(sum.netSpent)}
           detail={netSpendingDetail(l, sum.offsets)} />
-        <Tile label="Surplus" value={formatCents(sum.surplus)} tone={sum.surplus > 0 ? "pos" : sum.surplus < 0 ? "neg" : undefined}
+        <Tile label="Surplus" concept={surplusConcept(sum.surplus)} value={formatCents(sum.surplus)} tone={sum.surplus > 0 ? "pos" : sum.surplus < 0 ? "neg" : undefined}
           detail={`Earned ${formatCents(sum.earned)} − spent ${formatCents(sum.spent)}`} />
-        <Tile label="Savings" concept="savings" value={formatCents(sum.netSavings)}
+        <Tile label="Savings" concept={FIG.netSavings} value={formatCents(sum.netSavings)}
           detail={`${formatPercent(sum.savingsRate)} of paychecks`} />
-        <Tile label="Investment" concept="investing" value={formatCents(sum.investment)}
+        <Tile label="Investment" concept={FIG.investment} value={formatCents(sum.investment)}
           detail={[`${formatPercent(sum.investmentRate)} of paychecks`, `Retirement ${formatPercent(sum.investment ? sum.investRetirement / sum.investment : null)}`, `Taxable ${formatPercent(sum.investment ? sum.investTaxable / sum.investment : null)}`]} />
-        <Tile label="Credit card payments" value={formatCents(sum.ccPayments)} detail="Transfers, not counted in spending" />
-        <Tile label="Charity" value={formatCents(sum.charity)} detail={`${formatPercent(sum.charityRate)} of paychecks`} />
-        <Tile label="Loan payments" concept="loans" value={formatCents(sum.loanPayments)} detail="Transfers to loans, not counted in spending" />
+        <Tile label="Credit card payments" concept={FIG.ccPayments} value={formatCents(sum.ccPayments)} detail="Transfers, not counted in spending" />
+        <Tile label="Charity" concept={FIG.charity} value={formatCents(sum.charity)} detail={`${formatPercent(sum.charityRate)} of paychecks`} />
+        <Tile label="Loan payments" concept={FIG.loanPayments} value={formatCents(sum.loanPayments)} detail="Transfers to loans, not counted in spending" />
         {pins.pinnedTags.value.map((id) => {
           const tag = setup.tags.find((t) => t.id === id);
           return tag ? (
-            <Tile label={tag.name} value={formatCents(tagTotal(l, id, month))} detail="Pinned tag"
+            <Tile label={tag.name} concept={PINNED_CONCEPT} value={formatCents(tagTotal(l, id, month))} detail="Pinned tag"
               onRemove={() => savePins("pinnedTags", pins.pinnedTags.value.filter((t) => t !== id))} />
           ) : null;
         })}
@@ -164,7 +165,7 @@ export function DashboardView() {
         {pins.pinnedCategories.value.map((id) => {
           const cat = setup.categories.expense.find((c) => c.id === id);
           return cat ? (
-            <Tile label={cat.name} value={formatCents(cats.get(id)?.gross ?? 0)} detail="Pinned category"
+            <Tile label={cat.name} concept={PINNED_CONCEPT} value={formatCents(cats.get(id)?.gross ?? 0)} detail="Pinned category"
               onRemove={() => savePins("pinnedCategories", pins.pinnedCategories.value.filter((c) => c !== id))} />
           ) : null;
         })}
@@ -213,10 +214,10 @@ function netSpendingDetail(l: Ledger, offsets: number): string {
 
 /**
  * A dashboard figure. A detail given as a list shows one "• item" per line. A concept adds a colour
- * stripe, the same colour Reports gives it: income blue, spending orange, savings green, investing amber, loans plum.
+ * stripe, the same colour as the figure's Over the years chart (see concepts.ts).
  */
 function Tile(props: {
-  label: string; value: string; detail?: string | string[]; concept?: "income" | "spending" | "savings" | "investing" | "loans";
+  label: string; value: string; detail?: string | string[]; concept?: Concept;
   tone?: "pos" | "neg"; onRemove?: () => void;
 }) {
   return (

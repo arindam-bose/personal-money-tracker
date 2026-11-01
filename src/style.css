@@ -1105,12 +1105,16 @@ button.help-btn:focus-visible {
   content: "• ";
 }
 
-/* The colours Reports gives each concept (series 1 to 4, and 6 for loans). */
+/* Each figure's colour (src/views/concepts.ts, which its Over the years chart reads too):
+   Reports' series 1 to 4 and 6, the transfer slate, and green or red for a surplus. */
 .tile-income { border-left: 3px solid var(--series-1); }
 .tile-spending { border-left: 3px solid var(--series-2); }
 .tile-savings { border-left: 3px solid var(--series-3); }
 .tile-investing { border-left: 3px solid var(--series-4); }
 .tile-loans { border-left: 3px solid var(--series-6); }
+.tile-transfers { border-left: 3px solid var(--transfer); }
+.tile-gain { border-left: 3px solid var(--earning); }
+.tile-loss { border-left: 3px solid var(--expense); }
 
 .tile .unpin,
 .year-chart-head .unpin {
