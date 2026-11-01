@@ -59,9 +59,9 @@ entry, a loan, investments and a car, and accounts that were closed.
 - **Accounts**: your accounts, categories and tags. Tick **Net** on the earning
   categories that make up net earnings. Earnings in **Lowers spending**
   categories (refunds, points, money paid back) lower net spending instead.
-  **Transfer from external** and **Transfer to external** are for money to and
-  from your own accounts outside the tracker: they count in Earned and Spent,
-  but never in net earnings or net spending.
+  **Transfer from external** is for money from your own accounts outside the
+  tracker: it counts in Earned, but never in net earnings. Money sent out of the
+  tracker is spending like any other.
   Deleting a category moves its entries to **Uncategorized**; deleting a tag takes
   it off its expenses.
   On an investment account, **Update balance** notes what it's worth today; it

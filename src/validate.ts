@@ -10,7 +10,7 @@ export type ValidationResult = { ok: true; file: YearFile } | { ok: false; error
 const ACCOUNT_TYPES = Object.keys({
   checking: 1, savings: 1, cash: 1, credit: 1, investment: 1, loan: 1, asset: 1,
 } satisfies Record<AccountType, 1>) as AccountType[];
-const EXPENSE_ROLES = ["charity", "transfer_out"];
+const EXPENSE_ROLES = ["charity"];
 const EARNING_ROLES = ["paycheck", "income", "offset", "transfer_in"];
 const TRANSFER_ROLES = [
   "cc_payment", "savings_in", "savings_out", "invest_retirement",
@@ -68,7 +68,8 @@ function withoutKey(list: unknown, key: string): unknown {
  * Files saved before people were dropped can hold `people`, expense `owed` shares, earning
  * `person`s and a "reimbursement" earning role. Strip them, and make reimbursement "offset"
  * (money paid back now lowers spending), so those files still import. Files from before loan
- * payments were transfers can have a "loan" expense role: those categories become regular.
+ * payments were transfers can have a "loan" expense role, and files from before 4.0.1 a
+ * "transfer_out" one: those categories become regular.
  */
 function withoutLegacyPeople(data: Obj): Obj {
   const { people: _people, ...rest } = data;
@@ -77,7 +78,7 @@ function withoutLegacyPeople(data: Obj): Obj {
     ? { ...cats, earning: cats.earning.map((c) => (isObj(c) && c.role === "reimbursement" ? { ...c, role: "offset" } : c)) }
     : cats;
   if (isObj(categories) && Array.isArray(categories.expense)) {
-    categories = { ...categories, expense: withoutKeyWhere(categories.expense, "role", "loan") };
+    categories = { ...categories, expense: withoutKeyWhere(withoutKeyWhere(categories.expense, "role", "loan"), "role", "transfer_out") };
   }
   return { ...rest, categories, expenses: withoutKey(rest.expenses, "owed"), earnings: withoutKey(rest.earnings, "person") };
 }

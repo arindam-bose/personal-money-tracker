@@ -132,7 +132,7 @@ export async function openYear(year?: number): Promise<void> {
 }
 
 /**
- * What brings an older year up to date: drop people, owed shares and the old loan expense role,
+ * What brings an older year up to date: drop people, owed shares and the old loan and transfer-out expense roles,
  * and give open years Uncategorized. Null when there's nothing to change.
  */
 function upgrade(data: YearData): YearChange | null {

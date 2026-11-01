@@ -132,14 +132,7 @@ export interface Summary {
 
   /** Earnings that lower spending instead of counting as income: see spendingOffsetCategories. */
   offsets: Cents;
-  /**
-   * Expenses in "Transfer to external" categories, less refunds aimed at them: in Spent, but not
-   * in net spending. (A refund aimed at one is among the offsets; taking it off here too keeps it
-   * from lowering net spending, which never had the transfer in it.)
-   */
-  transfersOut: Cents;
-
-  /** What you really spent: spent − offsets − transfers out. */
+  /** What you really spent: spent − offsets. */
   netSpent: Cents;
   /** Earnings in categories that count toward net earnings (see countsInNetEarnings). */
   netEarnings: Cents;
@@ -154,15 +147,13 @@ export function summarize(ledger: Ledger, month?: number): Summary {
   const roles = rolesOf(ledger);
   const accountType = new Map(ledger.accounts.map((a) => [a.id, a.type]));
 
-  let spent = 0, charity = 0, transfersOut = 0;
+  let spent = 0, charity = 0;
   const spentBySource: Record<SpendSource, Cents> = { bank: 0, card: 0, cash: 0 };
   for (const e of ledger.expenses) {
     if (!inMonth(e.date, month)) continue;
     spent += e.amount;
     spentBySource[spendSource(accountType.get(e.account) ?? "checking")] += e.amount;
-    const role = roles.expense.get(e.cat);
-    if (role === "charity") charity += e.amount;
-    if (role === "transfer_out") transfersOut += e.amount;
+    if (roles.expense.get(e.cat) === "charity") charity += e.amount;
   }
 
   let earned = 0, paycheck = 0, offsets = 0, netEarnings = 0;
@@ -172,10 +163,7 @@ export function summarize(ledger: Ledger, month?: number): Summary {
     if (!inMonth(i.date, month)) continue;
     earned += i.amount;
     if (counted.has(i.cat)) netEarnings += i.amount;
-    if (lowering.has(i.cat)) {
-      offsets += i.amount;
-      if (i.offsets && roles.expense.get(i.offsets) === "transfer_out") transfersOut -= i.amount;
-    }
+    if (lowering.has(i.cat)) offsets += i.amount;
     if (roles.earning.get(i.cat) === "paycheck") paycheck += i.amount;
   }
 
@@ -199,8 +187,8 @@ export function summarize(ledger: Ledger, month?: number): Summary {
     surplus: earned - spent,
     ccPayments, netSavings, investRetirement, investTaxable, investment,
     charity, loanPayments,
-    offsets, transfersOut,
-    netSpent: spent - offsets - transfersOut,
+    offsets,
+    netSpent: spent - offsets,
     netEarnings,
     savingsRate: ratio(netSavings, paycheck),
     investmentRate: ratio(investment, paycheck),
@@ -771,9 +759,7 @@ export interface BudgetView {
   spentUnbudgeted: Cents;
   /** Refunds and points not aimed at a category: they lower the total, not any line. */
   untargetedOffsets: Cents;
-  /** Spending in "Transfer to external" categories, net of refunds aimed at them: on their lines, but out of the total. */
-  transfersOut: Cents;
-  /** All lines − untargeted offsets − transfers out. Equals Summary.netSpent for the same months. */
+  /** All lines − untargeted offsets. Equals Summary.netSpent for the same months. */
   netSpent: Cents;
 }
 
@@ -787,14 +773,11 @@ export function budgetView(ledger: Ledger, budgets: Budgets, year: number, wante
   const setup = { year, start };
   const months = wanted.filter((m) => monthShare(setup, m) > 0);
   const lowering = spendingOffsetCategories(ledger);
-  const outward = new Set(ledger.categories.expense.filter((c) => c.role === "transfer_out").map((c) => c.id));
   const spent = new Map<string, Cents>();
-  // Net of refunds aimed at them, as Summary.transfersOut counts it, so the two totals agree.
-  let untargetedOffsets = 0, transfersOut = 0;
+  let untargetedOffsets = 0;
   for (const m of months) {
     for (const [cat, c] of spendByCategory(ledger, m)) {
       spent.set(cat, (spent.get(cat) ?? 0) + c.net);
-      if (outward.has(cat)) transfersOut += c.net;
     }
     for (const i of ledger.earnings) {
       if (inMonth(i.date, m) && lowering.has(i.cat) && !i.offsets) untargetedOffsets += i.amount;
@@ -821,8 +804,8 @@ export function budgetView(ledger: Ledger, budgets: Budgets, year: number, wante
     };
   });
   return {
-    lines, budgeted, spentBudgeted, spentUnbudgeted, untargetedOffsets, transfersOut,
-    netSpent: spentBudgeted + spentUnbudgeted - untargetedOffsets - transfersOut,
+    lines, budgeted, spentBudgeted, spentUnbudgeted, untargetedOffsets,
+    netSpent: spentBudgeted + spentUnbudgeted - untargetedOffsets,
   };
 }
 
