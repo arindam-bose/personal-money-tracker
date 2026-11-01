@@ -2065,20 +2065,23 @@ button.icon-action:hover {
   background: var(--row-hover);
 }
 
-/* Delete in red and Update balance / value in green, each tinted like the "+ Add" buttons
+/* Delete in red, and Update balance / value and Export JSON in green, each tinted like the "+ Add" buttons
    (without the stripe, which a small square can't carry). */
 button.icon-action.danger { --kind: var(--danger); }
-button.icon-action.icon-update { --kind: var(--earning); }
+button.icon-action.icon-update,
+button.icon-action.icon-export { --kind: var(--earning); }
 
 button.icon-action.danger,
-button.icon-action.icon-update {
+button.icon-action.icon-update,
+button.icon-action.icon-export {
   color: var(--kind);
   background: color-mix(in srgb, var(--kind) 7%, var(--surface));
   border-color: color-mix(in srgb, var(--kind) 35%, var(--surface));
 }
 
 button.icon-action.danger:hover,
-button.icon-action.icon-update:hover {
+button.icon-action.icon-update:hover,
+button.icon-action.icon-export:hover {
   background: color-mix(in srgb, var(--kind) 14%, var(--surface));
 }
 
