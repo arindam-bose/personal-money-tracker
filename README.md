@@ -1,6 +1,6 @@
 # Money Tracker
 
-**Version 5.0.1**, released November 1, 2026 ·
+**Version 5.0.2**, released November 1, 2026 ·
 [Use it online](https://arindambose.com/personal-money-tracker/) ·
 [Release notes](https://github.com/arindam-bose/personal-money-tracker/releases)
 

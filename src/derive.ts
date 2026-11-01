@@ -5,7 +5,7 @@
 // against the totals Notion computed (tests/derive.test.ts, tests/real-data.test.ts).
 
 import type {
-  Account, Budgets, Cents, Earning, EarningRole, Expense, ExpenseRole, IsoDate, Transfer, TransferRole, Valuation, YearFile, YearSetup,
+  Account, Budgets, Category, Cents, Earning, EarningRole, Expense, ExpenseRole, IsoDate, Transfer, TransferRole, Valuation, YearFile, YearSetup,
 } from "./types";
 import { monthShare } from "./year";
 
@@ -203,6 +203,19 @@ export function summarize(ledger: Ledger, month?: number): Summary {
  */
 export function countsInNetEarnings(c: { role?: EarningRole; net?: boolean }): boolean {
   return (c.role === "paycheck" || c.role === "income") && c.net !== false;
+}
+
+/**
+ * The names of the categories that count toward net earnings, in the order the dashboard lists
+ * them: paychecks first, then other income alphabetically, with catch-alls ("Other…") last. By
+ * what each category is, not where it sits in the list, so imported and renamed categories
+ * read the same way.
+ */
+export function netEarningNames(ledger: Ledger): string[] {
+  const rank = (c: Category<EarningRole>) => (c.role === "paycheck" ? 0 : /^others?\b/i.test(c.name) ? 2 : 1);
+  return ledger.categories.earning.filter(countsInNetEarnings)
+    .sort((a, b) => rank(a) - rank(b) || a.name.localeCompare(b.name))
+    .map((c) => c.name);
 }
 
 /** Ids of the earning categories that count toward net earnings. */

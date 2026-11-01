@@ -4,7 +4,7 @@
 
 import { useSignal, useSignalEffect } from "@preact/signals";
 import {
-  MONTH_NAMES, accountsOverview, hasLoanAccount, budgetView, earningsByCategory, localToday, monthProgress, netEarningCategories, remainingRetirement, shortDate, spendingOffsetCategories, spendByCategory, summarize, tagTotal,
+  MONTH_NAMES, accountsOverview, hasLoanAccount, budgetView, earningsByCategory, localToday, monthProgress, netEarningNames, remainingRetirement, shortDate, spendingOffsetCategories, spendByCategory, summarize, tagTotal,
 } from "../derive";
 import { formatCents, formatPercent } from "../money";
 import { current, iraLimit, ledger, loansLeftOut, pins, saveLoansLeftOut, savePins } from "../state";
@@ -198,10 +198,9 @@ export function DashboardView() {
   );
 }
 
-/** Which categories make up net earnings, e.g. "Paycheck + Interest + Tax Refund". */
+/** Which categories make up net earnings, e.g. "Paycheck + Interest + Tax Refund + Other". */
 function netEarningsDetail(l: Ledger): string {
-  const ids = netEarningCategories(l);
-  const names = l.categories.earning.filter((c) => ids.has(c.id)).map((c) => c.name);
+  const names = netEarningNames(l);
   return names.length ? names.join(" + ") : "No categories count. Choose them on the Accounts page.";
 }
 
