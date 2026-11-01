@@ -27,6 +27,10 @@ const has = (path: string) => existsSync(new URL(path, import.meta.url));
 /** Every year with a data file, oldest first. */
 const YEARS = Array.from({ length: 30 }, (_, i) => 2010 + i).filter((y) => has(jsonPath(y)));
 
+// Without any data (a fresh clone, CI) the suites below come out empty, and a file with no tests
+// fails the run: this stands in, skipped.
+if (YEARS.length === 0) it.skip("needs your data as data/money-tracker-<year>.json", () => {});
+
 describe.skipIf(YEARS.length === 0).each(YEARS)("real %i data", (year) => {
   const load = (): YearFile => loadJson(jsonPath(year));
   const ledger: Ledger = load();

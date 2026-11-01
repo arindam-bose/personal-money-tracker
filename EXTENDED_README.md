@@ -23,6 +23,11 @@ npm run preview    # serve dist/ locally
 `vite.config.ts` sets `base: "./"`, so `dist/` works from any sub-folder of a
 website.
 
+**Deploying.** `.github/workflows/deploy.yml` runs the tests, builds, and publishes
+`dist/` to GitHub Pages on every push to `main`. Pages must be set to deploy from
+**GitHub Actions** (Settings > Pages > Source), not from the branch: the branch holds
+the source, whose `index.html` loads `/src/main.tsx`, which browsers can't run.
+
 The app's version is `version` in `package.json`, shown in the header after the
 name. It reads `vX.0.Y`: X is the major release, Y counts the updates in between.
 Bump Y with every committed change, and keep `package-lock.json` in step. Set
