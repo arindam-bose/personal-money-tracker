@@ -140,6 +140,8 @@ export function App() {
       <footer class="footer">
         © 2026 - Made with love by <a href="https://arindambose.com/" target="_blank" rel="noopener noreferrer">Arindam Bose</a>,
         powered by <a href="https://claude.ai/" target="_blank" rel="noopener noreferrer">Claude</a>
+        <br />
+        Your ledger stays in this browser: nothing is uploaded, and it works offline.
       </footer>
       {consentAsked.value && <ConsentBanner />}
     </>

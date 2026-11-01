@@ -131,6 +131,8 @@ export function AboutCard() {
           <dt>Tool version</dt>
           <dd>v{version}, updated {day(released)}</dd>
         </div>
+        <LinkFact term="Source code" href={REPO} />
+        <LinkFact term="Log Issues and request features" href={`${REPO}/issues`} />
         <div>
           <dt>Cookie settings</dt>
           <dd>
@@ -139,8 +141,6 @@ export function AboutCard() {
             </button>
           </dd>
         </div>
-        <LinkFact term="Source code" href={REPO} />
-        <LinkFact term="Log Issues and request features" href={`${REPO}/issues`} />
       </dl>
     </section>
   );
