@@ -1,8 +1,8 @@
 {
   "name": "personal-money-tracker",
   "private": true,
-  "version": "5.0.0",
-  "released": "2026-10-31",
+  "version": "5.0.1",
+  "released": "2026-11-01",
   "type": "module",
   "scripts": {
     "dev": "vite",
