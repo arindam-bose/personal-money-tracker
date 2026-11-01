@@ -352,7 +352,7 @@ function OfflineCard() {
         </p>
       )}
       <div class="setting-row">
-        <button type="button" disabled={checking.value} onClick={onCheck}>
+        <button type="button" class="striped" disabled={checking.value} onClick={onCheck}>
           {checking.value ? "Checking…" : "Check for updates"}
         </button>
         {note.value && <span class="muted" role="status">{note.value}</span>}
@@ -480,7 +480,7 @@ function YearSettings() {
           <input type="text" inputMode="decimal" class="num" value={text.value} disabled={locked}
             onInput={(e) => { text.value = e.currentTarget.value; note.value = null; }} />
         </label>
-        {!locked && <button type="submit">Save</button>}
+        {!locked && <button type="submit" class="striped">Save</button>}
         {note.value && <span class="muted" role="status">{note.value}</span>}
       </form>
       <p class="muted small">
@@ -522,7 +522,7 @@ function IraBeforeStart() {
           <input type="text" inputMode="decimal" class="num" value={text.value} placeholder="0.00" disabled={locked}
             onInput={(e) => { text.value = e.currentTarget.value; note.value = null; }} />
         </label>
-        {!locked && <button type="submit">Save</button>}
+        {!locked && <button type="submit" class="striped">Save</button>}
         {note.value && <span class="muted" role="status">{note.value}</span>}
       </form>
       <p class="muted small">

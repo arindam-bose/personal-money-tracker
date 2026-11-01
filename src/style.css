@@ -471,6 +471,11 @@ button.add {
 .add-expense { --kind: var(--expense); }
 .add-transfer { --kind: var(--transfer); }
 
+/* The "+ Add transfer" stripe on a plain button, untinted: Settings' Save and Check for updates. */
+button.striped {
+  border-left: 3px solid var(--transfer);
+}
+
 .add-icon {
   font-size: 1.15em;
   line-height: 1;
