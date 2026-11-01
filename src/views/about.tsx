@@ -4,6 +4,7 @@
 import type { ComponentChildren } from "preact";
 import { useRef } from "preact/hooks";
 import { released, version } from "../../package.json";
+import { consent, openConsent } from "../analytics";
 
 const REPO = "https://github.com/arindam-bose/personal-money-tracker";
 
@@ -71,6 +72,10 @@ export function AboutCard() {
             on your own device, and is never sent anywhere. It works without a signal, too.
           </p>
           <p>
+            If you say yes under <b>Cookie settings</b>, Google Analytics counts visits to the site.
+            It never sees what you log.
+          </p>
+          <p>
             That also means <b>you are the backup</b>. Download a copy of each year now and then
             (the tracker reminds you after a week). If you clear your browser data or switch
             devices, import that file to get everything back.
@@ -109,7 +114,7 @@ export function AboutCard() {
             <li><b>Settings</b>: import a year or start one from scratch; back up, and close a finished
               year, which starts the next one from its closing balances. Also each year's IRA limit,
               deleting a year, erasing everything, light or dark mode, the offline copy and updates,
-              and a demo file to try.</li>
+              putting the tracker on your home screen, and a demo file to try.</li>
           </ul>
           <h3>Handy keys on the Ledger</h3>
           <table class="data-table keys">
@@ -128,6 +133,14 @@ export function AboutCard() {
         </div>
         <LinkFact term="Source code" href={REPO} />
         <LinkFact term="Log Issues and request features" href={`${REPO}/issues`} />
+        <div>
+          <dt>Cookie settings</dt>
+          <dd>
+            <button type="button" class="link" onClick={openConsent} title="Change whether Google Analytics may count your visits">
+              {consent.value === "granted" ? "Accepted" : consent.value === "denied" ? "Declined" : "Not chosen"}
+            </button>
+          </dd>
+        </div>
       </dl>
     </section>
   );

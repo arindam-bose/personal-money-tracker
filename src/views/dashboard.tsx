@@ -143,7 +143,7 @@ export function DashboardView() {
         <Tile label="Spent" concept="spending" value={formatCents(sum.spent)}
           detail={[`Bank ${formatCents(sum.spentBySource.bank)}`, `Card ${formatCents(sum.spentBySource.card)}`, `Cash ${formatCents(sum.spentBySource.cash)}`]} />
         <Tile label="Net spending" concept="spending" value={formatCents(sum.netSpent)}
-          detail={netSpendingDetail(l, sum.offsets, sum.transfersOut)} />
+          detail={netSpendingDetail(l, sum.offsets)} />
         <Tile label="Surplus" value={formatCents(sum.surplus)} tone={sum.surplus > 0 ? "pos" : sum.surplus < 0 ? "neg" : undefined}
           detail={`Earned ${formatCents(sum.earned)} − spent ${formatCents(sum.spent)}`} />
         <Tile label="Savings" concept="savings" value={formatCents(sum.netSavings)}
@@ -206,14 +206,10 @@ function netEarningsDetail(l: Ledger): string {
 }
 
 /** What net spending takes off, e.g. "After $26,273.42 of Expenses Remunerated + Redeemed CC Points + Refunds". */
-function netSpendingDetail(l: Ledger, offsets: number, transfersOut: number): string | string[] {
+function netSpendingDetail(l: Ledger, offsets: number): string {
   const ids = spendingOffsetCategories(l);
   const names = l.categories.earning.filter((c) => ids.has(c.id)).map((c) => c.name);
-  const lines = [
-    ...(names.length ? [`After ${formatCents(offsets)} of ${names.join(" + ")}`] : []),
-    ...(transfersOut ? [`Leaves out ${formatCents(transfersOut)} of transfers to external`] : []),
-  ];
-  return lines.length > 1 ? lines : lines[0] ?? "No earning category lowers spending, so nothing comes off.";
+  return names.length ? `After ${formatCents(offsets)} of ${names.join(" + ")}` : "No earning category lowers spending, so nothing comes off.";
 }
 
 /**

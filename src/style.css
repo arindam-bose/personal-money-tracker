@@ -1670,6 +1670,12 @@ button.help-btn:focus-visible {
   text-decoration: underline;
 }
 
+/* A button among the links (Cookie settings) lines up with them. */
+.facts dd button.link {
+  padding: 0;
+  font-size: inherit;
+}
+
 button.fact-open {
   padding: 0;
   font: inherit;
@@ -2376,4 +2382,45 @@ button.icon-action.icon-update:hover {
 
 .net-tick input:disabled + span {
   opacity: 0.4;
+}
+
+/* The cookie question, until it is answered (src/analytics.ts). Docked at the foot, above
+   everything but dialogs, and wide enough to read rather than glance at. */
+.consent {
+  position: fixed;
+  left: 50%;
+  bottom: 16px;
+  transform: translateX(-50%);
+  z-index: 40;
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 10px 16px;
+  box-sizing: border-box;
+  width: calc(100% - 32px);
+  max-width: 640px;
+  padding: 14px 16px;
+  background: var(--surface);
+  border: 1px solid var(--border);
+  border-left: 3px solid var(--accent);
+  border-radius: 8px;
+  box-shadow: 0 6px 20px rgba(0, 0, 0, 0.15);
+}
+
+.consent-text {
+  flex: 1 1 300px;
+  margin: 0;
+  font-size: 13px;
+  line-height: 1.5;
+  color: var(--muted);
+}
+
+.consent-text strong {
+  color: var(--text);
+}
+
+.consent-actions {
+  display: flex;
+  gap: 8px;
+  margin-left: auto;
 }

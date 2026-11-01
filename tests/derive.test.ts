@@ -27,7 +27,6 @@ describe("summarize", () => {
       charity: 2500,
       loanPayments: 0,
       offsets: 4050, // refunds: 1550 aimed at Food + 500 untargeted; paid back: 2000
-      transfersOut: 0,
       netSpent: 213450, // 217500 − 4050
       netEarnings: 801234, // paychecks 800000 + interest 1234; refunds and paybacks never count
       savingsRate: 75000 / 800000,
@@ -124,45 +123,35 @@ describe("net spending", () => {
 });
 
 describe("transfers to and from external accounts", () => {
-  /** The sample, with a transfer-out expense category, a transfer-in earning category, and one entry in each. */
+  /** The sample, with a "Transfer to external account" expense category, a transfer-in earning category, and one entry in each. */
   function withExternal() {
     const l = sample();
-    l.categories.expense = [...l.categories.expense, { id: "ce_out", name: "Transfer to external account", role: "transfer_out" }];
+    l.categories.expense = [...l.categories.expense, { id: "ce_out", name: "Transfer to external account" }];
     l.categories.earning = [...l.categories.earning, { id: "ci_in", name: "From my other bank", role: "transfer_in" }];
     l.expenses.push({ id: "e9", date: "2026-02-10", item: "To my other bank", amount: 60000, account: "a_checking", cat: "ce_out", tags: [], notes: "" });
     l.earnings.push({ id: "i9", date: "2026-02-12", item: "Back from my other bank", amount: 25000, account: "a_checking", cat: "ci_in", notes: "" });
     return l;
   }
 
-  it("count in Earned and Spent, never in the net figures", () => {
+  it("count in Earned and Spent; money sent out is net spending, money in never net earnings", () => {
     const s = summarize(withExternal());
     expect(s.earned).toBe(805284 + 25000);
     expect(s.otherEarned).toBe(5284 + 25000);
     expect(s.netEarnings).toBe(801234);
     expect(s.spent).toBe(217500 + 60000);
-    expect(s.transfersOut).toBe(60000);
-    expect(s.netSpent).toBe(213450); // 277500 − 4050 offsets − 60000 sent out
+    expect(s.netSpent).toBe(273450); // 277500 − 4050 offsets
     expect(s.surplus).toBe(805284 + 25000 - 217500 - 60000);
     expect(countsInNetEarnings({ role: "transfer_in", net: true })).toBe(false);
   });
 
-  it("show on their budget line, but come off the budget's total", () => {
-    const l = withExternal();
-    const feb = budgetView(l, { default: {} }, 2026, [2]);
-    expect(feb.lines.find((x) => x.cat === "ce_out")!.spent).toBe(60000);
-    expect(feb.transfersOut).toBe(60000);
-    expect(feb.netSpent).toBe(summarize(l, 2).netSpent);
-  });
-
-  it("take a refund aimed at one off the transfer, not off net spending", () => {
+  it("let money paid back for something bought for someone else cancel it out, once", () => {
     const l = withExternal();
     const before = summarize(l, 2).netSpent;
-    l.earnings.push({ id: "i10", date: "2026-02-20", item: "Fee refunded", amount: 1000, account: "a_checking", cat: "ci_refunds", notes: "", offsets: "ce_out" });
+    l.earnings.push({ id: "i10", date: "2026-02-20", item: "Paid back", amount: 60000, account: "a_checking", cat: "ci_refunds", notes: "" });
     const s = summarize(l, 2);
-    expect(s.transfersOut).toBe(60000 - 1000);
-    expect(s.netSpent).toBe(before); // the transfer was never in net spending, so its refund isn't either
+    expect(s.netSpent).toBe(before - 60000);
     const feb = budgetView(l, { default: {} }, 2026, [2]);
-    expect(feb.transfersOut).toBe(60000 - 1000);
+    expect(feb.lines.find((x) => x.cat === "ce_out")!.spent).toBe(60000);
     expect(feb.netSpent).toBe(s.netSpent);
   });
 });

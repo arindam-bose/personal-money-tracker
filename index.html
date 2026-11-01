@@ -3,7 +3,37 @@
   <head>
     <meta charset="UTF-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-    <title>Money Tracker</title>
+    <title>Money Tracker: a private, offline budget and expense tracker</title>
+    <!-- For search engines and link previews. The pages are hash routes (#/ledger), which
+         search engines don't index separately, so this one URL is all there is to describe. -->
+    <meta name="description" content="Track what you earn, spend, save and invest, with monthly budgets, reports and net worth. Free, no sign-up: your ledger stays in your browser and works offline." />
+    <meta name="theme-color" content="#2f6f4f" />
+    <link rel="canonical" href="https://arindambose.com/personal-money-tracker/" />
+    <meta property="og:type" content="website" />
+    <meta property="og:site_name" content="Money Tracker" />
+    <meta property="og:title" content="Money Tracker: a private, offline budget and expense tracker" />
+    <meta property="og:description" content="Track what you earn, spend, save and invest, with monthly budgets and reports. Free, no sign-up, and your ledger never leaves your browser." />
+    <meta property="og:url" content="https://arindambose.com/personal-money-tracker/" />
+    <meta property="og:image" content="https://arindambose.com/personal-money-tracker/og-image.png" />
+    <meta property="og:image:width" content="1200" />
+    <meta property="og:image:height" content="630" />
+    <meta property="og:image:alt" content="Money Tracker: earned, spent, savings and investing at a glance" />
+    <meta name="twitter:card" content="summary_large_image" />
+    <script type="application/ld+json">
+      {
+        "@context": "https://schema.org",
+        "@type": "WebApplication",
+        "name": "Money Tracker",
+        "url": "https://arindambose.com/personal-money-tracker/",
+        "description": "Track what you earn, spend, save and invest, with monthly budgets, reports and net worth. Your ledger stays in your browser and works offline.",
+        "applicationCategory": "FinanceApplication",
+        "operatingSystem": "Any",
+        "browserRequirements": "Requires JavaScript",
+        "isAccessibleForFree": true,
+        "offers": { "@type": "Offer", "price": "0", "priceCurrency": "USD" },
+        "author": { "@type": "Person", "name": "Arindam Bose", "url": "https://arindambose.com/" }
+      }
+    </script>
     <script>
       // Light or dark before the first paint, so the page never flashes the wrong one.
       // src/theme.ts takes over once the app loads; the key is shared with it.
@@ -13,6 +43,10 @@
         document.documentElement.dataset.theme = t;
       } catch (e) {}
     </script>
+    <!-- On the home screen: see src/install.ts. -->
+    <link rel="manifest" href="manifest.webmanifest" />
+    <link rel="apple-touch-icon" href="icons/apple-touch-icon.png" />
+    <meta name="apple-mobile-web-app-title" content="Money Tracker" />
     <link
       rel="icon"
       href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 32 32'><rect width='32' height='32' rx='7' fill='%232f6f4f'/><text x='16' y='23' font-size='20' font-family='sans-serif' font-weight='bold' text-anchor='middle' fill='white'>$</text></svg>"
@@ -20,6 +54,12 @@
   </head>
   <body>
     <div id="app"></div>
+    <noscript>
+      <h1>Money Tracker</h1>
+      <p>Track what you earn, spend, save and invest, with monthly budgets, reports and net worth.
+        Free, with no sign-up: your ledger stays in your browser and works offline.</p>
+      <p>Money Tracker needs JavaScript. Turn it on to use the tracker.</p>
+    </noscript>
     <script type="module" src="/src/main.tsx"></script>
   </body>
 </html>

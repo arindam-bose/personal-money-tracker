@@ -2,6 +2,7 @@ import { render } from "preact";
 import { App } from "./app";
 import { detectDevice } from "./device";
 import { registerOffline } from "./offline";
+import "./install"; // listens for the browser's install offer from the start, for Settings
 import "./theme"; // light or dark, and following the device when it switches
 import "./style.css";
 

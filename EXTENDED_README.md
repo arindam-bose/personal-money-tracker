@@ -139,7 +139,7 @@ know what each one means:
 
 | Kind | Roles |
 |---|---|
-| Expense | none (regular), `charity`, `transfer_out` (to your own accounts outside the tracker: in Spent, not net spending) |
+| Expense | none (regular), `charity`. (`transfer_out`, before 4.0.1, is dropped on import and on opening: those categories became regular, so they count in net spending.) |
 | Earning | `paycheck`, `income`, `offset` (refunds, points, money paid back: lowers spending), `transfer_in` (from your own accounts outside the tracker: in Earned, never net earnings) |
 | Transfer | `cc_payment`, `savings_in`, `savings_out`, `invest_retirement`, `invest_taxable`, `cash_withdrawal`, `loan_payment`, `general` |
 
@@ -207,7 +207,7 @@ Tests).
 | Spent | All expenses, split bank / card / cash by the debited account's type |
 | Surplus | Earned − spent |
 | Net earnings | Earnings in paycheck/income categories not marked `net: false` (the "Net" tick) |
-| Net spending | Spent (Uncategorized included) − earnings in `offset` ("Lowers spending") categories (`spendingOffsetCategories`) − expenses in `transfer_out` categories |
+| Net spending | Spent (Uncategorized included) − earnings in `offset` ("Lowers spending") categories (`spendingOffsetCategories`) |
 | Net savings | `savings_in` − `savings_out` transfers |
 | Investment | `invest_retirement` + `invest_taxable` transfers |
 | Loan payments | `loan_payment` transfers (not spending) |
@@ -226,9 +226,7 @@ value; they open at 0 every year. What they're worth is only what the user enter
 (`budgets.default`) and optional one-month overrides (`budgets["2026-03"]`).
 Spending against a budget is net of refunds aimed at that category (`offsets` on
 the earning). Refunds aimed at no category lower the
-total only, shown as their own line so the bottom line equals net spending. So do
-`transfer_out` categories: their lines show what was sent, and a line of their own
-takes it off the total.
+total only, shown as their own line so the bottom line equals net spending.
 
 **Money flow** (the Sankey, `moneyFlow`): earnings by category flow into one
 "Income" hub, which flows out to spending categories, savings, investing and
@@ -466,7 +464,10 @@ export at test time, so the repository can be public.
 
 - `data/` is in `.gitignore`. Real data never goes into the repository; tests that
   need it read it locally.
-- The app makes no network requests of its own: code and charts are bundled, text
-  uses the system's fonts, and there is no analytics. The README promises users
-  their data "is never sent anywhere"; anything that changes that (analytics, a
-  font or script from another site, a sync feature) must update that promise too.
+- The app makes no network requests of its own: code and charts are bundled, and text
+  uses the system's fonts. The one exception is Google Analytics (`src/analytics.ts`),
+  and only once the visitor accepts the cookie banner: until then nothing of Google's
+  loads, declining later deletes its cookies, and it never runs in development. It
+  counts visits only; it never reads IndexedDB. The README promises users their data
+  "is never sent anywhere"; anything that changes that (a font or script from another
+  site, a sync feature) must update that promise too.

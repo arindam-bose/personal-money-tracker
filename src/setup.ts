@@ -58,7 +58,7 @@ export function usageOf(data: Pick<YearData, "expenses" | "earnings" | "transfer
   return u;
 }
 
-const EXPENSE_ROLES: (ExpenseRole | undefined)[] = [undefined, "charity", "transfer_out"];
+const EXPENSE_ROLES: (ExpenseRole | undefined)[] = [undefined, "charity"];
 const EARNING_ROLES: EarningRole[] = ["paycheck", "income", "offset", "transfer_in"];
 const TRANSFER_ROLES: TransferRole[] = [
   "cc_payment", "savings_in", "savings_out", "invest_retirement", "invest_taxable", "cash_withdrawal", "loan_payment", "general",
@@ -404,8 +404,8 @@ export function deleteMember(
  * Older years could hold people, shares of expenses they owed, who paid back, and a
  * "Paid back" (reimbursement) earning role. Drop the people and those fields; a reimbursement
  * category becomes "Lowers spending", which is how money paid back now counts.
- * They could also have a "Loan payment" expense role, from before loan payments were transfers:
- * those categories become regular spending.
+ * They could also have a "Loan payment" expense role, from before loan payments were transfers,
+ * or a "Transfer to external" one, from before 4.0.1: those categories become regular spending.
  * Returns the cleaned setup and the entries that changed, or null if there was nothing to do.
  */
 export function withoutPeople(
@@ -415,8 +415,8 @@ export function withoutPeople(
   const earning = setup.categories.earning.map((c) =>
     (c.role as string) === "reimbursement" ? { ...c, role: "offset" as const } : c);
   const expense = setup.categories.expense.map((c) => {
-    if ((c.role as string) !== "loan") return c;
-    const { role: _loan, ...regular } = c;
+    if ((c.role as string) !== "loan" && (c.role as string) !== "transfer_out") return c;
+    const { role: _old, ...regular } = c;
     return regular;
   });
   const expenses = data.expenses.filter((e) => "owed" in e).map(({ owed: _o, ...e }: Expense & { owed?: unknown }) => e);
@@ -525,7 +525,7 @@ export function blankSetup(year: number): YearSetup {
     categories: {
       expense: cats<ExpenseRole>("ce", [
         ["Bills"], ["Charity", "charity"], ["Food & Drinks"], ["Health & Wellness"], ["Housing"],
-        ["Personal Care & Activities"], ["Shopping"], ["Transfer to external account", "transfer_out"], ["Transport"],
+        ["Personal Care & Activities"], ["Shopping"], ["Transfer to external account"], ["Transport"],
       ]),
       earning: cats<EarningRole>("ci", [
         ["Paycheck", "paycheck"], ["Interest", "income"], ["Tax Refund", "income"], ["Other", "income", false],

@@ -1,5 +1,9 @@
 # Money Tracker
 
+**Version 5.0.0**, released October 31, 2026 ·
+[Use it online](https://arindambose.com/personal-money-tracker/) ·
+[Release notes](https://github.com/arindam-bose/personal-money-tracker/releases)
+
 Keep track of what you earn, spend, save and invest, one year at a time.
 
 You type in your expenses, earnings and transfers yourself; the tracker works out
@@ -10,6 +14,10 @@ you are doing against your monthly budgets.
 
 There is no account and no server. Everything you enter is stored in your own
 browser, on your own computer, and is never sent anywhere.
+
+If you say yes when the tracker first asks (or later, under **Cookie settings** in
+Settings' About card), Google Analytics counts visits to the site. It never sees
+what you log, and nothing of Google's loads unless you say yes.
 
 That also means **you are the backup**. Download a copy of each year now and then
 (the app reminds you a week after your last backup, if anything changed since). If
@@ -59,9 +67,9 @@ entry, a loan, investments and a car, and accounts that were closed.
 - **Accounts**: your accounts, categories and tags. Tick **Net** on the earning
   categories that make up net earnings. Earnings in **Lowers spending**
   categories (refunds, points, money paid back) lower net spending instead.
-  **Transfer from external** and **Transfer to external** are for money to and
-  from your own accounts outside the tracker: they count in Earned and Spent,
-  but never in net earnings or net spending.
+  **Transfer from external** is for money from your own accounts outside the
+  tracker: it counts in Earned, but never in net earnings. Money sent out of the
+  tracker is spending like any other.
   Deleting a category moves its entries to **Uncategorized**; deleting a tag takes
   it off its expenses.
   On an investment account, **Update balance** notes what it's worth today; it
@@ -92,7 +100,9 @@ entry, a loan, investments and a car, and accounts that were closed.
   its closing balances. Also each year's IRA limit; **Delete…** to remove one
   year (import its backup to bring it back); **Erase everything**; **Appearance**
   (light, dark, or as your device); whether the tracker is ready to use offline,
-  with **Check for updates**; a demo file to try; and **About**.
+  with **Check for updates**; **On your home screen**, to install it as an app
+  (an **Install** button where the browser offers one, and that browser's own
+  steps where it doesn't); a demo file to try; and **About**.
 
 ## Handy keys on the Ledger
 
