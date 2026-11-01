@@ -7,7 +7,7 @@ import { useEffect } from "preact/hooks";
 import { downloadYear, importYear, readJsonFile, saveYearFile } from "../backup";
 import { demoFileName, demoYear } from "../demo";
 import { formatCents, parseCents } from "../money";
-import { dateTime, localToday, shortDate } from "../derive";
+import { dateTime, lastUpdatedAt, localToday, shortDate } from "../derive";
 import { closingBalances, nextYearSetup } from "../rollover";
 import {
   closeYear, current, type YearSummary, eraseEverything, iraLimit, ledger, loadSettings, openYear, persistState, readOnly, refreshYears, removeYear, reopenYear, saveIraBeforeStart, saveIraLimit, startYear, years,
@@ -51,13 +51,11 @@ function replaceQuestion(fileName: string, stored: YearSummary, file: YearFile):
   const exported = Number.isNaN(at.getTime())
     ? "with no export date"
     : `exported ${at.toLocaleDateString(undefined, { day: "numeric", month: "short", year: "numeric" })}`;
-  const here = stored.setup.lastChangedAt;
-  const there = file.lastChangedAt;
-  // The latest change of either kind, entries or setup. A file without one was saved before
-  // files carried it, so anything changed here is newer.
-  const latest = (...at: (string | undefined)[]) => Math.max(...at.map((x) => (x ? Date.parse(x) : -Infinity)));
-  const hereAt = latest(here, stored.setup.setupChangedAt), thereAt = latest(there, file.setupChangedAt);
-  const newerHere = hereAt > -Infinity && hereAt > thereAt;
+  // The latest change of either kind, entries or setup, as the strip under the top bar shows it.
+  // A file without one was saved before files carried it, so anything changed here is newer.
+  const here = lastUpdatedAt(stored.setup);
+  const there = lastUpdatedAt(file);
+  const newerHere = here !== undefined && (there === undefined || Date.parse(here) > Date.parse(there));
   return [
     `Replace all your ${file.year} data with "${fileName}"?`,
     "",

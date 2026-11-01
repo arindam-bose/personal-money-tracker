@@ -72,6 +72,17 @@ export function dateTime(iso: string, seconds = false): string {
   return new Date(iso).toLocaleString(undefined, { dateStyle: "medium", timeStyle: seconds ? "medium" : "short" });
 }
 
+/**
+ * When the year last changed at all: the later of its entries' change (lastChangedAt) and its
+ * setup's (setupChangedAt: accounts, categories, budgets, settings). The one "Last updated" the
+ * tracker shows; undefined until the first change.
+ */
+export function lastUpdatedAt(setup: { lastChangedAt?: string; setupChangedAt?: string }): string | undefined {
+  const { lastChangedAt: entries, setupChangedAt: setupAt } = setup;
+  if (!entries || !setupAt) return entries ?? setupAt;
+  return Date.parse(setupAt) > Date.parse(entries) ? setupAt : entries;
+}
+
 /** "2026-03-09" -> "Mar 9". */
 export function shortDate(iso: IsoDate): string {
   return `${MONTH_SHORT[Number(iso.slice(5, 7)) - 1]} ${Number(iso.slice(8, 10))}`;

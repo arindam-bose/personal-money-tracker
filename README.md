@@ -1,6 +1,6 @@
 # Money Tracker
 
-**Version 5.0.6**, released November 1, 2026 ·
+**Version 5.0.7**, released November 1, 2026 ·
 [Use it online](https://arindambose.com/personal-money-tracker/) ·
 [Release notes](https://github.com/arindam-bose/personal-money-tracker/releases)
 
@@ -44,6 +44,9 @@ entry, a loan, investments and a car, and accounts that were closed.
 
 ## What's in it
 
+A thin strip under the top bar shows when the open year was last updated: any
+entry, account, category, budget or setting. Backups carry that time too.
+
 - **Dashboard**: the month or year at a glance: what you have after card debt,
   earned, spent, surplus, savings, investment and card payments, spending and
   earnings by category, budgets, account balances and how much of your card
@@ -53,8 +56,7 @@ entry, a loan, investments and a car, and accounts that were closed.
   newest or oldest first. Filter by month, the last 1 to 12 months, or dates you
   pick, and by kind, account, category, tag or person; every filter list can be
   searched by typing. The search box finds words in the item or notes, or an
-  amount by its first digits: 197 finds $197.00 and $1,972.25. Quick keyboard entry; **Today** by the date (or T in it) sets today's date. "Last updated" shows when an entry
-  last changed, and backups carry it.
+  amount by its first digits: 197 finds $197.00 and $1,972.25. Quick keyboard entry; **Today** by the date (or T in it) sets today's date.
   Transfers (paying a card, moving money to savings) are shown apart, because
   they aren't spending.
 - **Budget**: a monthly target for each spending category, with what's left.

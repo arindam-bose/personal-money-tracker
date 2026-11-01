@@ -3,7 +3,7 @@
 
 import { useComputed, useSignal, useSignalEffect } from "@preact/signals";
 import { useEffect, useRef } from "preact/hooks";
-import { MONTH_NAMES, dateTime, inMonth, localToday, monthsBefore, shortDate } from "../derive";
+import { MONTH_NAMES, inMonth, localToday, monthsBefore, shortDate } from "../derive";
 import { draftFrom, emptyDraft, type AnyEntry, type Draft, type Kind } from "../entries";
 import { amountPrefix, amountText, formatCents } from "../money";
 import { membersOf } from "../setup";
@@ -303,12 +303,6 @@ export function LedgerView() {
           <span class="muted">{setup.year} is closed, so it can't be changed.</span>
         )}
       </div>
-
-      {setup.lastChangedAt && (
-        <p class="muted small last-updated">
-          Last updated {dateTime(setup.lastChangedAt)}
-        </p>
-      )}
 
       {form.value && (
         <EntryForm key={form.value.id ?? `new-${form.value.kind}`} initial={form.value} onClose={() => (form.value = null)} />

@@ -3,6 +3,7 @@ import { useEffect, useRef } from "preact/hooks";
 import { version } from "../package.json";
 import { chooseConsent, consentAsked } from "./analytics";
 import { downloadYear } from "./backup";
+import { dateTime, lastUpdatedAt } from "./derive";
 import { updateReady } from "./offline";
 import { backupDue, daysSince, requestPersistence } from "./storage";
 import { current, loadSettings, openYear, persistState, years } from "./state";
@@ -91,6 +92,7 @@ export function App() {
   const backupDays = setup && !setup.closed ? daysSince(setup.lastBackupAt) : null;
   const hasEntries = !!current.value && current.value.expenses.length + current.value.earnings.length + current.value.transfers.length > 0;
   const needsBackup = setup && backupDue(setup, hasEntries);
+  const updated = setup && lastUpdatedAt(setup);
 
   async function backUpNow() {
     if (!setup) return;
@@ -134,6 +136,12 @@ export function App() {
             onClick={() => (menuOpen.value = !menuOpen.value)}>☰</button>
         </div>
       </header>
+      {/* One time for the open year: its latest change, to an entry or to its setup. */}
+      {updated && (
+        <div class="status-strip">
+          <p>Last updated {dateTime(updated)}</p>
+        </div>
+      )}
       <main>
         <View />
       </main>

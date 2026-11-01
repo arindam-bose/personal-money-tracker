@@ -207,6 +207,10 @@ a {
     margin: 16px auto;
     padding: 0 16px;
   }
+
+  .status-strip p {
+    padding: 4px 16px;
+  }
 }
 
 /* Phones: the version goes under the title, small, to leave the bar room for its buttons. */
@@ -227,6 +231,22 @@ a {
   display: flex;
   flex-direction: column;
   min-height: 100vh;
+}
+
+/* A thin strip under the top bar: when the open year last changed. Its text lines up with main's. */
+.status-strip {
+  background: var(--bg);
+  border-bottom: 1px solid var(--border);
+}
+
+.status-strip p {
+  box-sizing: border-box;
+  max-width: 1280px;
+  margin: 0 auto;
+  padding: 4px 24px;
+  font-size: 12px;
+  line-height: 18px;
+  color: var(--muted);
 }
 
 main {
@@ -491,10 +511,6 @@ button.add kbd {
   button.add { padding: 9px 4px; gap: 4px; font-size: 14px; text-transform: capitalize; }
   button.add kbd,
   .add-verb { display: none; }
-}
-
-.last-updated {
-  margin: -6px 0 10px;
 }
 
 .filters {
