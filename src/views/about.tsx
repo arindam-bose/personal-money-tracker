@@ -114,7 +114,7 @@ export function AboutCard() {
             <li><b>Settings</b>: import a year or start one from scratch; back up, and close a finished
               year, which starts the next one from its closing balances. Also each year's IRA limit,
               deleting a year, erasing everything, light or dark mode, the offline copy and updates,
-              and a demo file to try.</li>
+              putting the tracker on your home screen, and a demo file to try.</li>
           </ul>
           <h3>Handy keys on the Ledger</h3>
           <table class="data-table keys">

@@ -1,6 +1,6 @@
 // Settings page. Your data: import a year from JSON or start one from scratch (or download the
 // demo), export (back up), close, reopen and delete years. Then the open year's IRA settings,
-// Appearance (light or dark), Offline (the cached copy and updates), Erase everything, and About.
+// Appearance (light or dark), Offline (the cached copy and updates), Erase everything, On your home screen, and About.
 
 import { useSignal } from "@preact/signals";
 import { useEffect } from "preact/hooks";
@@ -15,6 +15,8 @@ import {
 import { IRA_LIMITS, iraLimitOf } from "../setup";
 import { AboutCard } from "./about";
 import { checkForUpdates, offlineChanged, offlineStatus } from "../offline";
+import { detectDevice } from "../device";
+import { installState, installSteps, promptInstall } from "../install";
 import { daysSince, requestPersistence } from "../storage";
 import { setTheme, theme, themeChoice, type ThemeChoice } from "../theme";
 import { startsMidYear, yearStart } from "../year";
@@ -235,6 +237,7 @@ export function SettingsView() {
     <AppearanceCard />
     <OfflineCard />
     <EraseCard onDone={(text) => { errors.value = []; message.value = text; }} />
+    <InstallCard />
     <AboutCard />
     </>
   );
@@ -394,6 +397,45 @@ function EraseCard(props: { onDone: (message: string) => void }) {
         )}
         {note.value && <span class="warn" role="status">{note.value}</span>}
       </div>
+    </section>
+  );
+}
+
+/**
+ * On the home screen: a real Install button where the browser lends its prompt, and that
+ * browser's own steps where it doesn't. The prompt can arrive after the page is drawn, so the
+ * card follows installState.
+ */
+function InstallCard() {
+  const note = useSignal<string | null>(null);
+  const now = installState.value;
+
+  async function onInstall() {
+    const outcome = await promptInstall();
+    note.value = outcome === "dismissed" ? "Not installed. The steps are here if you change your mind."
+      : outcome === "unavailable" ? "The browser wouldn't install it from here. Try the steps instead."
+      : null;
+  }
+
+  return (
+    <section class="panel settings">
+      <h2>On your home screen</h2>
+      <p class="muted">
+        Installed, it opens from its own icon in a window of its own, with or without a signal,
+        with no address to type.
+      </p>
+      <p class="muted">
+        {now === "running" ? "You are using the installed tracker."
+          : now === "installed" ? "Installed. From now on, open it from its icon."
+          : now === "prompt" ? "This browser can install it in one tap."
+          : installSteps(detectDevice()).map((s) => (typeof s === "string" ? s : <b>{s.b}</b>))}
+      </p>
+      {(now === "prompt" || note.value) && (
+        <div class="setting-row">
+          {now === "prompt" && <button type="button" class="primary" onClick={onInstall}>Install</button>}
+          {note.value && <span class="muted" role="status">{note.value}</span>}
+        </div>
+      )}
     </section>
   );
 }

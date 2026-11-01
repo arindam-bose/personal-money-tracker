@@ -96,7 +96,9 @@ entry, a loan, investments and a car, and accounts that were closed.
   its closing balances. Also each year's IRA limit; **Delete…** to remove one
   year (import its backup to bring it back); **Erase everything**; **Appearance**
   (light, dark, or as your device); whether the tracker is ready to use offline,
-  with **Check for updates**; a demo file to try; and **About**.
+  with **Check for updates**; **On your home screen**, to install it as an app
+  (an **Install** button where the browser offers one, and that browser's own
+  steps where it doesn't); a demo file to try; and **About**.
 
 ## Handy keys on the Ledger
 
