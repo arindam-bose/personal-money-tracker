@@ -11,6 +11,10 @@ you are doing against your monthly budgets.
 There is no account and no server. Everything you enter is stored in your own
 browser, on your own computer, and is never sent anywhere.
 
+If you say yes when the tracker first asks (or later, under **Cookie settings** in
+Settings' About card), Google Analytics counts visits to the site. It never sees
+what you log, and nothing of Google's loads unless you say yes.
+
 That also means **you are the backup**. Download a copy of each year now and then
 (the app reminds you a week after your last backup, if anything changed since). If
 you clear your browser data or switch computers, import that file to get

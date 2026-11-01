@@ -464,7 +464,10 @@ export at test time, so the repository can be public.
 
 - `data/` is in `.gitignore`. Real data never goes into the repository; tests that
   need it read it locally.
-- The app makes no network requests of its own: code and charts are bundled, text
-  uses the system's fonts, and there is no analytics. The README promises users
-  their data "is never sent anywhere"; anything that changes that (analytics, a
-  font or script from another site, a sync feature) must update that promise too.
+- The app makes no network requests of its own: code and charts are bundled, and text
+  uses the system's fonts. The one exception is Google Analytics (`src/analytics.ts`),
+  and only once the visitor accepts the cookie banner: until then nothing of Google's
+  loads, declining later deletes its cookies, and it never runs in development. It
+  counts visits only; it never reads IndexedDB. The README promises users their data
+  "is never sent anywhere"; anything that changes that (a font or script from another
+  site, a sync feature) must update that promise too.
