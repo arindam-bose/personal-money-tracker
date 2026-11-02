@@ -207,6 +207,10 @@ a {
     margin: 16px auto;
     padding: 0 16px;
   }
+
+  .status-strip p {
+    padding: 4px 16px;
+  }
 }
 
 /* Phones: the version goes under the title, small, to leave the bar room for its buttons. */
@@ -227,6 +231,22 @@ a {
   display: flex;
   flex-direction: column;
   min-height: 100vh;
+}
+
+/* A thin strip under the top bar: when the open year last changed. Its text lines up with main's. */
+.status-strip {
+  background: var(--bg);
+  border-bottom: 1px solid var(--border);
+}
+
+.status-strip p {
+  box-sizing: border-box;
+  max-width: 1280px;
+  margin: 0 auto;
+  padding: 4px 24px;
+  font-size: 12px;
+  line-height: 18px;
+  color: var(--muted);
 }
 
 main {
@@ -471,6 +491,11 @@ button.add {
 .add-expense { --kind: var(--expense); }
 .add-transfer { --kind: var(--transfer); }
 
+/* The "+ Add transfer" stripe on a plain button, untinted: Settings' Save and Check for updates. */
+button.striped {
+  border-left: 3px solid var(--transfer);
+}
+
 .add-icon {
   font-size: 1.15em;
   line-height: 1;
@@ -486,10 +511,6 @@ button.add kbd {
   button.add { padding: 9px 4px; gap: 4px; font-size: 14px; text-transform: capitalize; }
   button.add kbd,
   .add-verb { display: none; }
-}
-
-.last-updated {
-  margin: -6px 0 10px;
 }
 
 .filters {
@@ -1100,12 +1121,16 @@ button.help-btn:focus-visible {
   content: "• ";
 }
 
-/* The colours Reports gives each concept (series 1 to 4, and 6 for loans). */
+/* Each figure's colour (src/views/concepts.ts, which its Over the years chart reads too):
+   Reports' series 1 to 4 and 6, the transfer slate, and green or red for a surplus. */
 .tile-income { border-left: 3px solid var(--series-1); }
 .tile-spending { border-left: 3px solid var(--series-2); }
 .tile-savings { border-left: 3px solid var(--series-3); }
 .tile-investing { border-left: 3px solid var(--series-4); }
 .tile-loans { border-left: 3px solid var(--series-6); }
+.tile-transfers { border-left: 3px solid var(--transfer); }
+.tile-gain { border-left: 3px solid var(--earning); }
+.tile-loss { border-left: 3px solid var(--expense); }
 
 .tile .unpin,
 .year-chart-head .unpin {
@@ -2065,20 +2090,23 @@ button.icon-action:hover {
   background: var(--row-hover);
 }
 
-/* Delete in red and Update balance / value in green, each tinted like the "+ Add" buttons
+/* Delete in red, and Update balance / value and Export JSON in green, each tinted like the "+ Add" buttons
    (without the stripe, which a small square can't carry). */
 button.icon-action.danger { --kind: var(--danger); }
-button.icon-action.icon-update { --kind: var(--earning); }
+button.icon-action.icon-update,
+button.icon-action.icon-export { --kind: var(--earning); }
 
 button.icon-action.danger,
-button.icon-action.icon-update {
+button.icon-action.icon-update,
+button.icon-action.icon-export {
   color: var(--kind);
   background: color-mix(in srgb, var(--kind) 7%, var(--surface));
   border-color: color-mix(in srgb, var(--kind) 35%, var(--surface));
 }
 
 button.icon-action.danger:hover,
-button.icon-action.icon-update:hover {
+button.icon-action.icon-update:hover,
+button.icon-action.icon-export:hover {
   background: color-mix(in srgb, var(--kind) 14%, var(--surface));
 }
 

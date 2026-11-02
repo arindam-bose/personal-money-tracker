@@ -323,16 +323,17 @@ second, so backups from different days and devices sit side by side.
 
 A backup holds everything needed to rebuild the year on a clean device:
 
-- `lastChangedAt`, when an entry was last added, changed or deleted (the ledger's
-  "Last updated"; stamped by `saveEntry`, `removeEntry` and setup changes that move
+- `lastChangedAt`, when an entry was last added, changed or deleted (stamped by `saveEntry`, `removeEntry` and setup changes that move
   entries, in `state.ts`). Of two backups of a year, the later one is newer; importing
   over a year shows both times and warns when the tracker's is later. Left out until
   the first change.
 - `setupChangedAt`, when the setup last changed: accounts, categories, tags, people,
   budgets, the start day or IRA settings (`saveSetup` and `saveChange` in `state.ts`;
-  bringing an older year up to date on opening doesn't count). Kept apart from
-  `lastChangedAt` so the ledger's "Last updated" stays about entries; the backup reminder
-  and the import warning look at both. Left out until the first change.
+  bringing an older year up to date on opening doesn't count). Left out until the first change.
+
+The tracker shows one "Last updated", in the thin strip under the top bar: the later of
+the two (`lastUpdatedAt` in `derive.ts`). The import question compares the same time in
+the tracker and the file, and the backup reminder looks at both.
 - `closed: true` for a closed year, so it comes back read-only (left out while open).
 - `iraLimit`, the year's IRA limit: the one set on the Settings page, or else the IRS
   limit for that year. Every backup writes it; in older files without it, the IRS

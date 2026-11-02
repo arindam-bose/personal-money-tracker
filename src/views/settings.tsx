@@ -7,13 +7,14 @@ import { useEffect } from "preact/hooks";
 import { downloadYear, importYear, readJsonFile, saveYearFile } from "../backup";
 import { demoFileName, demoYear } from "../demo";
 import { formatCents, parseCents } from "../money";
-import { dateTime, localToday, shortDate } from "../derive";
+import { dateTime, lastUpdatedAt, localToday, shortDate } from "../derive";
 import { closingBalances, nextYearSetup } from "../rollover";
 import {
   closeYear, current, type YearSummary, eraseEverything, iraLimit, ledger, loadSettings, openYear, persistState, readOnly, refreshYears, removeYear, reopenYear, saveIraBeforeStart, saveIraLimit, startYear, years,
 } from "../state";
 import { IRA_LIMITS, iraLimitOf } from "../setup";
 import { AboutCard } from "./about";
+import { IconButton } from "./icons";
 import { checkForUpdates, offlineChanged, offlineStatus } from "../offline";
 import { detectDevice } from "../device";
 import { installState, installSteps, promptInstall } from "../install";
@@ -50,13 +51,11 @@ function replaceQuestion(fileName: string, stored: YearSummary, file: YearFile):
   const exported = Number.isNaN(at.getTime())
     ? "with no export date"
     : `exported ${at.toLocaleDateString(undefined, { day: "numeric", month: "short", year: "numeric" })}`;
-  const here = stored.setup.lastChangedAt;
-  const there = file.lastChangedAt;
-  // The latest change of either kind, entries or setup. A file without one was saved before
-  // files carried it, so anything changed here is newer.
-  const latest = (...at: (string | undefined)[]) => Math.max(...at.map((x) => (x ? Date.parse(x) : -Infinity)));
-  const hereAt = latest(here, stored.setup.setupChangedAt), thereAt = latest(there, file.setupChangedAt);
-  const newerHere = hereAt > -Infinity && hereAt > thereAt;
+  // The latest change of either kind, entries or setup, as the strip under the top bar shows it.
+  // A file without one was saved before files carried it, so anything changed here is newer.
+  const here = lastUpdatedAt(stored.setup);
+  const there = lastUpdatedAt(file);
+  const newerHere = here !== undefined && (there === undefined || Date.parse(here) > Date.parse(there));
   return [
     `Replace all your ${file.year} data with "${fileName}"?`,
     "",
@@ -192,16 +191,21 @@ export function SettingsView() {
                       <button type="button" class="danger-solid" onClick={() => onDelete(setup.year)}>Delete</button>
                     </div>
                   ) : (
+                    // Icons, as on the Accounts page: each says what it does in its tooltip.
                     <div class="row-actions">
-                      <button type="button" onClick={() => onExport(setup.year)}>
-                        Export JSON
-                      </button>
+                      <IconButton icon="export" label={`Export ${setup.year} as JSON`}
+                        title="Export JSON: download this year as a backup file" onClick={() => onExport(setup.year)} />
                       {setup.closed ? (
-                        <button type="button" onClick={() => onReopen(setup.year)}>Reopen</button>
+                        <IconButton icon="reopen" label={`Reopen ${setup.year}`}
+                          title="Reopen: make this year editable again" onClick={() => onReopen(setup.year)} />
                       ) : (
-                        <button type="button" onClick={() => (closing.value = setup.year)}>Close year…</button>
+                        <IconButton icon="close" label={`Close ${setup.year}…`}
+                          title="Close year…: it's finished. It stops taking changes, and the next year starts from its closing balances."
+                          onClick={() => (closing.value = setup.year)} />
                       )}
-                      <button type="button" class="danger" onClick={() => (deleting.value = setup.year)}>Delete…</button>
+                      <IconButton icon="delete" danger label={`Delete ${setup.year}…`}
+                        title="Delete…: remove this year from this browser. Import its backup to bring it back."
+                        onClick={() => (deleting.value = setup.year)} />
                     </div>
                   )}
                 </td>
@@ -346,7 +350,7 @@ function OfflineCard() {
         </p>
       )}
       <div class="setting-row">
-        <button type="button" disabled={checking.value} onClick={onCheck}>
+        <button type="button" class="striped" disabled={checking.value} onClick={onCheck}>
           {checking.value ? "Checking…" : "Check for updates"}
         </button>
         {note.value && <span class="muted" role="status">{note.value}</span>}
@@ -474,7 +478,7 @@ function YearSettings() {
           <input type="text" inputMode="decimal" class="num" value={text.value} disabled={locked}
             onInput={(e) => { text.value = e.currentTarget.value; note.value = null; }} />
         </label>
-        {!locked && <button type="submit">Save</button>}
+        {!locked && <button type="submit" class="striped">Save</button>}
         {note.value && <span class="muted" role="status">{note.value}</span>}
       </form>
       <p class="muted small">
@@ -516,7 +520,7 @@ function IraBeforeStart() {
           <input type="text" inputMode="decimal" class="num" value={text.value} placeholder="0.00" disabled={locked}
             onInput={(e) => { text.value = e.currentTarget.value; note.value = null; }} />
         </label>
-        {!locked && <button type="submit">Save</button>}
+        {!locked && <button type="submit" class="striped">Save</button>}
         {note.value && <span class="muted" role="status">{note.value}</span>}
       </form>
       <p class="muted small">

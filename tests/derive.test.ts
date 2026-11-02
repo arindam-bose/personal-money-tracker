@@ -3,7 +3,7 @@
 
 import { describe, expect, it } from "vitest";
 import {
-  accountsOverview, balanceSeries, budgetTarget, countsInNetEarnings, earningsByCategory, forMember, monthsBefore, budgetView, monthProgress, balances, moneyFlow, monthlySummaries, remainingRetirement, spendingOffsetCategories,
+  accountsOverview, balanceSeries, budgetTarget, countsInNetEarnings, earningsByCategory, netEarningNames, forMember, monthsBefore, budgetView, monthProgress, balances, moneyFlow, monthlySummaries, remainingRetirement, spendingOffsetCategories,
   spendByCategory, spendingByMonth, summarize, tagTotal, weeklySpending, weeksOf, earningsByMonth, weeklyEarnings, cardSpending, type MoneyFlow, type Summary,
 } from "../src/derive";
 import { sample } from "./helpers";
@@ -100,6 +100,23 @@ describe("net earnings", () => {
     expect(countsInNetEarnings({ role: "paycheck" })).toBe(true);
     expect(countsInNetEarnings({ role: "income", net: false })).toBe(false);
     expect(countsInNetEarnings({ role: "offset", net: true })).toBe(false);
+  });
+
+  it("are listed paycheck first, then other income alphabetically, catch-alls last", () => {
+    const l = sample();
+    // As a Notion import lists them: alphabetically, so Paycheck lands in the middle.
+    l.categories.earning = [
+      { id: "ci_bonus", name: "Bonus", role: "paycheck" },
+      { id: "ci_interest", name: "Interest", role: "income" },
+      { id: "ci_other", name: "Other", role: "income" },
+      { id: "ci_pay", name: "Paycheck", role: "paycheck" },
+      { id: "ci_refunds", name: "Refunds", role: "offset" },
+      { id: "ci_tax", name: "Tax Refund", role: "income" },
+      { id: "ci_gift", name: "Gifts", role: "income", net: false },
+      { id: "ci_others", name: "Others (one-offs)", role: "income" },
+      { id: "ci_otter", name: "Otter rescue fees", role: "income" },
+    ];
+    expect(netEarningNames(l)).toEqual(["Bonus", "Paycheck", "Interest", "Otter rescue fees", "Tax Refund", "Other", "Others (one-offs)"]);
   });
 });
 

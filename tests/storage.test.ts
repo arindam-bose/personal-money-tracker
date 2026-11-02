@@ -1,4 +1,5 @@
 import { describe, expect, it } from "vitest";
+import { lastUpdatedAt } from "../src/derive";
 import { backupDue } from "../src/storage";
 
 const now = new Date("2026-10-29T12:00:00Z");
@@ -25,5 +26,18 @@ describe("backupDue", () => {
   it("never reminds about a closed year or one with no entries", () => {
     expect(backupDue({ closed: true, lastChangedAt: daysAgo(1) }, true, now)).toBe(false);
     expect(backupDue({}, false, now)).toBe(false);
+  });
+});
+
+describe("lastUpdatedAt", () => {
+  it("is the later of an entry change and a setup change", () => {
+    expect(lastUpdatedAt({ lastChangedAt: daysAgo(3), setupChangedAt: daysAgo(1) })).toBe(daysAgo(1));
+    expect(lastUpdatedAt({ lastChangedAt: daysAgo(1), setupChangedAt: daysAgo(3) })).toBe(daysAgo(1));
+  });
+
+  it("takes whichever there is, and nothing before the first change", () => {
+    expect(lastUpdatedAt({ setupChangedAt: daysAgo(2) })).toBe(daysAgo(2));
+    expect(lastUpdatedAt({ lastChangedAt: daysAgo(2) })).toBe(daysAgo(2));
+    expect(lastUpdatedAt({})).toBeUndefined();
   });
 });

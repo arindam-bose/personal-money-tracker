@@ -5,7 +5,7 @@
 // against the totals Notion computed (tests/derive.test.ts, tests/real-data.test.ts).
 
 import type {
-  Account, Budgets, Cents, Earning, EarningRole, Expense, ExpenseRole, IsoDate, Transfer, TransferRole, Valuation, YearFile, YearSetup,
+  Account, Budgets, Category, Cents, Earning, EarningRole, Expense, ExpenseRole, IsoDate, Transfer, TransferRole, Valuation, YearFile, YearSetup,
 } from "./types";
 import { monthShare } from "./year";
 
@@ -70,6 +70,17 @@ export function localToday(now = new Date()): IsoDate {
 /** An ISO timestamp in the viewer's locale, e.g. "Oct 26, 2026, 11:16 PM", or "…11:16:42 PM" with seconds. */
 export function dateTime(iso: string, seconds = false): string {
   return new Date(iso).toLocaleString(undefined, { dateStyle: "medium", timeStyle: seconds ? "medium" : "short" });
+}
+
+/**
+ * When the year last changed at all: the later of its entries' change (lastChangedAt) and its
+ * setup's (setupChangedAt: accounts, categories, budgets, settings). The one "Last updated" the
+ * tracker shows; undefined until the first change.
+ */
+export function lastUpdatedAt(setup: { lastChangedAt?: string; setupChangedAt?: string }): string | undefined {
+  const { lastChangedAt: entries, setupChangedAt: setupAt } = setup;
+  if (!entries || !setupAt) return entries ?? setupAt;
+  return Date.parse(setupAt) > Date.parse(entries) ? setupAt : entries;
 }
 
 /** "2026-03-09" -> "Mar 9". */
@@ -203,6 +214,19 @@ export function summarize(ledger: Ledger, month?: number): Summary {
  */
 export function countsInNetEarnings(c: { role?: EarningRole; net?: boolean }): boolean {
   return (c.role === "paycheck" || c.role === "income") && c.net !== false;
+}
+
+/**
+ * The names of the categories that count toward net earnings, in the order the dashboard lists
+ * them: paychecks first, then other income alphabetically, with catch-alls ("Other…") last. By
+ * what each category is, not where it sits in the list, so imported and renamed categories
+ * read the same way.
+ */
+export function netEarningNames(ledger: Ledger): string[] {
+  const rank = (c: Category<EarningRole>) => (c.role === "paycheck" ? 0 : /^others?\b/i.test(c.name) ? 2 : 1);
+  return ledger.categories.earning.filter(countsInNetEarnings)
+    .sort((a, b) => rank(a) - rank(b) || a.name.localeCompare(b.name))
+    .map((c) => c.name);
 }
 
 /** Ids of the earning categories that count toward net earnings. */
