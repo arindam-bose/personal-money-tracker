@@ -1,8 +1,7 @@
 # Money Tracker
 
-**Version 5.0.7**, released November 1, 2026 ·
+**Version 5.0.7** ·
 [Use it online](https://arindambose.com/personal-money-tracker/) ·
-[Release notes](https://github.com/arindam-bose/personal-money-tracker/releases)
 
 Keep track of what you earn, spend, save and invest, one year at a time.
 
