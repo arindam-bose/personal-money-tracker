@@ -286,7 +286,7 @@ function ValuationForm(props: { account: Account; setup: YearSetup; onDone: () =
       {error.value && <p class="form-error" role="alert">{error.value}</p>}
       <div class="form-actions">
         <button type="submit" class="primary">Save {word}</button>
-        <button type="button" onClick={props.onDone}>Done</button>
+        <button type="button" onClick={props.onDone}>Cancel</button>
       </div>
       {a.valuations?.length ? (
         <ul class="valuation-list">
