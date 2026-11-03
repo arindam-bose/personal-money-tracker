@@ -2,7 +2,7 @@
 // every month; any month can override it. Spending is net of refunds aimed at each category.
 
 import { useSignal, useSignalEffect } from "@preact/signals";
-import { useRef } from "preact/hooks";
+import { useEffect, useRef } from "preact/hooks";
 import { MONTH_NAMES, budgetView, localToday, monthKey, monthProgress, shortDate, type BudgetLine } from "../derive";
 // Every amount on this page goes through this, so Hide the numbers covers them all.
 import { HIDDEN_AMOUNT, maskedCents as formatCents, numbersHidden } from "../hide-numbers";
@@ -225,12 +225,14 @@ function MoneyInput(props: {
   disabled: boolean;
   row: number;
   col: number;
-  onCommit: (cents: number | null) => void;
+  onCommit: (cents: number | null) => Promise<void>;
 }) {
   const shown = props.value === undefined ? "" : (props.value / 100).toFixed(2);
   const invalid = useSignal(false);
   // Enter saves and then moves focus, which fires blur: remember what was sent so it isn't sent twice.
   const sent = useRef(shown);
+  // The box stays when the month changes: what was sent for one month says nothing about the next.
+  useEffect(() => { sent.current = shown; }, [shown]);
   const masked = (text: string) => (numbersHidden.value && text ? HIDDEN_AMOUNT : text);
 
   function commit(input: HTMLInputElement) {
@@ -243,7 +245,12 @@ function MoneyInput(props: {
     }
     invalid.value = false;
     sent.current = text;
-    props.onCommit(cents);
+    props.onCommit(cents).catch((e) => {
+      // Not saved: back to what is, so it can't pass for saved.
+      sent.current = shown;
+      input.value = masked(shown);
+      alert(e instanceof Error ? e.message : String(e));
+    });
   }
 
   function onKeyDown(e: KeyboardEvent) {
@@ -275,7 +282,8 @@ function MoneyInput(props: {
       }}
       onFocus={(e) => {
         const input = e.currentTarget;
-        if (input.value === HIDDEN_AMOUNT) input.value = shown;
+        // What was last sent, as a save may still be on its way.
+        if (input.value === HIDDEN_AMOUNT) input.value = sent.current;
         input.select();
       }} />
   );
