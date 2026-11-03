@@ -1,7 +1,7 @@
 // The ledger: every earning, expense and transfer of the year in one table.
 // Transfers are shown muted and unsigned, because they move money without spending it.
 
-import { useComputed, useSignal, useSignalEffect } from "@preact/signals";
+import { signal, useComputed, useSignal, useSignalEffect } from "@preact/signals";
 import { useEffect, useRef } from "preact/hooks";
 import { MONTH_NAMES, inMonth, localToday, monthsBefore, shortDate } from "../derive";
 import { draftFrom, emptyDraft, type AnyEntry, type Draft, type Kind } from "../entries";
@@ -49,6 +49,15 @@ function loadFilters(): Filters {
 /** Open the ledger showing only matching entries, e.g. from a dashboard category. */
 export function showInLedger(f: Partial<Filters>) {
   saveFilters({ ...NO_FILTERS, ...f });
+  location.hash = "#/ledger";
+}
+
+/** Set by the Add button, until the Ledger has opened its form. */
+const addAsked = signal(false);
+
+/** Open the ledger with a new expense's form. */
+export function askToAddEntry() {
+  addAsked.value = true;
   location.hash = "#/ledger";
 }
 
@@ -207,6 +216,12 @@ export function LedgerView() {
     form.value = { ...emptyDraft(kind, defaultDate(current.value!.setup), current.value!.setup), member };
     window.scrollTo({ top: 0 });
   }
+
+  useEffect(() => {
+    if (!addAsked.value) return;
+    addAsked.value = false;
+    openNew("expense");
+  }, [addAsked.value]);
 
   async function onDuplicate(e: AnyEntry) {
     if (readOnly.value) return;

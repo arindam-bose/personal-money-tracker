@@ -51,6 +51,7 @@ this started). TypeScript is strict, including `noUncheckedIndexedAccess`.
 | `src/device.ts` | The browser and system, for backup file names. |
 | `src/theme.ts` | Light or dark: the Settings choice, or following the device. |
 | `src/hide-numbers.ts` | The Settings choice to hide the amounts on the Dashboard, Reports, Budget, Accounts and Over the years pages, and above the Ledger. |
+| `src/views/add-menu.tsx` | The floating Add button on small screens. `addChoices` in `src/setup.ts` decides what it offers. |
 | `src/views/about.tsx` | The About card: About and How to use dialogs, version, links to GitHub. |
 | `src/offline.ts`, `src/service-worker.js` | The offline copy: registering it, its status, checking for updates. |
 | `src/derive.ts` | Every computed figure. Plain functions, no UI. |

@@ -9,6 +9,7 @@ import { backupDue, daysSince, requestPersistence } from "./storage";
 import { current, loadSettings, openYear, persistState, years } from "./state";
 import type { ComponentType } from "preact";
 import { AccountsView } from "./views/accounts";
+import { AddMenu } from "./views/add-menu";
 import { BudgetView } from "./views/budget";
 import { DashboardView } from "./views/dashboard";
 import { LedgerView } from "./views/ledger";
@@ -151,7 +152,8 @@ export function App() {
         <br />
         Your ledger stays in this browser: nothing is uploaded, and it works offline.
       </footer>
-      {consentAsked.value && <ConsentBanner />}
+      {/* The cookie question sits where the Add button would. */}
+      {consentAsked.value ? <ConsentBanner /> : <AddMenu />}
     </>
   );
 }

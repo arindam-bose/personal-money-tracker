@@ -1,6 +1,6 @@
 # Money Tracker
 
-**Version 5.0.16** ·
+**Version 5.0.17** ·
 [Use it online](https://arindambose.com/personal-money-tracker/)
 
 Keep track of what you earn, spend, save and invest, one year at a time.
@@ -91,6 +91,9 @@ entry, account, category, budget or setting. Backups carry that time too.
   before. It's always everyone together; the year still under way is marked *.
   **Pin a total** adds a chart of a spending category's or a tag's spending each
   year, like the Dashboard's pinned tiles; × takes it off. Pins go into your backups.
+- **Add on a phone**: a round **+** button at the bottom corner of every page opens
+  into **Add Transaction** (a new expense on the Ledger) and **Add Account**. Until
+  the year has an account, it only offers Add Account.
 - **A household**: everything belongs to **Person A** until you add someone on
   the Accounts page. Then each entry can be logged for one person, and the
   Dashboard, Ledger and Reports can show **All people** or one person at a time.

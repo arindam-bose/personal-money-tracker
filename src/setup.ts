@@ -241,6 +241,15 @@ export function closeAccount(
   return { ...setup, accounts: upsert(setup.accounts, { ...account, closedOn: date }) };
 }
 
+/**
+ * What the Add button offers: nothing without a year, or for a closed one, which takes no changes.
+ * Entries need an account, so until there is one it only offers to add an account.
+ */
+export function addChoices(setup: YearSetup | undefined): ("transaction" | "account")[] {
+  if (!setup || setup.closed) return [];
+  return setup.accounts.length ? ["transaction", "account"] : ["account"];
+}
+
 /** "still has $12.00" or "still owes $12.00", for a balance that should be 0. */
 function leftText(balance: Cents): string {
   return balance < 0 ? `still owes ${formatCents(-balance)}` : `still has ${formatCents(balance)}`;

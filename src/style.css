@@ -2420,6 +2420,71 @@ button.link.demo-link {
   opacity: 0.4;
 }
 
+/* The floating Add button (views/add-menu.tsx): where the page links fold into a menu, so a phone
+   held either way. Above the page and its dropdown lists, below the top bar. */
+.add-menu {
+  display: none;
+}
+
+@media (max-width: 999px) {
+  .add-menu {
+    position: fixed;
+    right: 16px;
+    bottom: calc(16px + env(safe-area-inset-bottom, 0px));
+    z-index: 45;
+    display: flex;
+    flex-direction: column;
+    align-items: flex-end;
+    gap: 12px;
+  }
+
+  /* Room under the page, so the button never sits on the end of it. */
+  body:has(.add-menu) .footer {
+    padding-bottom: 88px;
+  }
+
+  /* Out of the way of an open form, and of whatever the keyboard leaves showing. */
+  body:has(.entry-form, .inline-form, textarea:focus, input:not([type="checkbox"], [type="radio"]):focus) .add-menu {
+    display: none;
+  }
+}
+
+.add-menu-btn {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 56px;
+  height: 56px;
+  padding: 0;
+  border-radius: 50%;
+  box-shadow: 0 4px 14px rgba(0, 0, 0, 0.3);
+  transition: transform 0.15s;
+}
+
+/* The + turns into an ×. */
+.add-menu.open .add-menu-btn {
+  transform: rotate(45deg);
+}
+
+.add-menu-choices {
+  display: flex;
+  flex-direction: column;
+  align-items: flex-end;
+  gap: 8px;
+}
+
+.add-menu-choices button {
+  padding: 10px 16px;
+  border-radius: 24px;
+  font-weight: 600;
+  white-space: nowrap;
+  box-shadow: 0 2px 10px rgba(0, 0, 0, 0.25);
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .add-menu-btn { transition: none; }
+}
+
 /* The cookie question, until it is answered (src/analytics.ts). Docked at the foot, above
    everything but dialogs, and wide enough to read rather than glance at. */
 .consent {
