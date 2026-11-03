@@ -70,9 +70,9 @@ export function axisStyle() {
   };
 }
 
-/** The value axis every money chart uses: compact dollars ($1.2K), no axis line. */
-export function moneyAxis() {
-  return { type: "value" as const, ...axisStyle(), axisLine: { show: false }, axisLabel: { color: token("--muted"), formatter: formatCompact } };
+/** The value axis every money chart uses: compact dollars ($1.2K), no axis line. Its labels can be left off. */
+export function moneyAxis(showLabels = true) {
+  return { type: "value" as const, ...axisStyle(), axisLine: { show: false }, axisLabel: { show: showLabels, color: token("--muted"), formatter: formatCompact } };
 }
 
 /** Tooltip values in dollars and cents. */

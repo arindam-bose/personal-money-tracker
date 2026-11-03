@@ -2347,6 +2347,14 @@ button.icon-action.icon-export:hover {
   margin: 10px 0 0;
 }
 
+.check-row {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  margin-top: 16px;
+  cursor: pointer;
+}
+
 button.link.demo-link {
   padding: 0;
   font: inherit;

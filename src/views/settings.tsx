@@ -12,6 +12,7 @@ import {
   closeYear, current, type YearSummary, eraseEverything, iraLimit, ledger, loadSettings, openYear, persistState, readOnly, refreshYears, removeYear, reopenYear, saveIraBeforeStart, saveIraLimit, startYear, years,
 } from "../state";
 import { IRA_LIMITS, iraLimitOf } from "../setup";
+import { HIDDEN_AMOUNT, numbersHidden, setNumbersHidden } from "../hide-numbers";
 import { DemoLink } from "./demo-link";
 import { AboutCard } from "./about";
 import { IconButton } from "./icons";
@@ -308,6 +309,13 @@ function AppearanceCard() {
           ? `Follows this device, which is in ${theme.value} mode now.`
           : `Always ${theme.value}, whatever this device is set to.`}{" "}
         Kept on this device only; backups leave it out.
+      </p>
+      <label class="check-row">
+        <input type="checkbox" checked={numbersHidden.value} onChange={(e) => setNumbersHidden(e.currentTarget.checked)} />
+        Hide/Show the numbers
+      </label>
+      <p class="muted small">
+        When ticked, every amount on the Dashboard and Reports pages shows as {HIDDEN_AMOUNT}. Also kept on this device only.
       </p>
     </section>
   );

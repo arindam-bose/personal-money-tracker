@@ -6,7 +6,9 @@ import { useSignal, useSignalEffect } from "@preact/signals";
 import {
   MONTH_NAMES, accountsOverview, hasLoanAccount, budgetView, earningsByCategory, localToday, monthProgress, netEarningNames, remainingRetirement, shortDate, spendingOffsetCategories, spendByCategory, summarize, tagTotal,
 } from "../derive";
-import { formatCents, formatPercent } from "../money";
+// Every amount on this page goes through this, so Hide the numbers covers them all.
+import { maskedCents as formatCents } from "../hide-numbers";
+import { formatPercent } from "../money";
 import { current, iraLimit, ledger, loansLeftOut, pins, saveLoansLeftOut, savePins } from "../state";
 
 /** The switch for whether net worth counts loans. One setting, shared by the Dashboard and Reports. */
@@ -242,8 +244,9 @@ function Tile(props: {
 /**
  * Dollar amounts and percentages exactly as formatCents and formatPercent write them, always with
  * two decimals ("-$1,234.56", "13.36%"), so a name like "5% Match" or "$50 Bonus" isn't bolded.
+ * Hidden amounts ("$•••••") stay bold too.
  */
-const FIGURE = /(-?\$\d{1,3}(?:,\d{3})*\.\d{2}|-?\d+\.\d{2}%)/;
+const FIGURE = /(-?\$\d{1,3}(?:,\d{3})*\.\d{2}|-?\d+\.\d{2}%|\$•+)/;
 
 /** Text with its amounts and percentages in bold. */
 function Figures(props: { text: string }) {
