@@ -2347,7 +2347,7 @@ button.icon-action.icon-export:hover {
   margin: 10px 0 0;
 }
 
-.demo-download button.link {
+button.link.demo-link {
   padding: 0;
   font: inherit;
   /* Underlined, so it reads as a link inside the sentence. */

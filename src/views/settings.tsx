@@ -4,8 +4,7 @@
 
 import { useSignal } from "@preact/signals";
 import { useEffect } from "preact/hooks";
-import { downloadYear, importYear, readJsonFile, saveYearFile } from "../backup";
-import { demoFileName, demoYear } from "../demo";
+import { downloadYear, importYear, readJsonFile } from "../backup";
 import { formatCents, parseCents } from "../money";
 import { dateTime, lastUpdatedAt, localToday, shortDate } from "../derive";
 import { closingBalances, nextYearSetup } from "../rollover";
@@ -13,6 +12,7 @@ import {
   closeYear, current, type YearSummary, eraseEverything, iraLimit, ledger, loadSettings, openYear, persistState, readOnly, refreshYears, removeYear, reopenYear, saveIraBeforeStart, saveIraLimit, startYear, years,
 } from "../state";
 import { IRA_LIMITS, iraLimitOf } from "../setup";
+import { DemoLink } from "./demo-link";
 import { AboutCard } from "./about";
 import { IconButton } from "./icons";
 import { checkForUpdates, offlineChanged, offlineStatus } from "../offline";
@@ -254,9 +254,7 @@ function DemoDownload() {
   return (
     <p class="muted small demo-download">
       New here?{" "}
-      <button type="button" class="link" onClick={() => saveYearFile(demoYear(year), demoFileName(year))}>
-        Download a demo file
-      </button>{" "}
+      <DemoLink>Download a demo file</DemoLink>{" "}
       and import it to look around: a household of two with this year so far, with every kind of account
             and entry, a loan, investments and a car, and accounts that were closed.
       {have && <> It is a {year} file, so importing it would replace your own {year} (you'll be asked first).</>}
