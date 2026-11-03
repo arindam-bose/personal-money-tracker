@@ -802,6 +802,19 @@ tr.row-transfer td {
 .entry-form.kind-earning { border-left-color: var(--earning); }
 .entry-form.kind-transfer { border-left-color: var(--transfer); }
 
+/* The button that adds an entry takes its kind's colour; an earning keeps the usual green. */
+.entry-form.kind-expense button.add-entry {
+  background: var(--expense);
+  border-color: var(--expense);
+  color: var(--surface);
+}
+
+.entry-form.kind-transfer button.add-entry {
+  background: var(--transfer);
+  border-color: var(--transfer);
+  color: var(--surface);
+}
+
 .kind-tabs {
   display: flex;
   gap: 4px;
