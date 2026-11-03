@@ -1,6 +1,6 @@
 # Money Tracker
 
-**Version 5.0.25** ·
+**Version 5.0.26** ·
 [Use it online](https://arindambose.com/personal-money-tracker/)
 
 Keep track of what you earn, spend, save and invest, one year at a time.
@@ -25,7 +25,7 @@ everything back.
 
 Once opened, the tracker keeps a copy of itself in your browser, so it works without
 a signal too. New versions download by themselves; the top bar then offers
-**Reload**.
+**Reload**, and so does the Offline card on the Settings page.
 
 ## Getting started
 

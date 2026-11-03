@@ -267,7 +267,8 @@ hashes, so all of them are cached on install and served from the cache; only the
 page itself goes to the network first. The cache is named
 `money-tracker-v<version>`, and a new build makes a new `sw.js`, so every deploy
 reaches people as an update: it downloads by itself, and the top bar offers
-**Reload**. **Check for updates** on the Settings page asks for it straight away.
+**Reload**. **Check for updates** on the Settings page asks for it straight away,
+and offers **Reload** beside it once the update is in.
 There is no service worker in development (`npm run dev`), so edits always show.
 
 ### Light and dark

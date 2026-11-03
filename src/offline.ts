@@ -60,7 +60,7 @@ export async function offlineStatus(): Promise<string> {
 
 /**
  * Ask the site for a newer release. Returns what to tell the user. A newer release
- * downloads by itself; once it is in, `updateReady` offers the reload.
+ * downloads by itself; once it is in, `updateReady` offers the reload, in the top bar and beside the check.
  */
 export async function checkForUpdates(): Promise<string> {
   const registration = await navigator.serviceWorker?.getRegistration();

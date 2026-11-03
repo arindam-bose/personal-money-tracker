@@ -16,7 +16,7 @@ import { HIDDEN_AMOUNT, maskedCents, numbersHidden, setNumbersHidden } from "../
 import { DemoLink } from "./demo-link";
 import { AboutCard } from "./about";
 import { IconButton } from "./icons";
-import { checkForUpdates, offlineChanged, offlineStatus } from "../offline";
+import { checkForUpdates, offlineChanged, offlineStatus, updateReady } from "../offline";
 import { detectDevice } from "../device";
 import { installState, installSteps, promptInstall } from "../install";
 import { daysSince, requestPersistence } from "../storage";
@@ -359,7 +359,13 @@ function OfflineCard() {
         <button type="button" class="striped" disabled={checking.value} onClick={onCheck}>
           {checking.value ? "Checking…" : "Check for updates"}
         </button>
-        {note.value && <span class="muted" role="status">{note.value}</span>}
+        {/* Once a newer version is in, that's the news, whatever the check last said. */}
+        {updateReady.value ? (
+          <>
+            <span class="muted" role="status">v{updateReady.value} is ready.</span>
+            <button type="button" class="primary" onClick={() => location.reload()}>Reload</button>
+          </>
+        ) : note.value && <span class="muted" role="status">{note.value}</span>}
       </div>
     </section>
   );
