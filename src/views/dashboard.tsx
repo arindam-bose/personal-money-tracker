@@ -25,6 +25,7 @@ import { BudgetBar } from "./budget";
 import { FIGURE_CONCEPT as FIG, PINNED_CONCEPT, surplusConcept, type Concept } from "./concepts";
 import { PinTotal } from "./pin-total";
 import { showInLedger } from "./ledger";
+import { NoData } from "./no-data";
 import { MemberPicker, viewedLedger, viewedMember } from "./people";
 
 const PERIOD_KEY = "dashboard-period";
@@ -62,7 +63,7 @@ export function DashboardView() {
     return (
       <section class="panel">
         <h2>Dashboard</h2>
-        <p>No data yet. Go to <a href="#/settings">Settings</a> to import a year or start one from scratch.</p>
+        <NoData />
       </section>
     );
   }

@@ -16,6 +16,7 @@ import { Chart, axisStyle, baseOption, money, moneyAxis, narrowScreen, seriesCol
 import { CardTitle } from "./help";
 import { showInLedger } from "./ledger";
 import { MemberPicker, viewedLedger, viewedMember } from "./people";
+import { NoData } from "./no-data";
 import { dayBefore, firstMonth, yearStart } from "../year";
 
 /** How many categories get their own colour in the stacked chart; the rest fold into "Everything else". */
@@ -36,7 +37,7 @@ export function ReportsView() {
     return (
       <section class="panel">
         <h2>Reports</h2>
-        <p>No data yet. Go to <a href="#/settings">Settings</a> to import a year or start one from scratch.</p>
+        <NoData />
       </section>
     );
   }

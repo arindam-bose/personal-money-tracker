@@ -17,6 +17,7 @@ import { startsMidYear, yearStart } from "../year";
 import { DateField } from "./date-field";
 import { CardTitle } from "./help";
 import { IconButton } from "./icons";
+import { NoData } from "./no-data";
 import { idByName, useSaved } from "./saved";
 
 const TYPE_LABEL: Record<AccountType, string> = {
@@ -69,7 +70,7 @@ export function AccountsView() {
     return (
       <section class="panel">
         <h2>Accounts</h2>
-        <p>No data yet. Go to <a href="#/settings">Settings</a> to import a year or start one from scratch.</p>
+        <NoData />
       </section>
     );
   }

@@ -7,6 +7,7 @@ import { MONTH_NAMES, budgetView, localToday, monthKey, monthProgress, shortDate
 import { formatCents, formatPercent, parseCents } from "../money";
 import { current, ledger, readOnly, setBudget } from "../state";
 import { firstMonth, monthShare, startsMidYear, yearStart } from "../year";
+import { NoData } from "./no-data";
 import { showInLedger } from "./ledger";
 
 const PERIOD_KEY = "budget-period";
@@ -45,7 +46,7 @@ export function BudgetView() {
     return (
       <section class="panel">
         <h2>Budget</h2>
-        <p>No data yet. Go to <a href="#/settings">Settings</a> to import a year or start one from scratch.</p>
+        <NoData />
       </section>
     );
   }

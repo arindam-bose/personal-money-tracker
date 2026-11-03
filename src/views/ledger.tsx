@@ -11,6 +11,7 @@ import { current, duplicate, readOnly } from "../state";
 import type { YearSetup } from "../types";
 import { yearStart } from "../year";
 import { EntryForm } from "./entry-form";
+import { NoData } from "./no-data";
 import { SearchSelect } from "./search-select";
 
 export interface Filters {
@@ -257,7 +258,7 @@ export function LedgerView() {
     return (
       <section class="panel">
         <h2>Ledger</h2>
-        <p>No data yet. Go to <a href="#/settings">Settings</a> to import a year or start one from scratch.</p>
+        <NoData />
       </section>
     );
   }
