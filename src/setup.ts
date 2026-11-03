@@ -8,7 +8,7 @@ import { newId, slug } from "./entries";
 import { membersOf } from "./members";
 import { isDate, isDateInYear, isRate } from "./validate";
 import { balances, hasValuations, ledgerOf, loanDueDates, loanStatus, localToday, shortDate, valuationOf } from "./derive";
-import { formatCents } from "./money";
+import { maskedCents } from "./hide-numbers";
 import { dayBefore, yearStart } from "./year";
 import type {
   Account, Category, Cents, IsoDate, Earning, EarningRole, Expense, ExpenseRole, Member, Tag, Transfer, TransferRole, YearSetup,
@@ -260,7 +260,7 @@ export function addChoices(setup: YearSetup | undefined): ("transaction" | "acco
 
 /** "still has $12.00" or "still owes $12.00", for a balance that should be 0. */
 function leftText(balance: Cents): string {
-  return balance < 0 ? `still owes ${formatCents(-balance)}` : `still has ${formatCents(balance)}`;
+  return balance < 0 ? `still owes ${maskedCents(-balance)}` : `still has ${maskedCents(balance)}`;
 }
 
 /**
