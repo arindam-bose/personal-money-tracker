@@ -557,7 +557,8 @@ button.add kbd {
 
 .totals {
   display: flex;
-  gap: 20px;
+  flex-wrap: wrap;
+  gap: 2px 20px;
   font-size: 13px;
   color: var(--muted);
   padding: 6px 2px;
@@ -1638,8 +1639,16 @@ button.help-btn:focus-visible {
 
 .setting-row {
   display: flex;
+  flex-wrap: wrap;
   align-items: flex-end;
   gap: 10px;
+}
+
+/* A box's natural width would otherwise run past the card on the narrowest screens. */
+.setting-row .field,
+.setting-row input {
+  max-width: 100%;
+  min-width: 0;
 }
 
 /* A row of buttons where one is chosen, e.g. System / Light / Dark. */
