@@ -11,8 +11,6 @@ on:
 
 permissions:
   contents: read
-  pages: write
-  id-token: write
 
 # One deploy at a time; a newer push waits for the running one rather than cancelling it.
 concurrency:
@@ -38,6 +36,10 @@ jobs:
   deploy:
     needs: build
     runs-on: ubuntu-latest
+    # Only this job can publish: the build runs every dependency's install scripts and the tests.
+    permissions:
+      pages: write
+      id-token: write
     environment:
       name: github-pages
       url: ${{ steps.deployment.outputs.page_url }}

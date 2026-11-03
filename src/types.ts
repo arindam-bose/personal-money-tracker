@@ -162,7 +162,8 @@ export interface YearFile {
   start?: IsoDate;
   exportedAt: string;
   /**
-   * When an entry was last added, changed or deleted (ISO timestamp): the ledger's "Last updated".
+   * When an entry was last added, changed or deleted (ISO timestamp): with setupChangedAt, what
+   * the strip's "Last updated" shows.
    * Of two backups of a year, the later one holds the newer data. Left out until the first change.
    */
   lastChangedAt?: string;

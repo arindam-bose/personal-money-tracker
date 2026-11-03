@@ -61,7 +61,7 @@ this started). TypeScript is strict, including `noUncheckedIndexedAccess`.
 | `src/members.ts` | The default member and `membersOf`, apart so `entries.ts` can use them without an import loop. |
 | `src/rollover.ts` | What the next year starts with when a year is closed. |
 | `src/state.ts` | The open year as Preact signals, and the actions that change it. |
-| `src/views/` | One Preact view per page, plus `chart.tsx` (the ECharts wrapper), `people.tsx` (the person picker) and `search-select.tsx` (the dropdown with a search box, used for accounts, categories, tags and the ledger filters). |
+| `src/views/` | One Preact view per page, plus `chart.tsx` (the ECharts wrapper), `people.tsx` (the person picker), `search-select.tsx` (the dropdown with a search box, used for accounts, categories, tags and the ledger filters), `no-data.tsx` (what a page says before there is data), `demo-link.tsx` (the link that downloads the demo file) and `hooks.ts` (closing a menu, and asking another page to act). |
 | `tools/` | Python: Notion export to JSON (`notion_import.py`), and a checker (`verify.py`). |
 | `tests/` | Vitest. `fixtures/` holds synthetic data only. |
 | `data/` | Your real data and Notion exports. Git-ignored; never commit it. |
@@ -344,10 +344,6 @@ A backup holds everything needed to rebuild the year on a clean device:
 - `setupChangedAt`, when the setup last changed: accounts, categories, tags, people,
   budgets, the start day or IRA settings (`saveSetup` and `saveChange` in `state.ts`;
   bringing an older year up to date on opening doesn't count). Left out until the first change.
-
-The tracker shows one "Last updated", in the thin strip under the top bar: the later of
-the two (`lastUpdatedAt` in `derive.ts`). The import question compares the same time in
-the tracker and the file, and the backup reminder looks at both.
 - `closed: true` for a closed year, so it comes back read-only (left out while open).
 - `iraLimit`, the year's IRA limit: the one set on the Settings page, or else the IRS
   limit for that year. Every backup writes it; in older files without it, the IRS
@@ -361,6 +357,10 @@ the tracker and the file, and the backup reminder looks at both.
   only when the device has none saved yet; restoring an old year never undoes
   today's pins. On Over the years a pinned tag or category is found in each year by
   its id, or else by name, since each year has its own.
+
+The tracker shows one "Last updated", in the thin strip under the top bar: the later of
+the two (`lastUpdatedAt` in `derive.ts`). The import question compares the same time in
+the tracker and the file, and the backup reminder looks at both.
 
 All four are optional on import, so older backups still import. `tests/transfer.test.ts`
 moves a year that uses every optional field to a clean device and back; its file

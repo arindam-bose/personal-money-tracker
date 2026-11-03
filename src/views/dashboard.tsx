@@ -10,16 +10,6 @@ import {
 import { maskedCents as formatCents } from "../hide-numbers";
 import { formatPercent } from "../money";
 import { current, iraLimit, ledger, loansLeftOut, pins, saveLoansLeftOut, savePins } from "../state";
-
-/** The switch for whether net worth counts loans. One setting, shared by the Dashboard and Reports. */
-export function IncludeLoans() {
-  return (
-    <label class="hero-toggle" title="Untick to see net worth without what loans and mortgages owe">
-      <input type="checkbox" checked={!loansLeftOut.value} onChange={(e) => saveLoansLeftOut(!e.currentTarget.checked)} />
-      <span>Include loans</span>
-    </label>
-  );
-}
 import type { Ledger } from "../derive";
 import type { Account } from "../types";
 import { firstMonth, yearStart } from "../year";
@@ -30,6 +20,15 @@ import { showInLedger } from "./ledger";
 import { NoData } from "./no-data";
 import { MemberPicker, viewedLedger, viewedMember } from "./people";
 
+/** The switch for whether net worth counts loans. One setting, shared by the Dashboard and Reports. */
+export function IncludeLoans() {
+  return (
+    <label class="hero-toggle" title="Untick to see net worth without what loans and mortgages owe">
+      <input type="checkbox" checked={!loansLeftOut.value} onChange={(e) => saveLoansLeftOut(!e.currentTarget.checked)} />
+      <span>Include loans</span>
+    </label>
+  );
+}
 const PERIOD_KEY = "dashboard-period";
 
 function loadPeriod(): string {

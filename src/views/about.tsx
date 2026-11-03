@@ -103,7 +103,8 @@ export function AboutCard() {
           <ul>
             <li><b>Dashboard</b>: the month or year at a glance, with your net worth, budgets, balances and card use.</li>
             <li><b>Ledger</b>: every earning, expense and transfer, with filters and quick keyboard entry.
-              Transfers (paying a card, moving money to savings) aren't spending, so they're shown apart.</li>
+              Transfers (paying a card, moving money to savings) aren't spending, so they're shown apart.
+              On a small screen, the round + button adds an entry or an account from any page.</li>
             <li><b>Budget</b>: a monthly target for each spending category, with what's left.</li>
             <li><b>Reports</b>: where the money went, monthly cash flow, earnings and spending by category and by week,
               and what each credit card paid for.</li>

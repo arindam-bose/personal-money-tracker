@@ -1,7 +1,7 @@
 // Accounts: set up the year's accounts, categories, tags and people (brief §8, view 5).
 // Everything is referenced by id, so renaming here never breaks an entry.
 
-import { signal, useSignal } from "@preact/signals";
+import { useSignal } from "@preact/signals";
 import { Fragment } from "preact";
 import { useEffect, useRef } from "preact/hooks";
 import { balances, countsInNetEarnings, hasValuations, localToday, shortDate, valuationOf } from "../derive";
@@ -18,6 +18,7 @@ import type { Account, AccountType, EarningRole, YearSetup } from "../types";
 import { startsMidYear, yearStart } from "../year";
 import { DateField } from "./date-field";
 import { CardTitle } from "./help";
+import { pageRequest } from "./hooks";
 import { IconButton } from "./icons";
 import { NoData } from "./no-data";
 import { idByName, useSaved } from "./saved";
@@ -94,14 +95,10 @@ export function AccountsView() {
 
 // --- Accounts ---
 
-/** Set by the Add button, until the Accounts page has opened its form. */
-const addAsked = signal(false);
+const addRequest = pageRequest("#/accounts");
 
 /** Open the Accounts page with the form for a new account. */
-export function askToAddAccount() {
-  addAsked.value = true;
-  location.hash = "#/accounts";
-}
+export const askToAddAccount = addRequest.ask;
 
 function AccountsCard({ setup, usage }: { setup: YearSetup; usage: Usage }) {
   /** The account being added ("new") or edited (its id); null when the form is closed. */
@@ -117,12 +114,10 @@ function AccountsCard({ setup, usage }: { setup: YearSetup; usage: Usage }) {
   const rank = (a: Account) => (a.closedOn ? 2 : a.archived ? 1 : 0);
   const sorted = [...setup.accounts].sort((a, b) => rank(a) - rank(b));
 
-  useEffect(() => {
-    if (!addAsked.value) return;
-    addAsked.value = false;
+  addRequest.useAsked(() => {
     editing.value = "new";
     window.scrollTo({ top: 0 });
-  }, [addAsked.value]);
+  });
 
   async function reopen(a: Account) {
     await after(attempt((s) => reopenAccount(s, a.id), (m) => (error.value = m)), () => saved.flash(a.id));

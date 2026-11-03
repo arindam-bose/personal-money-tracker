@@ -24,7 +24,6 @@ const phoneWidth = matchMedia("(max-width: 700px)");
 export const narrowScreen = signal(phoneWidth.matches);
 phoneWidth.addEventListener("change", (e) => (narrowScreen.value = e.matches));
 
-
 /** The current value of a CSS colour token, e.g. token("--series-1"). */
 export function token(name: string): string {
   return getComputedStyle(document.documentElement).getPropertyValue(name).trim();

@@ -3,10 +3,10 @@
 // the page links fold into a menu, and hides it while a form is open or the keyboard is up.
 
 import { useSignal } from "@preact/signals";
-import { useEffect } from "preact/hooks";
 import { addChoices } from "../setup";
 import { current } from "../state";
 import { askToAddAccount } from "./accounts";
+import { useDismiss } from "./hooks";
 import { askToAddEntry } from "./ledger";
 
 const CHOICES = {
@@ -17,19 +17,7 @@ const CHOICES = {
 export function AddMenu() {
   const open = useSignal(false);
 
-  // An open menu closes on Esc, or on a tap anywhere outside it.
-  useEffect(() => {
-    if (!open.value) return;
-    const close = (e: Event) => {
-      if (e instanceof KeyboardEvent ? e.key === "Escape" : !(e.target as Element).closest(".add-menu")) open.value = false;
-    };
-    document.addEventListener("keydown", close);
-    document.addEventListener("pointerdown", close);
-    return () => {
-      document.removeEventListener("keydown", close);
-      document.removeEventListener("pointerdown", close);
-    };
-  }, [open.value]);
+  useDismiss(open, ".add-menu");
 
   const choices = addChoices(current.value?.setup);
   if (!choices.length) return null;

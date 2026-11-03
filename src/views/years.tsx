@@ -10,25 +10,23 @@ import { maskedCents as formatCents, maskedCompact as formatCompact } from "../h
 import { formatPercent } from "../money";
 import { current, loadAllYears, pins, savePins, years, type YearSummary } from "../state";
 import type { PinSetting } from "../types";
-import { theme } from "../theme";
 import { Chart, axisStyle, baseOption, money, moneyAxis, token, type ChartOption } from "./chart";
 import { CONCEPT_TOKEN, FIGURE_CONCEPT, PINNED_CONCEPT, surplusConcept, type Concept } from "./concepts";
 import { CardTitle, PageHelp } from "./help";
 import { PinTotal } from "./pin-total";
 
-/** The Dashboard's tiles, in its order, each in its tile's stripe colour (concepts.ts). */
-const MEASURES: { key: keyof Summary; label: string; concept: (value: number) => Concept }[] = [
-  { key: "earned", label: "Earned", concept: () => FIGURE_CONCEPT.earned },
-  { key: "netEarnings", label: "Net earnings", concept: () => FIGURE_CONCEPT.netEarnings },
-  { key: "spent", label: "Spent", concept: () => FIGURE_CONCEPT.spent },
-  { key: "netSpent", label: "Net spending", concept: () => FIGURE_CONCEPT.netSpent },
-  // Green or red per year, as in Monthly cash flow.
-  { key: "surplus", label: "Surplus", concept: surplusConcept },
-  { key: "netSavings", label: "Savings", concept: () => FIGURE_CONCEPT.netSavings },
-  { key: "investment", label: "Investment", concept: () => FIGURE_CONCEPT.investment },
-  { key: "ccPayments", label: "Credit card payments", concept: () => FIGURE_CONCEPT.ccPayments },
-  { key: "charity", label: "Charity", concept: () => FIGURE_CONCEPT.charity },
-  { key: "loanPayments", label: "Loan payments", concept: () => FIGURE_CONCEPT.loanPayments },
+/** The Dashboard's tiles, in its order. */
+const MEASURES: { key: keyof typeof FIGURE_CONCEPT | "surplus"; label: string }[] = [
+  { key: "earned", label: "Earned" },
+  { key: "netEarnings", label: "Net earnings" },
+  { key: "spent", label: "Spent" },
+  { key: "netSpent", label: "Net spending" },
+  { key: "surplus", label: "Surplus" },
+  { key: "netSavings", label: "Savings" },
+  { key: "investment", label: "Investment" },
+  { key: "ccPayments", label: "Credit card payments" },
+  { key: "charity", label: "Charity" },
+  { key: "loanPayments", label: "Loan payments" },
 ];
 
 /** A concept's colour, read from the page so it follows light or dark. */
@@ -110,7 +108,6 @@ export function YearsView() {
   const sums = ledgers.map((l) => summarize(l));
   const labels = all.map((d) => `${d.setup.year}${inProgress(d) ? "*" : ""}`);
   const ongoing = all.filter(inProgress).map((d) => d.setup.year);
-  void theme.value; // read, so the charts redraw in the new colours on a switch
   const value = (s: Summary, key: keyof Summary) => s[key] as number;
   const last = sums.length - 1;
   // Past four years, the axes say '24 to fit; the table keeps the full year.
@@ -138,7 +135,9 @@ export function YearsView() {
   // Worked out once per year, for every pinned category.
   const categorySpend = pins.pinnedYearCategories.value.length ? ledgers.map((l) => spendByCategory(l)) : [];
   const figures: Figure[] = [
-    ...MEASURES.map((m) => ({ key: m.key, label: m.label, values: sums.map((s) => value(s, m.key)), color: (v: number) => colorOf(m.concept(v)) })),
+    ...MEASURES.map((m) => ({ key: m.key, label: m.label, values: sums.map((s) => value(s, m.key)), 
+      // Each in its tile's stripe colour (concepts.ts); Surplus green or red per year, as in Monthly cash flow.
+      color: (v: number) => colorOf(m.key === "surplus" ? surplusConcept(v) : FIGURE_CONCEPT[m.key]) })),
     // All spending in the category, before refunds, as in Spending by category.
     ...pinned("pinnedYearCategories", categoryNames, categoriesOf, (year, id) => categorySpend[year]!.get(id)?.gross ?? 0),
     ...pinned("pinnedYearTags", tagNames, tagsOf, (year, id) => tagTotal(ledgers[year]!, id)),
