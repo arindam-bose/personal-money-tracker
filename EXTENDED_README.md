@@ -50,7 +50,7 @@ this started). TypeScript is strict, including `noUncheckedIndexedAccess`.
 | `src/year.ts` | When a year's tracking starts: its start date, or January 1. |
 | `src/device.ts` | The browser and system, for backup file names. |
 | `src/theme.ts` | Light or dark: the Settings choice, or following the device. |
-| `src/hide-numbers.ts` | The Settings choice to hide the amounts on the Dashboard, Reports, Budget and Accounts pages, and above the Ledger. |
+| `src/hide-numbers.ts` | The Settings choice to hide the amounts on the Dashboard, Reports, Budget, Accounts and Over the years pages, and above the Ledger. |
 | `src/views/about.tsx` | The About card: About and How to use dialogs, version, links to GitHub. |
 | `src/offline.ts`, `src/service-worker.js` | The offline copy: registering it, its status, checking for updates. |
 | `src/derive.ts` | Every computed figure. Plain functions, no UI. |
@@ -283,10 +283,10 @@ theme. Charts read the tokens and redraw when `theme` changes.
 
 `src/hide-numbers.ts` holds the Settings choice, in `localStorage` under
 `money-tracker-hide-numbers`: on this device only, like the theme. The Dashboard,
-Reports, Budget and Accounts pages import `maskedCents` and `maskedCompact` under
+Reports, Budget, Accounts and Over the years pages import `maskedCents` and `maskedCompact` under
 the usual names `formatCents` and `formatCompact`, so every amount they show, in
 charts and tooltips too, reads `$•••••` while it's on. The Ledger masks only its
-totals, not its rows. The Reports charts also drop their value axis labels, and a
+totals, not its rows. Every chart also drops its value axis labels, and a
 Budget target box shows its amount only while you're in it. Percentages and the
 shape of the charts and bars stay. The boxes of an account form being edited still
 show what they hold.

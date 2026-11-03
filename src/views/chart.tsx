@@ -8,7 +8,8 @@ import * as echarts from "echarts/core";
 import { LabelLayout } from "echarts/features";
 import { SVGRenderer } from "echarts/renderers";
 import { useEffect, useRef } from "preact/hooks";
-import { formatCents, formatCompact } from "../money";
+import { maskedCents, numbersHidden } from "../hide-numbers";
+import { formatCompact } from "../money";
 import { theme } from "../theme";
 
 echarts.use([BarChart, LineChart, PieChart, SankeyChart, GridComponent, LegendComponent, TitleComponent, TooltipComponent, LabelLayout, SVGRenderer]);
@@ -70,13 +71,13 @@ export function axisStyle() {
   };
 }
 
-/** The value axis every money chart uses: compact dollars ($1.2K), no axis line. Its labels can be left off. */
-export function moneyAxis(showLabels = true) {
-  return { type: "value" as const, ...axisStyle(), axisLine: { show: false }, axisLabel: { show: showLabels, color: token("--muted"), formatter: formatCompact } };
+/** The value axis every money chart uses: compact dollars ($1.2K), no axis line. No labels while the numbers are hidden. */
+export function moneyAxis() {
+  return { type: "value" as const, ...axisStyle(), axisLine: { show: false }, axisLabel: { show: !numbersHidden.value, color: token("--muted"), formatter: formatCompact } };
 }
 
-/** Tooltip values in dollars and cents. */
-export const money = (v: unknown) => formatCents(Number(v));
+/** Tooltip values in dollars and cents, unless the numbers are hidden. */
+export const money = (v: unknown) => maskedCents(Number(v));
 
 interface Props {
   option: ChartOption;

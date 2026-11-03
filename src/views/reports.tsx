@@ -9,12 +9,12 @@ import {
   type FlowGroup, type Ledger,
 } from "../derive";
 // Every amount on this page goes through these, so Hide the numbers covers them all.
-import { maskedCents as formatCents, maskedCompact as formatCompact, numbersHidden } from "../hide-numbers";
+import { maskedCents as formatCents, maskedCompact as formatCompact } from "../hide-numbers";
 import { formatPercent } from "../money";
 import { membersOf } from "../setup";
 import { current, ledger, loansLeftOut } from "../state";
 import { IncludeLoans } from "./dashboard";
-import { Chart, axisStyle, baseOption, moneyAxis, narrowScreen, seriesColors, token, type ChartOption } from "./chart";
+import { Chart, axisStyle, baseOption, money, moneyAxis, narrowScreen, seriesColors, token, type ChartOption } from "./chart";
 import { CardTitle } from "./help";
 import { showInLedger } from "./ledger";
 import { MemberPicker, viewedLedger, viewedMember } from "./people";
@@ -29,9 +29,6 @@ const TOP_CARDS = 10;
 
 /** A stacked bar segment, rounded at the top only when it's the bar's top segment. */
 const stackSegment = (value: number, isTop: boolean) => ({ value, itemStyle: { borderRadius: isTop ? [4, 4, 0, 0] : 0 } });
-
-/** Tooltip values in dollars and cents, unless the numbers are hidden. */
-const money = (v: unknown) => formatCents(Number(v));
 
 export function ReportsView() {
   const all = ledger.value;
@@ -302,7 +299,7 @@ function CashFlowCard({ ledger: l, months }: { ledger: Ledger; months: MonthRang
       splitLine: { show: true, interval: 0, lineStyle: { color: surface, width: 3 } },
       splitArea: { show: true, interval: 0, areaStyle: { color: bands } },
     },
-    yAxis: moneyAxis(!numbersHidden.value),
+    yAxis: moneyAxis(),
     series: [
       ...pair("earned", c1!, "Net earned", "Earned", sums.map((s) => s.netEarnings), sums.map((s) => s.earned)),
       ...pair("spent", c2!, "Net spending", "Spent", sums.map((s) => s.netSpent), sums.map((s) => s.spent)),
@@ -347,7 +344,7 @@ function CategoryCard({ ledger: l, months, kind }: { ledger: Ledger; months: Mon
     ...baseOption(),
     tooltip: { ...(baseOption().tooltip as object), trigger: "axis", axisPointer: { type: "shadow" }, valueFormatter: money },
     xAxis: { type: "category", data: labels, ...axisStyle(), splitLine: { show: false } },
-    yAxis: moneyAxis(!numbersHidden.value),
+    yAxis: moneyAxis(),
     series: stacks.map((st, i) => ({
       name: st.name, type: "bar", stack: "spend", data: st.data, barMaxWidth: 24,
       // A thin surface-coloured edge makes the 2px gap between stacked segments.
@@ -413,7 +410,7 @@ function WeeklyCard({ ledger: l, year, start, lastDate }: { ledger: Ledger; year
     ...baseOption(),
     tooltip: { ...(baseOption().tooltip as object), trigger: "axis", axisPointer: { type: "shadow" }, valueFormatter: money },
     xAxis: { type: "category", data: weeks.map((w) => label(w.start)), ...axisStyle(), splitLine: { show: false } },
-    yAxis: moneyAxis(!numbersHidden.value),
+    yAxis: moneyAxis(),
     series: sources.map((src, i) => ({
       name: src.name, type: "bar", stack: "week", barMaxWidth: 24,
       data: weeks.map((w) => w.bySource[src.key]),
@@ -442,7 +439,7 @@ function WeeklyEarningCard({ ledger: l, year, start, lastDate }: { ledger: Ledge
     ...baseOption(),
     tooltip: { ...(baseOption().tooltip as object), trigger: "axis", axisPointer: { type: "shadow" }, valueFormatter: money },
     xAxis: { type: "category", data: weeks.map((w) => label(w.start)), ...axisStyle(), splitLine: { show: false } },
-    yAxis: moneyAxis(!numbersHidden.value),
+    yAxis: moneyAxis(),
     series: [
       { name: "Net earned", type: "bar", stack: "week", barMaxWidth: 24, data: weeks.map((w) => stackSegment(w.net, w.other === 0)),
         itemStyle: { color: c1, borderColor: surface, borderWidth: 1 } },
@@ -547,7 +544,7 @@ function SavingsCard({ ledger: l, months }: { ledger: Ledger; months: MonthRange
     legend: undefined,
     tooltip: { ...(baseOption().tooltip as object), trigger: "axis", axisPointer: { type: "shadow" }, valueFormatter: money },
     xAxis: { type: "category", data: labels, ...axisStyle(), splitLine: { show: false } },
-    yAxis: moneyAxis(!numbersHidden.value),
+    yAxis: moneyAxis(),
     series: [{
       name: "Saved", type: "bar", barMaxWidth: 24, itemStyle: { color: c3 },
       data: sums.map((s) => ({ value: s.netSavings, itemStyle: { borderRadius: s.netSavings < 0 ? [0, 0, 4, 4] : [4, 4, 0, 0] } })),
@@ -584,7 +581,7 @@ function InvestmentCard({ ledger: l, months }: { ledger: Ledger; months: MonthRa
     ...baseOption(),
     tooltip: { ...(baseOption().tooltip as object), trigger: "axis", axisPointer: { type: "shadow" }, valueFormatter: money },
     xAxis: { type: "category", data: labels, ...axisStyle(), splitLine: { show: false } },
-    yAxis: moneyAxis(!numbersHidden.value),
+    yAxis: moneyAxis(),
     series: [
       { name: "Retirement", type: "bar", stack: "invest", barMaxWidth: 24, data: sums.map((s) => stackSegment(s.investRetirement, s.investTaxable === 0)),
         itemStyle: { color: c4, borderColor: surface, borderWidth: 1 } },
@@ -636,7 +633,7 @@ function BalancesCard({ ledger: l, year, start, lastDate }: { ledger: Ledger; ye
     ...baseOption(),
     tooltip: { ...(baseOption().tooltip as object), trigger: "axis", valueFormatter: money },
     xAxis: { type: "category", boundaryGap: false, data: series.map((p) => label(p.date)), ...axisStyle(), splitLine: { show: false } },
-    yAxis: moneyAxis(!numbersHidden.value),
+    yAxis: moneyAxis(),
     series: lines.map((ln) => ({
       name: ln.name, type: "line", data: series.map((p) => p[ln.key]),
       showSymbol: false, symbolSize: 8, itemStyle: { color: ln.color },

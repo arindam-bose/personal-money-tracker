@@ -5,7 +5,9 @@
 import { useSignal, useSignalEffect } from "@preact/signals";
 import type { YearData } from "../db";
 import { ledgerOf, ratio, spendByCategory, summarize, tagTotal, type Summary } from "../derive";
-import { formatCents, formatCompact, formatPercent } from "../money";
+// Every amount on this page goes through these, so Hide the numbers covers them all.
+import { maskedCents as formatCents, maskedCompact as formatCompact } from "../hide-numbers";
+import { formatPercent } from "../money";
 import { current, loadAllYears, pins, savePins, years, type YearSummary } from "../state";
 import type { PinSetting } from "../types";
 import { theme } from "../theme";

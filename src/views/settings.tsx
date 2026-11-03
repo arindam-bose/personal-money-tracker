@@ -315,7 +315,7 @@ function AppearanceCard() {
         Hide the numbers
       </label>
       <p class="muted small">
-        When ticked, the amounts on the Dashboard, Reports, Budget and Accounts pages, and the totals above the Ledger, show as {HIDDEN_AMOUNT}. Also kept on this device only.
+        When ticked, the amounts on the Dashboard, Reports, Budget, Accounts and Over the years pages, and the totals above the Ledger, show as {HIDDEN_AMOUNT}. Also kept on this device only.
       </p>
     </section>
   );
