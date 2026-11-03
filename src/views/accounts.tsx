@@ -5,7 +5,9 @@ import { useSignal } from "@preact/signals";
 import { Fragment } from "preact";
 import { useEffect, useRef } from "preact/hooks";
 import { balances, countsInNetEarnings, hasValuations, localToday, shortDate, valuationOf } from "../derive";
-import { formatCents, parseCents, parseSignedCents } from "../money";
+// Every amount on this page goes through this, so Hide the numbers covers them all.
+import { maskedCents as formatCents } from "../hide-numbers";
+import { parseCents, parseSignedCents } from "../money";
 import {
   deleteAccount, deleteValuation, duplicateAccount, memberUses, membersOf, reopenAccount, saveAccount, saveCategory, saveMember, saveTag, saveValuation,
   usageOf, type Usage,
@@ -16,7 +18,9 @@ import type { Account, AccountType, EarningRole, YearSetup } from "../types";
 import { startsMidYear, yearStart } from "../year";
 import { DateField } from "./date-field";
 import { CardTitle } from "./help";
+import { pageRequest } from "./hooks";
 import { IconButton } from "./icons";
+import { NoData } from "./no-data";
 import { idByName, useSaved } from "./saved";
 
 const TYPE_LABEL: Record<AccountType, string> = {
@@ -69,7 +73,7 @@ export function AccountsView() {
     return (
       <section class="panel">
         <h2>Accounts</h2>
-        <p>No data yet. Go to <a href="#/settings">Settings</a> to import a year or start one from scratch.</p>
+        <NoData />
       </section>
     );
   }
@@ -91,6 +95,11 @@ export function AccountsView() {
 
 // --- Accounts ---
 
+const addRequest = pageRequest("#/accounts");
+
+/** Open the Accounts page with the form for a new account. */
+export const askToAddAccount = addRequest.ask;
+
 function AccountsCard({ setup, usage }: { setup: YearSetup; usage: Usage }) {
   /** The account being added ("new") or edited (its id); null when the form is closed. */
   const editing = useSignal<string | null>(setup.accounts.length === 0 && !readOnly.value ? "new" : null);
@@ -104,6 +113,11 @@ function AccountsCard({ setup, usage }: { setup: YearSetup; usage: Usage }) {
   // Open accounts first, then hidden ones, then closed ones.
   const rank = (a: Account) => (a.closedOn ? 2 : a.archived ? 1 : 0);
   const sorted = [...setup.accounts].sort((a, b) => rank(a) - rank(b));
+
+  addRequest.useAsked(() => {
+    editing.value = "new";
+    window.scrollTo({ top: 0 });
+  });
 
   async function reopen(a: Account) {
     await after(attempt((s) => reopenAccount(s, a.id), (m) => (error.value = m)), () => saved.flash(a.id));
@@ -329,7 +343,7 @@ function CloseForm(props: { account: Account; setup: YearSetup; onDone: () => vo
       <p class="muted small">
         {hasValuations(a.type)
           ? <>From this day {a.name} counts for nothing in net worth, as when it's sold. Record what you got for it as an earning or a transfer into the account it went to.</>
-          : <>{a.name} must be at {formatCents(0)} at the end of this day: move what's left with a transfer first. Nothing can be entered for it after.</>}
+          : <>{a.name} must be at $0.00 at the end of this day: move what's left with a transfer first. Nothing can be entered for it after.</>}
         {" "}It won't come into the next year. You can reopen it.
       </p>
       <div class="fields">

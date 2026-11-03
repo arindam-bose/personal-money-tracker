@@ -4,8 +4,7 @@
 
 import { useSignal } from "@preact/signals";
 import { useEffect } from "preact/hooks";
-import { downloadYear, importYear, readJsonFile, saveYearFile } from "../backup";
-import { demoFileName, demoYear } from "../demo";
+import { downloadYear, importYear, readJsonFile } from "../backup";
 import { formatCents, parseCents } from "../money";
 import { dateTime, lastUpdatedAt, localToday, shortDate } from "../derive";
 import { closingBalances, nextYearSetup } from "../rollover";
@@ -13,9 +12,11 @@ import {
   closeYear, current, type YearSummary, eraseEverything, iraLimit, ledger, loadSettings, openYear, persistState, readOnly, refreshYears, removeYear, reopenYear, saveIraBeforeStart, saveIraLimit, startYear, years,
 } from "../state";
 import { IRA_LIMITS, iraLimitOf } from "../setup";
+import { HIDDEN_AMOUNT, maskedCents, numbersHidden, setNumbersHidden } from "../hide-numbers";
+import { DemoLink } from "./demo-link";
 import { AboutCard } from "./about";
 import { IconButton } from "./icons";
-import { checkForUpdates, offlineChanged, offlineStatus } from "../offline";
+import { checkForUpdates, offlineChanged, offlineStatus, updateReady } from "../offline";
 import { detectDevice } from "../device";
 import { installState, installSteps, promptInstall } from "../install";
 import { daysSince, requestPersistence } from "../storage";
@@ -254,9 +255,7 @@ function DemoDownload() {
   return (
     <p class="muted small demo-download">
       New here?{" "}
-      <button type="button" class="link" onClick={() => saveYearFile(demoYear(year), demoFileName(year))}>
-        Download a demo file
-      </button>{" "}
+      <DemoLink>Download a demo file</DemoLink>{" "}
       and import it to look around: a household of two with this year so far, with every kind of account
             and entry, a loan, investments and a car, and accounts that were closed.
       {have && <> It is a {year} file, so importing it would replace your own {year} (you'll be asked first).</>}
@@ -311,6 +310,13 @@ function AppearanceCard() {
           : `Always ${theme.value}, whatever this device is set to.`}{" "}
         Kept on this device only; backups leave it out.
       </p>
+      <label class="check-row">
+        <input type="checkbox" checked={numbersHidden.value} onChange={(e) => setNumbersHidden(e.currentTarget.checked)} />
+        Hide the numbers
+      </label>
+      <p class="muted small">
+        When ticked, the amounts on the Dashboard, Reports, Budget, Accounts and Over the years pages, the totals above the Ledger and the balances when closing a year, show as {HIDDEN_AMOUNT}. Also kept on this device only.
+      </p>
     </section>
   );
 }
@@ -353,7 +359,13 @@ function OfflineCard() {
         <button type="button" class="striped" disabled={checking.value} onClick={onCheck}>
           {checking.value ? "Checking…" : "Check for updates"}
         </button>
-        {note.value && <span class="muted" role="status">{note.value}</span>}
+        {/* Once a newer version is in, that's the news, whatever the check last said. */}
+        {updateReady.value ? (
+          <>
+            <span class="muted" role="status">v{updateReady.value} is ready.</span>
+            <button type="button" class="primary" onClick={() => location.reload()}>Reload</button>
+          </>
+        ) : note.value && <span class="muted" role="status">{note.value}</span>}
       </div>
     </section>
   );
@@ -585,9 +597,9 @@ function CloseYearPanel(props: { year: number; onDone: (message: string) => void
               <tr>
                 <td>{a.name}</td>
                 {/* An asset has no balance: what carries over is its last value. */}
-                <td class="num">{a.type === "asset" ? "" : formatCents(closingBal.get(a.id) ?? 0)}</td>
+                <td class="num">{a.type === "asset" ? "" : maskedCents(closingBal.get(a.id) ?? 0)}</td>
                 <td class="num">
-                  {a.type === "asset" ? (a.valuations ? formatCents(a.valuations[0]!.amount) : "") : formatCents(a.opening)}
+                  {a.type === "asset" ? (a.valuations ? maskedCents(a.valuations[0]!.amount) : "") : maskedCents(a.opening)}
                   {a.type === "investment" && <span class="muted small"> (contributions start again)</span>}
                   {a.type === "asset" && <span class="muted small">{a.valuations ? " (value carried over)" : " (no value yet)"}</span>}
                 </td>

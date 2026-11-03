@@ -50,6 +50,8 @@ this started). TypeScript is strict, including `noUncheckedIndexedAccess`.
 | `src/year.ts` | When a year's tracking starts: its start date, or January 1. |
 | `src/device.ts` | The browser and system, for backup file names. |
 | `src/theme.ts` | Light or dark: the Settings choice, or following the device. |
+| `src/hide-numbers.ts` | The Settings choice to hide the amounts on the Dashboard, Reports, Budget, Accounts and Over the years pages, and above the Ledger. |
+| `src/views/add-menu.tsx` | The floating Add button on small screens. `addChoices` in `src/setup.ts` decides what it offers. |
 | `src/views/about.tsx` | The About card: About and How to use dialogs, version, links to GitHub. |
 | `src/offline.ts`, `src/service-worker.js` | The offline copy: registering it, its status, checking for updates. |
 | `src/derive.ts` | Every computed figure. Plain functions, no UI. |
@@ -59,7 +61,7 @@ this started). TypeScript is strict, including `noUncheckedIndexedAccess`.
 | `src/members.ts` | The default member and `membersOf`, apart so `entries.ts` can use them without an import loop. |
 | `src/rollover.ts` | What the next year starts with when a year is closed. |
 | `src/state.ts` | The open year as Preact signals, and the actions that change it. |
-| `src/views/` | One Preact view per page, plus `chart.tsx` (the ECharts wrapper), `people.tsx` (the person picker) and `search-select.tsx` (the dropdown with a search box, used for accounts, categories, tags and the ledger filters). |
+| `src/views/` | One Preact view per page, plus `chart.tsx` (the ECharts wrapper), `people.tsx` (the person picker), `search-select.tsx` (the dropdown with a search box, used for accounts, categories, tags and the ledger filters), `no-data.tsx` (what a page says before there is data), `demo-link.tsx` (the link that downloads the demo file) and `hooks.ts` (closing a menu, and asking another page to act). |
 | `tools/` | Python: Notion export to JSON (`notion_import.py`), and a checker (`verify.py`). |
 | `tests/` | Vitest. `fixtures/` holds synthetic data only. |
 | `data/` | Your real data and Notion exports. Git-ignored; never commit it. |
@@ -265,7 +267,8 @@ hashes, so all of them are cached on install and served from the cache; only the
 page itself goes to the network first. The cache is named
 `money-tracker-v<version>`, and a new build makes a new `sw.js`, so every deploy
 reaches people as an update: it downloads by itself, and the top bar offers
-**Reload**. **Check for updates** on the Settings page asks for it straight away.
+**Reload**. **Check for updates** on the Settings page asks for it straight away,
+and offers **Reload** beside it once the update is in.
 There is no service worker in development (`npm run dev`), so edits always show.
 
 ### Light and dark
@@ -277,6 +280,18 @@ result as `data-theme="light" | "dark"` on `<html>`, and `style.css` swaps every
 colour token under `:root[data-theme="dark"]`. A small inline script in
 `index.html` sets it before the first paint, so there is no flash of the wrong
 theme. Charts read the tokens and redraw when `theme` changes.
+
+### Hiding the numbers
+
+`src/hide-numbers.ts` holds the Settings choice, in `localStorage` under
+`money-tracker-hide-numbers`: on this device only, like the theme. The Dashboard,
+Reports, Budget, Accounts and Over the years pages import `maskedCents` and `maskedCompact` under
+the usual names `formatCents` and `formatCompact`, so every amount they show, in
+charts and tooltips too, reads `$•••••` while it's on. The Ledger masks only its
+totals, not its rows, and Settings only the balances in its Close year panel. Every chart also drops its value axis labels, and a
+Budget target box shows its amount only while you're in it. Percentages and the
+shape of the charts and bars stay. The boxes of an account form being edited still
+show what they hold.
 
 ### State changes
 
@@ -330,10 +345,6 @@ A backup holds everything needed to rebuild the year on a clean device:
 - `setupChangedAt`, when the setup last changed: accounts, categories, tags, people,
   budgets, the start day or IRA settings (`saveSetup` and `saveChange` in `state.ts`;
   bringing an older year up to date on opening doesn't count). Left out until the first change.
-
-The tracker shows one "Last updated", in the thin strip under the top bar: the later of
-the two (`lastUpdatedAt` in `derive.ts`). The import question compares the same time in
-the tracker and the file, and the backup reminder looks at both.
 - `closed: true` for a closed year, so it comes back read-only (left out while open).
 - `iraLimit`, the year's IRA limit: the one set on the Settings page, or else the IRS
   limit for that year. Every backup writes it; in older files without it, the IRS
@@ -347,6 +358,10 @@ the tracker and the file, and the backup reminder looks at both.
   only when the device has none saved yet; restoring an old year never undoes
   today's pins. On Over the years a pinned tag or category is found in each year by
   its id, or else by name, since each year has its own.
+
+The tracker shows one "Last updated", in the thin strip under the top bar: the later of
+the two (`lastUpdatedAt` in `derive.ts`). The import question compares the same time in
+the tracker and the file, and the backup reminder looks at both.
 
 All four are optional on import, so older backups still import. `tests/transfer.test.ts`
 moves a year that uses every optional field to a clean device and back; its file

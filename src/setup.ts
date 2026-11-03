@@ -8,7 +8,7 @@ import { newId, slug } from "./entries";
 import { membersOf } from "./members";
 import { isDate, isDateInYear, isRate } from "./validate";
 import { balances, hasValuations, ledgerOf, loanDueDates, loanStatus, localToday, shortDate, valuationOf } from "./derive";
-import { formatCents } from "./money";
+import { maskedCents } from "./hide-numbers";
 import { dayBefore, yearStart } from "./year";
 import type {
   Account, Category, Cents, IsoDate, Earning, EarningRole, Expense, ExpenseRole, Member, Tag, Transfer, TransferRole, YearSetup,
@@ -241,9 +241,26 @@ export function closeAccount(
   return { ...setup, accounts: upsert(setup.accounts, { ...account, closedOn: date }) };
 }
 
+/**
+ * Whether a new expense or earning has an account to go on. Assets and loans don't take them
+ * (a loan is paid by transfer), and hidden or closed accounts aren't offered for new entries.
+ */
+export function canAddEntries(setup: YearSetup): boolean {
+  return setup.accounts.some((a) => a.type !== "asset" && a.type !== "loan" && !a.archived && !a.closedOn);
+}
+
+/**
+ * What the Add button offers: nothing without a year, or for a closed one, which takes no changes.
+ * Until an account can take an entry, it only offers to add an account.
+ */
+export function addChoices(setup: YearSetup | undefined): ("transaction" | "account")[] {
+  if (!setup || setup.closed) return [];
+  return canAddEntries(setup) ? ["transaction", "account"] : ["account"];
+}
+
 /** "still has $12.00" or "still owes $12.00", for a balance that should be 0. */
 function leftText(balance: Cents): string {
-  return balance < 0 ? `still owes ${formatCents(-balance)}` : `still has ${formatCents(balance)}`;
+  return balance < 0 ? `still owes ${maskedCents(-balance)}` : `still has ${maskedCents(balance)}`;
 }
 
 /**

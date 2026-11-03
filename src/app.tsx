@@ -9,7 +9,9 @@ import { backupDue, daysSince, requestPersistence } from "./storage";
 import { current, loadSettings, openYear, persistState, years } from "./state";
 import type { ComponentType } from "preact";
 import { AccountsView } from "./views/accounts";
+import { AddMenu } from "./views/add-menu";
 import { BudgetView } from "./views/budget";
+import { useDismiss } from "./views/hooks";
 import { DashboardView } from "./views/dashboard";
 import { LedgerView } from "./views/ledger";
 import { SettingsView } from "./views/settings";
@@ -73,19 +75,7 @@ export function App() {
     return () => window.removeEventListener("hashchange", onHash);
   }, []);
 
-  // An open menu closes on Esc, or on a tap anywhere outside it.
-  useEffect(() => {
-    if (!menuOpen.value) return;
-    const close = (e: Event) => {
-      if (e instanceof KeyboardEvent ? e.key === "Escape" : !(e.target as Element).closest(".topbar nav, .menu-btn")) menuOpen.value = false;
-    };
-    document.addEventListener("keydown", close);
-    document.addEventListener("pointerdown", close);
-    return () => {
-      document.removeEventListener("keydown", close);
-      document.removeEventListener("pointerdown", close);
-    };
-  }, [menuOpen.value]);
+  useDismiss(menuOpen, ".topbar nav, .menu-btn");
 
   const View = PAGES[page.value].view;
   const setup = current.value?.setup;
@@ -151,7 +141,8 @@ export function App() {
         <br />
         Your ledger stays in this browser: nothing is uploaded, and it works offline.
       </footer>
-      {consentAsked.value && <ConsentBanner />}
+      {/* The cookie question sits where the Add button would. */}
+      {consentAsked.value ? <ConsentBanner /> : <AddMenu />}
     </>
   );
 }

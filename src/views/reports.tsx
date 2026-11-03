@@ -8,7 +8,9 @@ import {
   MONTH_SHORT, balanceSeries, cardSpending, earningsByMonth, hasLoanAccount, moneyFlow, monthlySummaries, ratio, shortDate, spendingByMonth, weeklyEarnings, weeklySpending,
   type FlowGroup, type Ledger,
 } from "../derive";
-import { formatCents, formatCompact, formatPercent } from "../money";
+// Every amount on this page goes through these, so Hide the numbers covers them all.
+import { maskedCents as formatCents, maskedCompact as formatCompact } from "../hide-numbers";
+import { formatPercent } from "../money";
 import { membersOf } from "../setup";
 import { current, ledger, loansLeftOut } from "../state";
 import { IncludeLoans } from "./dashboard";
@@ -16,6 +18,7 @@ import { Chart, axisStyle, baseOption, money, moneyAxis, narrowScreen, seriesCol
 import { CardTitle } from "./help";
 import { showInLedger } from "./ledger";
 import { MemberPicker, viewedLedger, viewedMember } from "./people";
+import { NoData } from "./no-data";
 import { dayBefore, firstMonth, yearStart } from "../year";
 
 /** How many categories get their own colour in the stacked chart; the rest fold into "Everything else". */
@@ -36,7 +39,7 @@ export function ReportsView() {
     return (
       <section class="panel">
         <h2>Reports</h2>
-        <p>No data yet. Go to <a href="#/settings">Settings</a> to import a year or start one from scratch.</p>
+        <NoData />
       </section>
     );
   }

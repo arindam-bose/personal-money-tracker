@@ -5,12 +5,15 @@ import { useComputed, useSignal, useSignalEffect } from "@preact/signals";
 import { useEffect, useRef } from "preact/hooks";
 import { MONTH_NAMES, inMonth, localToday, monthsBefore, shortDate } from "../derive";
 import { draftFrom, emptyDraft, type AnyEntry, type Draft, type Kind } from "../entries";
+import { maskedCents } from "../hide-numbers";
 import { amountPrefix, amountText, formatCents } from "../money";
-import { membersOf } from "../setup";
+import { canAddEntries, membersOf } from "../setup";
 import { current, duplicate, readOnly } from "../state";
 import type { YearSetup } from "../types";
 import { yearStart } from "../year";
 import { EntryForm } from "./entry-form";
+import { pageRequest } from "./hooks";
+import { NoData } from "./no-data";
 import { SearchSelect } from "./search-select";
 
 export interface Filters {
@@ -49,6 +52,11 @@ export function showInLedger(f: Partial<Filters>) {
   saveFilters({ ...NO_FILTERS, ...f });
   location.hash = "#/ledger";
 }
+
+const addRequest = pageRequest("#/ledger");
+
+/** Open the ledger with a new expense's form. */
+export const askToAddEntry = addRequest.ask;
 
 /** Sort order lasts until the tab is closed, like the filters, but Clear leaves it alone. */
 function loadOldestFirst(): boolean {
@@ -199,12 +207,14 @@ export function LedgerView() {
   // Reads the year at call time: the keyboard shortcut below keeps this function from the first render.
   function openNew(kind: Kind) {
     const year = current.value?.setup.year;
-    if (year === undefined || readOnly.value || current.value!.setup.accounts.length === 0) return;
+    if (year === undefined || readOnly.value || !canAddEntries(current.value!.setup)) return;
     // Filtered to one person: the new entry is theirs, so it stays in view once saved.
     const member = live.value.member === membersOf(current.value!.setup)[0]!.id ? "" : live.value.member;
     form.value = { ...emptyDraft(kind, defaultDate(current.value!.setup), current.value!.setup), member };
     window.scrollTo({ top: 0 });
   }
+
+  addRequest.useAsked(() => openNew("expense"));
 
   async function onDuplicate(e: AnyEntry) {
     if (readOnly.value) return;
@@ -257,7 +267,7 @@ export function LedgerView() {
     return (
       <section class="panel">
         <h2>Ledger</h2>
-        <p>No data yet. Go to <a href="#/settings">Settings</a> to import a year or start one from scratch.</p>
+        <NoData />
       </section>
     );
   }
@@ -285,7 +295,7 @@ export function LedgerView() {
   return (
     <section class="ledger">
       <div class="toolbar">
-        {setup.accounts.length === 0 ? (
+        {!canAddEntries(setup) ? (
           <span class="muted">Add your accounts on the <a href="#/accounts">Accounts</a> page first, then log entries here.</span>
         ) : !readOnly.value ? (
           <div class="add-buttons">
@@ -364,9 +374,9 @@ export function LedgerView() {
 
       <div class="totals">
         <span>{rows.value.length} entries</span>
-        <span>Earned <b class="pos">{formatCents(totals.value.earning)}</b></span>
-        <span>Spent <b class="neg">{formatCents(totals.value.expense)}</b></span>
-        <span>Transferred <b>{formatCents(totals.value.transfer)}</b></span>
+        <span>Earned <b class="pos">{maskedCents(totals.value.earning)}</b></span>
+        <span>Spent <b class="neg">{maskedCents(totals.value.expense)}</b></span>
+        <span>Transferred <b>{maskedCents(totals.value.transfer)}</b></span>
       </div>
 
       <table class="entries">

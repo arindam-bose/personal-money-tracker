@@ -207,7 +207,7 @@ export function EntryForm({ initial, onClose }: Props) {
       </div>
 
       <div class="form-actions">
-        <button type="submit" class="primary">{editing ? "Save changes" : `Add ${KIND_LABEL[d.kind].toLowerCase()}`}</button>
+        <button type="submit" class={editing ? "primary" : "primary add-entry"}>{editing ? "Save changes" : `Add ${KIND_LABEL[d.kind].toLowerCase()}`}</button>
         <button type="button" onClick={onClose}>{editing ? "Cancel" : "Close"}</button>
         {editing && <button type="button" class="danger" onClick={onDelete}>Delete</button>}
         {saved.value && <span class="saved" role="status">{saved.value}</span>}

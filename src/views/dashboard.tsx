@@ -6,8 +6,19 @@ import { useSignal, useSignalEffect } from "@preact/signals";
 import {
   MONTH_NAMES, accountsOverview, hasLoanAccount, budgetView, earningsByCategory, localToday, monthProgress, netEarningNames, remainingRetirement, shortDate, spendingOffsetCategories, spendByCategory, summarize, tagTotal,
 } from "../derive";
-import { formatCents, formatPercent } from "../money";
+// Every amount on this page goes through this, so Hide the numbers covers them all.
+import { maskedCents as formatCents } from "../hide-numbers";
+import { formatPercent } from "../money";
 import { current, iraLimit, ledger, loansLeftOut, pins, saveLoansLeftOut, savePins } from "../state";
+import type { Ledger } from "../derive";
+import type { Account } from "../types";
+import { firstMonth, yearStart } from "../year";
+import { BudgetBar } from "./budget";
+import { FIGURE_CONCEPT as FIG, PINNED_CONCEPT, surplusConcept, type Concept } from "./concepts";
+import { PinTotal } from "./pin-total";
+import { showInLedger } from "./ledger";
+import { NoData } from "./no-data";
+import { MemberPicker, viewedLedger, viewedMember } from "./people";
 
 /** The switch for whether net worth counts loans. One setting, shared by the Dashboard and Reports. */
 export function IncludeLoans() {
@@ -18,15 +29,6 @@ export function IncludeLoans() {
     </label>
   );
 }
-import type { Ledger } from "../derive";
-import type { Account } from "../types";
-import { firstMonth, yearStart } from "../year";
-import { BudgetBar } from "./budget";
-import { FIGURE_CONCEPT as FIG, PINNED_CONCEPT, surplusConcept, type Concept } from "./concepts";
-import { PinTotal } from "./pin-total";
-import { showInLedger } from "./ledger";
-import { MemberPicker, viewedLedger, viewedMember } from "./people";
-
 const PERIOD_KEY = "dashboard-period";
 
 function loadPeriod(): string {
@@ -62,7 +64,7 @@ export function DashboardView() {
     return (
       <section class="panel">
         <h2>Dashboard</h2>
-        <p>No data yet. Go to <a href="#/settings">Settings</a> to import a year or start one from scratch.</p>
+        <NoData />
       </section>
     );
   }
@@ -241,8 +243,9 @@ function Tile(props: {
 /**
  * Dollar amounts and percentages exactly as formatCents and formatPercent write them, always with
  * two decimals ("-$1,234.56", "13.36%"), so a name like "5% Match" or "$50 Bonus" isn't bolded.
+ * Hidden amounts ("$•••••") stay bold too.
  */
-const FIGURE = /(-?\$\d{1,3}(?:,\d{3})*\.\d{2}|-?\d+\.\d{2}%)/;
+const FIGURE = /(-?\$\d{1,3}(?:,\d{3})*\.\d{2}|-?\d+\.\d{2}%|\$•+)/;
 
 /** Text with its amounts and percentages in bold. */
 function Figures(props: { text: string }) {
