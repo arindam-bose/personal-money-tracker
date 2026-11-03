@@ -861,6 +861,9 @@ button.link.field-action {
 
 .w-date { width: 150px; }
 .w-item { flex: 1 1 240px; }
+/* A box's natural width would otherwise keep it from shrinking on the narrowest screens. */
+.w-item,
+.w-item input { min-width: 0; }
 .w-amount { width: 110px; }
 .w-account { width: 200px; }
 .w-cat { width: 210px; }
@@ -1279,6 +1282,7 @@ button.help-btn:focus-visible {
 .stack > *,
 .reports > *,
 .over-years > *,
+.setup > *,
 .tab-panel > * {
   min-width: 0;
 }
