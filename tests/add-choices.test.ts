@@ -19,6 +19,15 @@ describe("what the Add button offers", () => {
     expect(addChoices(withAccounts)).toEqual(["transaction", "account"]);
   });
 
+  it("offers only an account while no account can take an entry", () => {
+    const only = (a: object) => addChoices({ ...withAccounts, accounts: [a] } as unknown as YearSetup);
+    expect(only({ id: "a", name: "Car", type: "asset" })).toEqual(["account"]);
+    expect(only({ id: "a", name: "Mortgage", type: "loan" })).toEqual(["account"]);
+    expect(only({ id: "a", name: "Old", type: "checking", archived: true })).toEqual(["account"]);
+    expect(only({ id: "a", name: "Gone", type: "checking", closedOn: "2025-03-01" })).toEqual(["account"]);
+    expect(only({ id: "a", name: "Bank", type: "checking" })).toEqual(["transaction", "account"]);
+  });
+
   it("is not there for a closed year, which takes no changes", () => {
     expect(addChoices({ ...withAccounts, closed: true })).toEqual([]);
   });

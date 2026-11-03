@@ -7,7 +7,7 @@ import { MONTH_NAMES, inMonth, localToday, monthsBefore, shortDate } from "../de
 import { draftFrom, emptyDraft, type AnyEntry, type Draft, type Kind } from "../entries";
 import { maskedCents } from "../hide-numbers";
 import { amountPrefix, amountText, formatCents } from "../money";
-import { membersOf } from "../setup";
+import { canAddEntries, membersOf } from "../setup";
 import { current, duplicate, readOnly } from "../state";
 import type { YearSetup } from "../types";
 import { yearStart } from "../year";
@@ -210,7 +210,7 @@ export function LedgerView() {
   // Reads the year at call time: the keyboard shortcut below keeps this function from the first render.
   function openNew(kind: Kind) {
     const year = current.value?.setup.year;
-    if (year === undefined || readOnly.value || current.value!.setup.accounts.length === 0) return;
+    if (year === undefined || readOnly.value || !canAddEntries(current.value!.setup)) return;
     // Filtered to one person: the new entry is theirs, so it stays in view once saved.
     const member = live.value.member === membersOf(current.value!.setup)[0]!.id ? "" : live.value.member;
     form.value = { ...emptyDraft(kind, defaultDate(current.value!.setup), current.value!.setup), member };
@@ -302,7 +302,7 @@ export function LedgerView() {
   return (
     <section class="ledger">
       <div class="toolbar">
-        {setup.accounts.length === 0 ? (
+        {!canAddEntries(setup) ? (
           <span class="muted">Add your accounts on the <a href="#/accounts">Accounts</a> page first, then log entries here.</span>
         ) : !readOnly.value ? (
           <div class="add-buttons">

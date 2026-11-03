@@ -242,12 +242,20 @@ export function closeAccount(
 }
 
 /**
+ * Whether a new expense or earning has an account to go on. Assets and loans don't take them
+ * (a loan is paid by transfer), and hidden or closed accounts aren't offered for new entries.
+ */
+export function canAddEntries(setup: YearSetup): boolean {
+  return setup.accounts.some((a) => a.type !== "asset" && a.type !== "loan" && !a.archived && !a.closedOn);
+}
+
+/**
  * What the Add button offers: nothing without a year, or for a closed one, which takes no changes.
- * Entries need an account, so until there is one it only offers to add an account.
+ * Until an account can take an entry, it only offers to add an account.
  */
 export function addChoices(setup: YearSetup | undefined): ("transaction" | "account")[] {
   if (!setup || setup.closed) return [];
-  return setup.accounts.length ? ["transaction", "account"] : ["account"];
+  return canAddEntries(setup) ? ["transaction", "account"] : ["account"];
 }
 
 /** "still has $12.00" or "still owes $12.00", for a balance that should be 0. */
