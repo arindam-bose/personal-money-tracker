@@ -12,7 +12,7 @@ import {
   closeYear, current, type YearSummary, eraseEverything, iraLimit, ledger, loadSettings, openYear, persistState, readOnly, refreshYears, removeYear, reopenYear, saveIraBeforeStart, saveIraLimit, startYear, years,
 } from "../state";
 import { IRA_LIMITS, iraLimitOf } from "../setup";
-import { HIDDEN_AMOUNT, numbersHidden, setNumbersHidden } from "../hide-numbers";
+import { HIDDEN_AMOUNT, maskedCents, numbersHidden, setNumbersHidden } from "../hide-numbers";
 import { DemoLink } from "./demo-link";
 import { AboutCard } from "./about";
 import { IconButton } from "./icons";
@@ -315,7 +315,7 @@ function AppearanceCard() {
         Hide the numbers
       </label>
       <p class="muted small">
-        When ticked, the amounts on the Dashboard, Reports, Budget, Accounts and Over the years pages, and the totals above the Ledger, show as {HIDDEN_AMOUNT}. Also kept on this device only.
+        When ticked, the amounts on the Dashboard, Reports, Budget, Accounts and Over the years pages, the totals above the Ledger and the balances when closing a year, show as {HIDDEN_AMOUNT}. Also kept on this device only.
       </p>
     </section>
   );
@@ -591,9 +591,9 @@ function CloseYearPanel(props: { year: number; onDone: (message: string) => void
               <tr>
                 <td>{a.name}</td>
                 {/* An asset has no balance: what carries over is its last value. */}
-                <td class="num">{a.type === "asset" ? "" : formatCents(closingBal.get(a.id) ?? 0)}</td>
+                <td class="num">{a.type === "asset" ? "" : maskedCents(closingBal.get(a.id) ?? 0)}</td>
                 <td class="num">
-                  {a.type === "asset" ? (a.valuations ? formatCents(a.valuations[0]!.amount) : "") : formatCents(a.opening)}
+                  {a.type === "asset" ? (a.valuations ? maskedCents(a.valuations[0]!.amount) : "") : maskedCents(a.opening)}
                   {a.type === "investment" && <span class="muted small"> (contributions start again)</span>}
                   {a.type === "asset" && <span class="muted small">{a.valuations ? " (value carried over)" : " (no value yet)"}</span>}
                 </td>

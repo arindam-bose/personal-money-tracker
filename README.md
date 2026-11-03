@@ -1,6 +1,6 @@
 # Money Tracker
 
-**Version 5.0.24** ·
+**Version 5.0.25** ·
 [Use it online](https://arindambose.com/personal-money-tracker/)
 
 Keep track of what you earn, spend, save and invest, one year at a time.
@@ -105,7 +105,7 @@ Backups carry that time too.
   its closing balances. Also each year's IRA limit; **Delete…** to remove one
   year (import its backup to bring it back); **Erase everything**; **Appearance**
   (light, dark, or as your device, and hiding the numbers on the Dashboard, Reports,
-  Budget, Accounts and Over the years pages and above the Ledger); whether the tracker is ready to use offline,
+  Budget, Accounts and Over the years pages, above the Ledger and when closing a year); whether the tracker is ready to use offline,
   with **Check for updates**; **On your home screen**, to install it as an app
   (an **Install** button where the browser offers one, and that browser's own
   steps where it doesn't); a demo file to try; and **About**.

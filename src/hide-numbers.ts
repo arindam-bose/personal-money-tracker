@@ -1,7 +1,7 @@
 // Hide the numbers: the amounts on the Dashboard, Reports, Budget, Accounts and Over the years
-// pages, and the totals above the Ledger, show as dots, for when someone can see the screen. The
-// choice is kept in this browser only, like the theme: it belongs to the device, not the data, so
-// backups leave it out.
+// pages, the totals above the Ledger and the balances when closing a year, show as dots, for when
+// someone can see the screen. The choice is kept in this browser only, like the theme: it belongs
+// to the device, not the data, so backups leave it out.
 
 import { signal } from "@preact/signals";
 import { formatCents, formatCompact } from "./money";

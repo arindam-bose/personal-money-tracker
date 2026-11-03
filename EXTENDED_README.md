@@ -287,7 +287,7 @@ theme. Charts read the tokens and redraw when `theme` changes.
 Reports, Budget, Accounts and Over the years pages import `maskedCents` and `maskedCompact` under
 the usual names `formatCents` and `formatCompact`, so every amount they show, in
 charts and tooltips too, reads `$•••••` while it's on. The Ledger masks only its
-totals, not its rows. Every chart also drops its value axis labels, and a
+totals, not its rows, and Settings only the balances in its Close year panel. Every chart also drops its value axis labels, and a
 Budget target box shows its amount only while you're in it. Percentages and the
 shape of the charts and bars stay. The boxes of an account form being edited still
 show what they hold.
