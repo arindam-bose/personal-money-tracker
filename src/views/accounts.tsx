@@ -5,7 +5,9 @@ import { useSignal } from "@preact/signals";
 import { Fragment } from "preact";
 import { useEffect, useRef } from "preact/hooks";
 import { balances, countsInNetEarnings, hasValuations, localToday, shortDate, valuationOf } from "../derive";
-import { formatCents, parseCents, parseSignedCents } from "../money";
+// Every amount on this page goes through this, so Hide the numbers covers them all.
+import { maskedCents as formatCents } from "../hide-numbers";
+import { parseCents, parseSignedCents } from "../money";
 import {
   deleteAccount, deleteValuation, duplicateAccount, memberUses, membersOf, reopenAccount, saveAccount, saveCategory, saveMember, saveTag, saveValuation,
   usageOf, type Usage,
@@ -330,7 +332,7 @@ function CloseForm(props: { account: Account; setup: YearSetup; onDone: () => vo
       <p class="muted small">
         {hasValuations(a.type)
           ? <>From this day {a.name} counts for nothing in net worth, as when it's sold. Record what you got for it as an earning or a transfer into the account it went to.</>
-          : <>{a.name} must be at {formatCents(0)} at the end of this day: move what's left with a transfer first. Nothing can be entered for it after.</>}
+          : <>{a.name} must be at $0.00 at the end of this day: move what's left with a transfer first. Nothing can be entered for it after.</>}
         {" "}It won't come into the next year. You can reopen it.
       </p>
       <div class="fields">

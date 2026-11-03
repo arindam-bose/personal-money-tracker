@@ -312,10 +312,10 @@ function AppearanceCard() {
       </p>
       <label class="check-row">
         <input type="checkbox" checked={numbersHidden.value} onChange={(e) => setNumbersHidden(e.currentTarget.checked)} />
-        Hide/Show the numbers
+        Hide the numbers
       </label>
       <p class="muted small">
-        When ticked, every amount on the Dashboard and Reports pages shows as {HIDDEN_AMOUNT}. Also kept on this device only.
+        When ticked, the amounts on the Dashboard, Reports, Budget and Accounts pages, and the totals above the Ledger, show as {HIDDEN_AMOUNT}. Also kept on this device only.
       </p>
     </section>
   );

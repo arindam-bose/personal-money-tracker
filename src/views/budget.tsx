@@ -4,7 +4,9 @@
 import { useSignal, useSignalEffect } from "@preact/signals";
 import { useRef } from "preact/hooks";
 import { MONTH_NAMES, budgetView, localToday, monthKey, monthProgress, shortDate, type BudgetLine } from "../derive";
-import { formatCents, formatPercent, parseCents } from "../money";
+// Every amount on this page goes through this, so Hide the numbers covers them all.
+import { HIDDEN_AMOUNT, maskedCents as formatCents, numbersHidden } from "../hide-numbers";
+import { formatPercent, parseCents } from "../money";
 import { current, ledger, readOnly, setBudget } from "../state";
 import { firstMonth, monthShare, startsMidYear, yearStart } from "../year";
 import { NoData } from "./no-data";
@@ -214,6 +216,7 @@ export function BudgetBar({ line, pace }: { line: BudgetLine; pace: number | nul
 /**
  * A money cell that saves on Enter or when you leave it. Empty clears the value.
  * Enter also moves to the same column in the next row; Esc puts the old value back.
+ * While the numbers are hidden it shows the dots, and the amount only while you're in the box.
  */
 function MoneyInput(props: {
   value: number | undefined;
@@ -228,6 +231,7 @@ function MoneyInput(props: {
   const invalid = useSignal(false);
   // Enter saves and then moves focus, which fires blur: remember what was sent so it isn't sent twice.
   const sent = useRef(shown);
+  const masked = (text: string) => (numbersHidden.value && text ? HIDDEN_AMOUNT : text);
 
   function commit(input: HTMLInputElement) {
     const text = input.value.trim();
@@ -259,9 +263,20 @@ function MoneyInput(props: {
   return (
     <input type="text" inputMode="decimal" class={`money-input num ${invalid.value ? "invalid" : ""}`}
       // A key tied to the stored value resets the box whenever the value changes elsewhere.
-      key={shown} defaultValue={shown} placeholder={props.placeholder} aria-label={props.label}
+      key={shown} defaultValue={masked(shown)} placeholder={props.placeholder} aria-label={props.label}
       aria-invalid={invalid.value} title={invalid.value ? "Enter an amount like 250 or 250.50" : undefined}
       disabled={props.disabled} data-row={props.row} data-col={props.col}
-      onKeyDown={onKeyDown} onBlur={(e) => commit(e.currentTarget)} onFocus={(e) => e.currentTarget.select()} />
+      onKeyDown={onKeyDown}
+      onBlur={(e) => {
+        const input = e.currentTarget;
+        commit(input);
+        // Something invalid stays as typed, to be fixed.
+        if (!invalid.value) input.value = masked(input.value.trim());
+      }}
+      onFocus={(e) => {
+        const input = e.currentTarget;
+        if (input.value === HIDDEN_AMOUNT) input.value = shown;
+        input.select();
+      }} />
   );
 }

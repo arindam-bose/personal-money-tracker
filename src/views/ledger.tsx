@@ -5,6 +5,7 @@ import { useComputed, useSignal, useSignalEffect } from "@preact/signals";
 import { useEffect, useRef } from "preact/hooks";
 import { MONTH_NAMES, inMonth, localToday, monthsBefore, shortDate } from "../derive";
 import { draftFrom, emptyDraft, type AnyEntry, type Draft, type Kind } from "../entries";
+import { maskedCents } from "../hide-numbers";
 import { amountPrefix, amountText, formatCents } from "../money";
 import { membersOf } from "../setup";
 import { current, duplicate, readOnly } from "../state";
@@ -365,9 +366,9 @@ export function LedgerView() {
 
       <div class="totals">
         <span>{rows.value.length} entries</span>
-        <span>Earned <b class="pos">{formatCents(totals.value.earning)}</b></span>
-        <span>Spent <b class="neg">{formatCents(totals.value.expense)}</b></span>
-        <span>Transferred <b>{formatCents(totals.value.transfer)}</b></span>
+        <span>Earned <b class="pos">{maskedCents(totals.value.earning)}</b></span>
+        <span>Spent <b class="neg">{maskedCents(totals.value.expense)}</b></span>
+        <span>Transferred <b>{maskedCents(totals.value.transfer)}</b></span>
       </div>
 
       <table class="entries">
