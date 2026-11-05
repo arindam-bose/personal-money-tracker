@@ -1434,15 +1434,22 @@ button.help-btn:focus-visible {
   text-align: right;
 }
 
-/* The line under each subtotal is thick: it separates one type of account from the next. */
+/* The lines above and below each subtotal are thick: they set one type of account off from the next. */
 .acct-table tr.subtotal td {
   font-weight: 600;
+  border-top: 3px solid var(--border);
   border-bottom-width: 3px;
+}
+
+/* Net worth sits between two matching lines. The one above is the row before's, since the wider of
+   two collapsed borders wins, and a subtotal's is wider. */
+.acct-table tr.total td,
+.acct-table tr:has(+ .total) td {
+  border-bottom: 2px solid var(--text);
 }
 
 .acct-table tr.total td {
   font-weight: 600;
-  border-bottom: 2px solid var(--text);
 }
 
 .meter {
