@@ -393,13 +393,17 @@ function AccountsTable(props: { overview: ReturnType<typeof accountsOverview>; a
   );
 }
 
-/** The subtotal of investments or assets, worth what they were last updated to. Before any update it says so, rather than show nothing. */
+/**
+ * The subtotal of investments or assets, worth what they were last updated to. Before any update it says so,
+ * rather than show nothing; with only some updated, it says how many the amount (and so net worth) leaves out.
+ */
 function WorthSubtotal(props: { label: string; kind: "balance" | "value"; accounts: Account[]; valuations: Map<string, unknown>; worth: number }) {
   if (props.accounts.length === 0) return null;
-  const valued = props.accounts.some((a) => props.valuations.has(a.id));
+  const missing = props.accounts.filter((a) => !props.valuations.has(a.id)).length;
+  const valued = missing < props.accounts.length;
   return (
     <tr class="subtotal">
-      <td>{props.label}{valued && <> <span class="muted small">latest {props.kind}s</span></>}</td>
+      <td>{props.label}{valued && <> <span class="muted small">latest {props.kind}s{missing > 0 && ` · ${missing} without a ${props.kind}`}</span></>}</td>
       <td class="num">{valued ? formatCents(props.worth) : <span class="muted">No {props.kind} yet</span>}</td>
     </tr>
   );
