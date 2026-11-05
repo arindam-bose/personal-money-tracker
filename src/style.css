@@ -1673,7 +1673,8 @@ button.help-btn:focus-visible {
 /* A note mark (Change†, Investments†) and the same mark on its note: raised, without making the row taller. */
 .data-table th sup,
 .acct-table sup,
-.note sup {
+.note sup,
+.help-tip sup {
   font-size: 0.8em;
   line-height: 0;
   margin-left: 1px;

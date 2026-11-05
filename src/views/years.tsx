@@ -107,6 +107,8 @@ export function YearsView() {
   const ledgers = all.map(ledgerOf);
   const sums = ledgers.map((l) => summarize(l));
   const labels = all.map((d) => `${d.setup.year}${inProgress(d) ? "*" : ""}`);
+  // The same on the page itself, where the mark can be raised; charts draw plain text.
+  const marked = all.map((d) => <>{d.setup.year}{inProgress(d) && <sup aria-hidden="true">*</sup>}</>);
   const ongoing = all.filter(inProgress).map((d) => d.setup.year);
   const value = (s: Summary, key: keyof Summary) => s[key] as number;
   const last = sums.length - 1;
@@ -147,7 +149,7 @@ export function YearsView() {
     <div class="over-years">
       <PageHelp>
         Each Dashboard figure for every year, everyone together.
-        {ongoing.length > 0 && <> * {ongoing.join(", ")} so far.</>}
+        {ongoing.length > 0 && <><br /><sup aria-hidden="true">*</sup>{ongoing.join(", ")} so far.</>}
       </PageHelp>
       <div class={`year-charts${all.length > 4 ? " many" : ""}`}>
         {figures.map((f) => {
@@ -187,13 +189,13 @@ export function YearsView() {
           label="Category or tag to chart over the years" />
       </div>
       <section class="card report">
-        <CardTitle title="All figures">† Change is {labels[last]} against {labels[last - 1]}.</CardTitle>
+        <CardTitle title="All figures"><sup aria-hidden="true">†</sup>Change is {marked[last]} against {marked[last - 1]}.</CardTitle>
         <div class="heatmap-wrap">
           <table class="data-table all-figures">
             <thead>
               <tr>
                 <th>Figure</th>
-                {labels.map((y) => <th class="num">{y}</th>)}
+                {marked.map((y) => <th class="num">{y}</th>)}
                 <th class="num">Change<sup aria-hidden="true">†</sup></th>
               </tr>
             </thead>
