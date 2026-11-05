@@ -3,6 +3,7 @@
 // update the signal, so what you see is always what is stored.
 
 import { computed, signal, type Signal } from "@preact/signals";
+import { downloadYear } from "./backup";
 import { deleteYear, eraseAll, getSetting, listYears, loadYear, putEntryChange, putSetup, putSetupAndEntries, replaceYear, setSetting, type YearData } from "./db";
 import { ledgerOf, type Ledger } from "./derive";
 import { ID_PREFIX, STORE, duplicateEntry, newId, slug, type AnyEntry, type Kind } from "./entries";
@@ -356,8 +357,19 @@ export interface CloseResult {
 }
 
 /**
+ * Download a year's backup and mark it as backed up. In turn, like any change: a save on its way
+ * ends up in the file, and isn't overwritten by the backup time. The open year stays open, with that time.
+ */
+export function backUpYear(year: number): Promise<void> {
+  return inTurn(async () => {
+    await downloadYear(year);
+    await openYear(current.value?.setup.year);
+  });
+}
+
+/**
  * Close the open year: make it read-only and start the next year from its closing
- * balances (see rollover.ts). Download the year's backup before calling this.
+ * balances (see rollover.ts). Back up the year (backUpYear) before calling this.
  * Opens the new year afterwards.
  */
 export async function closeYear(): Promise<CloseResult> {

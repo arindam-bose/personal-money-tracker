@@ -2,11 +2,10 @@ import { useSignal } from "@preact/signals";
 import { useEffect, useRef } from "preact/hooks";
 import { version } from "../package.json";
 import { chooseConsent, consentAsked } from "./analytics";
-import { downloadYear } from "./backup";
 import { dateTime, lastUpdatedAt } from "./derive";
 import { updateReady } from "./offline";
 import { backupDue, daysSince, requestPersistence } from "./storage";
-import { current, loadSettings, openYear, persistState, years } from "./state";
+import { backUpYear, current, loadSettings, openYear, persistState, years } from "./state";
 import type { ComponentType } from "preact";
 import { AccountsView } from "./views/accounts";
 import { AddMenu } from "./views/add-menu";
@@ -90,8 +89,11 @@ export function App() {
 
   async function backUpNow() {
     if (!setup) return;
-    await downloadYear(setup.year);
-    await openYear(setup.year);
+    try {
+      await backUpYear(setup.year);
+    } catch (err) {
+      alert(`The backup didn't work: ${err instanceof Error ? err.message : String(err)}`);
+    }
   }
 
   return (

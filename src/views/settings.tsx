@@ -4,12 +4,12 @@
 
 import { useSignal } from "@preact/signals";
 import { useEffect } from "preact/hooks";
-import { downloadYear, importYear, readJsonFile } from "../backup";
+import { importYear, readJsonFile } from "../backup";
 import { formatCents, parseCents } from "../money";
 import { dateTime, lastUpdatedAt, localToday, shortDate } from "../derive";
 import { closingBalances, nextYearSetup } from "../rollover";
 import {
-  closeYear, current, type YearSummary, eraseEverything, iraLimit, ledger, loadSettings, openYear, persistState, readOnly, refreshYears, removeYear, reopenYear, saveIraBeforeStart, saveIraLimit, startYear, years,
+  backUpYear, closeYear, current, type YearSummary, eraseEverything, iraLimit, ledger, loadSettings, openYear, persistState, readOnly, refreshYears, removeYear, reopenYear, saveIraBeforeStart, saveIraLimit, startYear, years,
 } from "../state";
 import { IRA_LIMITS, iraLimitOf } from "../setup";
 import { HIDDEN_AMOUNT, maskedCents, numbersHidden, setNumbersHidden } from "../hide-numbers";
@@ -143,9 +143,12 @@ export function SettingsView() {
   }
 
   async function onExport(year: number) {
-    await downloadYear(year);
-    // Reload so the open year has the new backup time too.
-    await openYear(current.value?.setup.year);
+    errors.value = [];
+    try {
+      await backUpYear(year);
+    } catch (err) {
+      message.value = `The backup of ${year} didn't work: ${err instanceof Error ? err.message : String(err)}`;
+    }
   }
 
   return (
@@ -565,7 +568,7 @@ function CloseYearPanel(props: { year: number; onDone: (message: string) => void
   async function onClose() {
     busy.value = true;
     try {
-      await downloadYear(year);
+      await backUpYear(year);
       const r = await closeYear();
       props.onDone(r.created
         ? `${year} is closed and backed up. ${r.next} has started with ${year}'s closing balances.`
