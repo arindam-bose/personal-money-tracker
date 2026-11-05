@@ -2,6 +2,7 @@
 // the charts live on the Reports page. With more than one person, it can show one
 // person's figures; balances and budgets are the household's, so those stay in "All people".
 
+import type { ComponentChildren } from "preact";
 import { useSignal, useSignalEffect } from "@preact/signals";
 import {
   MONTH_NAMES, accountsOverview, hasLoanAccount, budgetView, earningsByCategory, localToday, monthProgress, netEarningNames, remainingRetirement, shortDate, spendingOffsetCategories, spendByCategory, summarize, tagTotal,
@@ -191,9 +192,8 @@ export function DashboardView() {
           <section class="card">
             <h3>Accounts</h3>
             <p class="muted small">{asOf}</p>
-            <AccountsTable overview={accounts} accounts={setup.accounts} withoutLoans={withoutLoans} />
-            <RetirementRoom left={remainingRetirement(all, iraLimit.value, setup.iraBeforeStart)} limit={iraLimit.value}
-              before={setup.iraBeforeStart} start={yearStart(setup)} />
+            <AccountsTable overview={accounts} accounts={setup.accounts} withoutLoans={withoutLoans}
+              retirement={{ left: remainingRetirement(all, iraLimit.value, setup.iraBeforeStart), limit: iraLimit.value, before: setup.iraBeforeStart, start: yearStart(setup) }} />
           </section>
         </div>
       )}
@@ -285,7 +285,7 @@ function CategoryBars(props: {
   );
 }
 
-function AccountsTable(props: { overview: ReturnType<typeof accountsOverview>; accounts: Account[]; withoutLoans: boolean }) {
+function AccountsTable(props: { overview: ReturnType<typeof accountsOverview>; accounts: Account[]; withoutLoans: boolean; retirement: RetirementRoomProps }) {
   const o = props.overview;
   const bal = (a: Account) => o.balances.get(a.id) ?? 0;
   // Archived accounts show while they hold money or a value; closed ones only before the day they closed.
@@ -309,6 +309,7 @@ function AccountsTable(props: { overview: ReturnType<typeof accountsOverview>; a
   const investments = group(["investment"]);
 
   return (
+    <>
     <table class="acct-table">
       <tbody>
         {group(["checking", "savings", "cash"]).map((a) => (
@@ -337,7 +338,7 @@ function AccountsTable(props: { overview: ReturnType<typeof accountsOverview>; a
           );
         })}
         <tr class="subtotal">
-          <td>Card debt · {formatPercent(o.utilization)} of limits</td>
+          <td>Card debt · {formatPercent(o.utilization)} of limits{o.cardLimit > 0 && <sup aria-hidden="true">*</sup>}</td>
           <td class="num">{formatCents(o.cardDebt)}</td>
         </tr>
         {o.loans.filter((l) => !l.account.archived || l.owed !== 0).sort((a, b) => b.owed - a.owed).map((l) => (
@@ -370,7 +371,7 @@ function AccountsTable(props: { overview: ReturnType<typeof accountsOverview>; a
             </tr>
           );
         })}
-        <WorthSubtotal label="Investments" kind="balance" accounts={investments} valuations={o.valuations} worth={o.investmentsWorth} />
+        <WorthSubtotal label={<>Investments<sup aria-hidden="true">†</sup></>} kind="balance" accounts={investments} valuations={o.valuations} worth={o.investmentsWorth} />
         {group(["asset"]).map((a) => {
           const v = o.valuations.get(a.id);
           return (
@@ -390,6 +391,10 @@ function AccountsTable(props: { overview: ReturnType<typeof accountsOverview>; a
         </tr>
       </tbody>
     </table>
+    {/* The notes the marks in the table point to. A mark and its note go together; the retirement room shows either way. */}
+    {o.cardLimit > 0 && <p class="note"><sup aria-hidden="true">*</sup>Total credit limit: <b>{formatCents(o.cardLimit)}</b></p>}
+    <RetirementRoom {...props.retirement} marked={investments.length > 0} />
+    </>
   );
 }
 
@@ -397,7 +402,7 @@ function AccountsTable(props: { overview: ReturnType<typeof accountsOverview>; a
  * The subtotal of investments or assets, worth what they were last updated to. Before any update it says so,
  * rather than show nothing; with only some updated, it says how many the amount (and so net worth) leaves out.
  */
-function WorthSubtotal(props: { label: string; kind: "balance" | "value"; accounts: Account[]; valuations: Map<string, unknown>; worth: number }) {
+function WorthSubtotal(props: { label: ComponentChildren; kind: "balance" | "value"; accounts: Account[]; valuations: Map<string, unknown>; worth: number }) {
   if (props.accounts.length === 0) return null;
   const missing = props.accounts.filter((a) => !props.valuations.has(a.id)).length;
   const valued = missing < props.accounts.length;
@@ -420,10 +425,12 @@ function Meter({ fraction }: { fraction: number | null }) {
   );
 }
 
-function RetirementRoom({ left, limit, before, start }: { left: number; limit: number; before?: number; start: string }) {
+interface RetirementRoomProps { left: number; limit: number; before?: number; start: string }
+
+function RetirementRoom({ left, limit, before, start, marked }: RetirementRoomProps & { marked: boolean }) {
   return (
     <p class="note">
-      Retirement room left this year: <b>{formatCents(left)}</b> of the {formatCents(limit)} limit
+      {marked && <sup aria-hidden="true">†</sup>}Retirement room left this year: <b>{formatCents(left)}</b> of the {formatCents(limit)} limit
       {before ? <>, after {formatCents(before)} put in before {shortDate(start)}</> : null}{" "}
       <a href="#/settings" class="small">change</a>
     </p>

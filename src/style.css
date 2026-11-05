@@ -1478,6 +1478,10 @@ button.help-btn:focus-visible {
   font-size: 14px;
 }
 
+.note + .note {
+  margin-top: 4px;
+}
+
 /* --- Reports --- */
 
 .reports {
@@ -1666,8 +1670,10 @@ button.help-btn:focus-visible {
   width: 100%;
 }
 
-/* A note mark on a heading (Change†): raised, without making the row taller. */
-.data-table th sup {
+/* A note mark (Change†, Investments†) and the same mark on its note: raised, without making the row taller. */
+.data-table th sup,
+.acct-table sup,
+.note sup {
   font-size: 0.8em;
   line-height: 0;
   margin-left: 1px;
