@@ -149,8 +149,8 @@ export function YearsView() {
     <div class="over-years">
       <PageHelp>
         Each Dashboard figure for every year, everyone together.
-        {/* More than one only with a later year started early, which isn't the current one. */}
-        {ongoing.length > 0 && <><br /><sup aria-hidden="true">*</sup>{ongoing.join(", ")}{ongoing.length === 1 ? " is the current year, still incomplete." : " are still incomplete."}</>}
+        {/* A later year can be under way too, started early or once this one closed; that one isn't the current year. */}
+        {ongoing.length > 0 && <><br /><sup aria-hidden="true">*</sup>{ongoing.join(", ")}{ongoing.length > 1 ? " are still incomplete." : ongoing[0] === new Date().getFullYear() ? " is the current year, still incomplete." : " is still incomplete."}</>}
       </PageHelp>
       <div class={`year-charts${all.length > 4 ? " many" : ""}`}>
         {figures.map((f) => {
