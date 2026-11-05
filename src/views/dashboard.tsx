@@ -307,7 +307,6 @@ function AccountsTable(props: { overview: ReturnType<typeof accountsOverview>; a
     });
 
   const investments = group(["investment"]);
-  const anyInvestmentValued = investments.some((a) => o.valuations.has(a.id));
 
   return (
     <table class="acct-table">
@@ -371,12 +370,7 @@ function AccountsTable(props: { overview: ReturnType<typeof accountsOverview>; a
             </tr>
           );
         })}
-        {investments.length > 0 && (
-          <tr class="subtotal">
-            <td>Investments{anyInvestmentValued && <> <span class="muted small">latest balances</span></>}</td>
-            <td class="num">{anyInvestmentValued ? formatCents(o.investmentsWorth) : <span class="muted">No balance yet</span>}</td>
-          </tr>
-        )}
+        <WorthSubtotal label="Investments" kind="balance" accounts={investments} valuations={o.valuations} worth={o.investmentsWorth} />
         {group(["asset"]).map((a) => {
           const v = o.valuations.get(a.id);
           return (
@@ -389,18 +383,25 @@ function AccountsTable(props: { overview: ReturnType<typeof accountsOverview>; a
             </tr>
           );
         })}
-        {group(["asset"]).some((a) => o.valuations.has(a.id)) && (
-          <tr class="subtotal">
-            <td>Assets <span class="muted small">latest values</span></td>
-            <td class="num">{formatCents(o.assetsWorth)}</td>
-          </tr>
-        )}
+        <WorthSubtotal label="Assets" kind="value" accounts={group(["asset"])} valuations={o.valuations} worth={o.assetsWorth} />
         <tr class="total">
           <td>Net worth{props.withoutLoans && <span class="muted small"> without loans</span>}</td>
           <td class="num">{formatCents(props.withoutLoans ? o.netWorthWithoutLoans : o.netWorth)}</td>
         </tr>
       </tbody>
     </table>
+  );
+}
+
+/** The subtotal of investments or assets, worth what they were last updated to. Before any update it says so, rather than show nothing. */
+function WorthSubtotal(props: { label: string; kind: "balance" | "value"; accounts: Account[]; valuations: Map<string, unknown>; worth: number }) {
+  if (props.accounts.length === 0) return null;
+  const valued = props.accounts.some((a) => props.valuations.has(a.id));
+  return (
+    <tr class="subtotal">
+      <td>{props.label}{valued && <> <span class="muted small">latest {props.kind}s</span></>}</td>
+      <td class="num">{valued ? formatCents(props.worth) : <span class="muted">No {props.kind} yet</span>}</td>
+    </tr>
   );
 }
 
