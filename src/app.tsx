@@ -2,17 +2,17 @@ import { useSignal } from "@preact/signals";
 import { useEffect, useRef } from "preact/hooks";
 import { version } from "../package.json";
 import { chooseConsent, consentAsked } from "./analytics";
-import { downloadYear } from "./backup";
 import { dateTime, lastUpdatedAt } from "./derive";
 import { updateReady } from "./offline";
-import { backupDue, daysSince, requestPersistence } from "./storage";
-import { current, loadSettings, openYear, persistState, years } from "./state";
+import { backupDue, backupText, requestPersistence } from "./storage";
+import { backUpYear, current, loadSettings, openYear, persistState, years } from "./state";
 import type { ComponentType } from "preact";
 import { AccountsView } from "./views/accounts";
 import { AddMenu } from "./views/add-menu";
 import { BudgetView } from "./views/budget";
 import { useDismiss } from "./views/hooks";
 import { DashboardView } from "./views/dashboard";
+import { Icon } from "./views/icons";
 import { LedgerView } from "./views/ledger";
 import { SettingsView } from "./views/settings";
 
@@ -78,16 +78,20 @@ export function App() {
   useDismiss(menuOpen, ".topbar nav, .menu-btn");
 
   const View = PAGES[page.value].view;
+  /** Over the years covers every year, so the picker, Backup and the last-updated strip, which go by the open year, step aside there. */
+  const allYears = page.value === "years" && years.value.length > 1;
   const setup = current.value?.setup;
-  const backupDays = setup && !setup.closed ? daysSince(setup.lastBackupAt) : null;
   const hasEntries = !!current.value && current.value.expenses.length + current.value.earnings.length + current.value.transfers.length > 0;
-  const needsBackup = setup && backupDue(setup, hasEntries);
+  const backupReminder = setup && backupDue(setup, hasEntries) ? backupText(setup.lastBackupAt) : null;
   const updated = setup && lastUpdatedAt(setup);
 
   async function backUpNow() {
     if (!setup) return;
-    await downloadYear(setup.year);
-    await openYear(setup.year);
+    try {
+      await backUpYear(setup.year);
+    } catch (err) {
+      alert(`The backup didn't work: ${err instanceof Error ? err.message : String(err)}`);
+    }
   }
 
   return (
@@ -110,14 +114,18 @@ export function App() {
               <span class="long">v{updateReady.value} is ready · </span>Reload
             </button>
           )}
-          {needsBackup && (
-            <button type="button" class="backup-nag" onClick={backUpNow}
-              title="Downloads this year as a JSON file. Your data lives only in this browser.">
-              <span class="long">{backupDays === null ? "Not backed up yet" : `Last backup ${backupDays} days ago`} · </span>Back up<span class="long"> now</span>
+          {/* Here for the open year; it turns into the reminder when a backup is due. */}
+          {setup && !allYears && (
+            <button type="button" class={`backup-btn ${backupReminder ? "backup-nag" : ""}`} onClick={backUpNow}
+              aria-label={`${backupReminder ? `${backupReminder}. ` : ""}Back up ${setup.year}`}
+              title={`${backupReminder ? `${backupReminder}. ` : ""}Downloads ${setup.year} as a JSON file. Your data lives only in this browser.`}>
+              <Icon name="export" />
+              {/* Next to Reload's own text, both wouldn't fit. */}
+              {backupReminder && !updateReady.value && <span class="long">{backupReminder} · </span>}
+              <span class="backup-label">Backup</span>
             </button>
           )}
-          {/* Over the years covers every year, so the picker steps aside there. */}
-          {page.value === "years" && years.value.length > 1 ? <span class="muted">All years</span> : years.value.length > 0 && (
+          {allYears ? <span class="muted">All years</span> : years.value.length > 0 && (
             <select aria-label="Year" value={setup?.year} onChange={(e) => openYear(Number(e.currentTarget.value))}>
               {years.value.map((y) => <option value={y.setup.year}>{y.setup.year}</option>)}
             </select>
@@ -127,7 +135,7 @@ export function App() {
         </div>
       </header>
       {/* One time for the open year: its latest change, to an entry or to its setup. */}
-      {updated && (
+      {updated && !allYears && (
         <div class="status-strip">
           <p>Last updated {dateTime(updated)}</p>
         </div>
@@ -136,10 +144,11 @@ export function App() {
         <View />
       </main>
       <footer class="footer">
-        © 2026 - Made with love by <a href="https://arindambose.com/" target="_blank" rel="noopener noreferrer">Arindam Bose</a>,
-        powered by <a href="https://claude.ai/" target="_blank" rel="noopener noreferrer">Claude</a>
-        <br />
-        Your ledger stays in this browser: nothing is uploaded, and it works offline.
+        <p>
+          © 2026 - Made with love by <a href="https://arindambose.com/" target="_blank" rel="noopener noreferrer">Arindam Bose</a>,
+          powered by <a href="https://claude.ai/" target="_blank" rel="noopener noreferrer">Claude</a>
+        </p>
+        <p>Your ledger stays in this browser: nothing is uploaded, and it works offline.</p>
       </footer>
       {/* The cookie question sits where the Add button would. */}
       {consentAsked.value ? <ConsentBanner /> : <AddMenu />}

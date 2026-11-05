@@ -21,6 +21,14 @@ export function daysSince(iso: string | undefined, now = new Date()): number | n
 /** Remind about backups after this many days. */
 const BACKUP_AFTER_DAYS = 7;
 
+/** How long ago the last backup was, in words, for the top bar and the Settings page. */
+export function backupText(iso: string | undefined, now = new Date()): string {
+  const days = daysSince(iso, now);
+  if (days === null) return "Never backed up";
+  if (days <= 0) return "Backed up today";
+  return `Last backup ${days} day${days === 1 ? "" : "s"} ago`;
+}
+
 /**
  * Whether the top bar should remind about a backup: never for a closed year or one with no entries;
  * otherwise if it was never backed up, or it changed since a backup taken a week or more ago.

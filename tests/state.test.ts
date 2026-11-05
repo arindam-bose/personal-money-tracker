@@ -1,7 +1,7 @@
-import { beforeEach, describe, expect, it } from "vitest";
+import { beforeEach, describe, expect, it, vi } from "vitest";
 import { exportYear, importYear } from "../src/backup";
 import { getSetting, listYears, loadYear, putEntryChange, setSetting } from "../src/db";
-import { current, ensureTag, eraseEverything, loadAllYears, openYear, pins, refreshYears, removeEntry, removeYear, removeTag, saveEntry, setBudget, years } from "../src/state";
+import { backUpYear, closeYear, current, ensureTag, eraseEverything, loadAllYears, openYear, pins, refreshYears, removeEntry, removeYear, removeTag, saveEntry, setBudget, years } from "../src/state";
 import { demoYear } from "../src/demo";
 import { freshDb, sample } from "./helpers";
 
@@ -9,6 +9,31 @@ beforeEach(async () => {
   await freshDb();
   await importYear(sample());
   await openYear(2026);
+});
+
+describe("backing up", () => {
+  beforeEach(() => {
+    // Only the browser's download itself is stood in for.
+    vi.stubGlobal("document", { createElement: () => ({ click() {} }) });
+    URL.createObjectURL = () => "blob:backup";
+    URL.revokeObjectURL = () => {};
+  });
+
+  it("doesn't undo a save that's on its way", async () => {
+    await Promise.all([setBudget("default", "ce_food", 1), backUpYear(2026), setBudget("default", "ce_rent", 2)]);
+    const stored = (await loadYear(2026))!.setup;
+    expect(stored.budgets.default).toMatchObject({ ce_food: 1, ce_rent: 2 });
+    expect(current.value!.setup.budgets.default).toMatchObject({ ce_food: 1, ce_rent: 2 });
+    expect(current.value!.setup.lastBackupAt).toBe(stored.lastBackupAt);
+  });
+
+  it("keeps the backup time when the year closes straight after", async () => {
+    await backUpYear(2026);
+    const at = (await loadYear(2026))!.setup.lastBackupAt;
+    expect(at).not.toBe("2026-03-01T12:00:00.000Z");
+    await closeYear();
+    expect((await loadYear(2026))!.setup.lastBackupAt).toBe(at);
+  });
 });
 
 describe("state changes", () => {

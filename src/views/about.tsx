@@ -77,7 +77,7 @@ export function AboutCard() {
           </p>
           <p>
             That also means <b>you are the backup</b>. Download a copy of each year now and then
-            (the tracker reminds you after a week). If you clear your browser data or switch
+            with <b>Backup</b> in the top bar (it turns red after a week). If you clear your browser data or switch
             devices, import that file to get everything back.
           </p>
         </DialogFact>
