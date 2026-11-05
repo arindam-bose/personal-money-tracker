@@ -108,8 +108,9 @@ export function YearsView() {
   const sums = ledgers.map((l) => summarize(l));
   const labels = all.map((d) => `${d.setup.year}${inProgress(d) ? "*" : ""}`);
   // The same on the page itself, where the mark can be raised; charts draw plain text.
-  const marked = all.map((d) => <>{d.setup.year}{inProgress(d) && <sup aria-hidden="true">*</sup>}</>);
-  const ongoing = all.filter(inProgress).map((d) => d.setup.year);
+  const yearMarked = (d: YearData) => <>{d.setup.year}{inProgress(d) && <sup aria-hidden="true">*</sup>}</>;
+  const marked = all.map(yearMarked);
+  const ongoing = all.filter(inProgress);
   const value = (s: Summary, key: keyof Summary) => s[key] as number;
   const last = sums.length - 1;
   // Past four years, the axes say '24 to fit; the table keeps the full year.
@@ -149,7 +150,8 @@ export function YearsView() {
     <div class="over-years">
       <PageHelp>
         Each Dashboard figure for every year, everyone together.
-        {ongoing.length > 0 && <><br /><sup aria-hidden="true">*</sup>{ongoing.join(", ")} so far.</>}
+        {/* More than one only with a later year started early, which isn't the current one. */}
+        {ongoing.length > 0 && <><br />{ongoing.map((d, i) => <>{i > 0 && ", "}{yearMarked(d)}</>)}{ongoing.length === 1 ? " is the current year, still incomplete." : " are still incomplete."}</>}
       </PageHelp>
       <div class={`year-charts${all.length > 4 ? " many" : ""}`}>
         {figures.map((f) => {
