@@ -311,6 +311,14 @@ main {
   text-align: center;
 }
 
+.footer p {
+  margin: 0;
+}
+
+.footer p + p {
+  margin-top: 8px;
+}
+
 .panel {
   background: var(--surface);
   border: 1px solid var(--border);

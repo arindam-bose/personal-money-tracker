@@ -144,10 +144,11 @@ export function App() {
         <View />
       </main>
       <footer class="footer">
-        © 2026 - Made with love by <a href="https://arindambose.com/" target="_blank" rel="noopener noreferrer">Arindam Bose</a>,
-        powered by <a href="https://claude.ai/" target="_blank" rel="noopener noreferrer">Claude</a>
-        <br />
-        Your ledger stays in this browser: nothing is uploaded, and it works offline.
+        <p>
+          © 2026 - Made with love by <a href="https://arindambose.com/" target="_blank" rel="noopener noreferrer">Arindam Bose</a>,
+          powered by <a href="https://claude.ai/" target="_blank" rel="noopener noreferrer">Claude</a>
+        </p>
+        <p>Your ledger stays in this browser: nothing is uploaded, and it works offline.</p>
       </footer>
       {/* The cookie question sits where the Add button would. */}
       {consentAsked.value ? <ConsentBanner /> : <AddMenu />}
