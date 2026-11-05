@@ -306,6 +306,9 @@ function AccountsTable(props: { overview: ReturnType<typeof accountsOverview>; a
       return x > y ? -1 : x < y ? 1 : 0;
     });
 
+  const investments = group(["investment"]);
+  const anyInvestmentValued = investments.some((a) => o.valuations.has(a.id));
+
   return (
     <table class="acct-table">
       <tbody>
@@ -353,7 +356,7 @@ function AccountsTable(props: { overview: ReturnType<typeof accountsOverview>; a
             <td class="num">{formatCents(o.loanDebt)}</td>
           </tr>
         )}
-        {group(["investment"]).map((a) => {
+        {investments.map((a) => {
           // Worth what it was last updated to; without an update it only shows this year's contributions.
           const v = o.valuations.get(a.id);
           return (
@@ -368,10 +371,10 @@ function AccountsTable(props: { overview: ReturnType<typeof accountsOverview>; a
             </tr>
           );
         })}
-        {group(["investment"]).some((a) => o.valuations.has(a.id)) && (
+        {investments.length > 0 && (
           <tr class="subtotal">
-            <td>Investments <span class="muted small">latest balances</span></td>
-            <td class="num">{formatCents(o.investmentsWorth)}</td>
+            <td>Investments{anyInvestmentValued && <> <span class="muted small">latest balances</span></>}</td>
+            <td class="num">{anyInvestmentValued ? formatCents(o.investmentsWorth) : <span class="muted">No balance yet</span>}</td>
           </tr>
         )}
         {group(["asset"]).map((a) => {
