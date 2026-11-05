@@ -1,6 +1,6 @@
 # Money Tracker
 
-**Version 5.0.26** ·
+**Version 5.0.27** ·
 [Use it online](https://arindambose.com/personal-money-tracker/)
 
 Keep track of what you earn, spend, save and invest, one year at a time.
@@ -18,8 +18,8 @@ If you say yes when the tracker first asks (or later, under **Cookie settings** 
 Settings' About card), Google Analytics counts visits to the site. It never sees
 what you log, and nothing of Google's loads unless you say yes.
 
-That also means **you are the backup**. Download a copy of each year now and then
-(the app reminds you a week after your last backup, if anything changed since). If
+That also means **you are the backup**. **Backup** in the top bar downloads the open
+year (an icon on a phone), and turns red a week after your last backup, if anything changed since. If
 you clear your browser data or switch computers, import that file to get
 everything back.
 

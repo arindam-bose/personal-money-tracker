@@ -13,6 +13,7 @@ import { AddMenu } from "./views/add-menu";
 import { BudgetView } from "./views/budget";
 import { useDismiss } from "./views/hooks";
 import { DashboardView } from "./views/dashboard";
+import { Icon } from "./views/icons";
 import { LedgerView } from "./views/ledger";
 import { SettingsView } from "./views/settings";
 
@@ -82,6 +83,7 @@ export function App() {
   const backupDays = setup && !setup.closed ? daysSince(setup.lastBackupAt) : null;
   const hasEntries = !!current.value && current.value.expenses.length + current.value.earnings.length + current.value.transfers.length > 0;
   const needsBackup = setup && backupDue(setup, hasEntries);
+  const backupReminder = needsBackup ? (backupDays === null ? "Not backed up yet" : `Last backup ${backupDays} days ago`) : null;
   const updated = setup && lastUpdatedAt(setup);
 
   async function backUpNow() {
@@ -110,10 +112,15 @@ export function App() {
               <span class="long">v{updateReady.value} is ready · </span>Reload
             </button>
           )}
-          {needsBackup && (
-            <button type="button" class="backup-nag" onClick={backUpNow}
-              title="Downloads this year as a JSON file. Your data lives only in this browser.">
-              <span class="long">{backupDays === null ? "Not backed up yet" : `Last backup ${backupDays} days ago`} · </span>Back up<span class="long"> now</span>
+          {/* Always here for the open year; it turns into the reminder when a backup is due. */}
+          {setup && (
+            <button type="button" class={`backup-btn ${needsBackup ? "backup-nag" : ""}`} onClick={backUpNow}
+              aria-label={`${backupReminder ? `${backupReminder}. ` : ""}Back up ${setup.year}`}
+              title={`${backupReminder ? `${backupReminder}. ` : ""}Downloads ${setup.year} as a JSON file. Your data lives only in this browser.`}>
+              <Icon name="export" />
+              {/* Next to Reload's own text, both wouldn't fit. */}
+              {backupReminder && !updateReady.value && <span class="long">{backupReminder} · </span>}
+              <span class="backup-label">Backup</span>
             </button>
           )}
           {/* Over the years covers every year, so the picker steps aside there. */}

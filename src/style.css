@@ -149,13 +149,43 @@ a {
   padding: 4px 10px;
 }
 
+/* Green like Export JSON on the Settings page, until a backup is due. The icon is for phones. */
+.backup-btn {
+  --kind: var(--earning);
+  color: var(--kind);
+  background: color-mix(in srgb, var(--kind) 7%, var(--surface));
+  border-color: color-mix(in srgb, var(--kind) 35%, var(--surface));
+  font-size: 13px;
+  padding: 4px 10px;
+}
+
+.backup-btn:hover {
+  filter: none;
+  background: color-mix(in srgb, var(--kind) 14%, var(--surface));
+}
+
+.backup-btn.backup-nag {
+  --kind: var(--danger);
+  border-color: var(--danger);
+}
+
+.backup-btn .icon {
+  display: none;
+}
+
 .menu-btn {
   display: none;
 }
 
-/* Phones, tablets and narrow windows: the links don't fit in a row, so they fold into a menu under ☰,
-   and the reminders shorten to "Back up" and "Reload" (their tooltips keep the rest). */
-@media (max-width: 999px) {
+/* The reminders shorten to "Backup" and "Reload" (their tooltips keep the rest), so the links stay on one line. */
+@media (max-width: 1299px) {
+  .topbar-right .long {
+    display: none;
+  }
+}
+
+/* Phones, tablets and narrow windows: the links don't fit in a row, so they fold into a menu under ☰. */
+@media (max-width: 1149px) {
   .topbar {
     padding: 0 16px;
     gap: 8px;
@@ -164,10 +194,6 @@ a {
   .topbar h1 {
     margin: 0;
     white-space: nowrap;
-  }
-
-  .topbar-right .long {
-    display: none;
   }
 
   .topbar-right {
@@ -213,7 +239,8 @@ a {
   }
 }
 
-/* Phones: the version goes under the title, small, to leave the bar room for its buttons. */
+/* Phones: the version goes under the title, small, and Backup is just its icon,
+   to leave the bar room for its buttons. */
 @media (max-width: 600px) {
   .topbar h1 {
     display: flex;
@@ -223,6 +250,23 @@ a {
 
   .topbar .version {
     font-size: 11px;
+  }
+
+  .backup-btn {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    width: 32px;
+    height: 32px;
+    padding: 0;
+  }
+
+  .backup-btn .icon {
+    display: block;
+  }
+
+  .backup-label {
+    display: none;
   }
 }
 
@@ -2452,7 +2496,7 @@ button.link.demo-link {
   display: none;
 }
 
-@media (max-width: 999px) {
+@media (max-width: 1149px) {
   .add-menu {
     position: fixed;
     right: 16px;
