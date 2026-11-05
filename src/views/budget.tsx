@@ -248,7 +248,8 @@ function MoneyInput(props: {
     props.onCommit(cents).catch((e) => {
       // Not saved: back to what is, so it can't pass for saved.
       sent.current = shown;
-      input.value = masked(shown);
+      // Dots only while out of focus: a box being edited would take them for typed text.
+      input.value = document.activeElement === input ? shown : masked(shown);
       alert(e instanceof Error ? e.message : String(e));
     });
   }
