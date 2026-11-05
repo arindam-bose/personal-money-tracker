@@ -19,7 +19,7 @@ import { IconButton } from "./icons";
 import { checkForUpdates, offlineChanged, offlineStatus, updateReady } from "../offline";
 import { detectDevice } from "../device";
 import { installState, installSteps, promptInstall } from "../install";
-import { daysSince, requestPersistence } from "../storage";
+import { backupText, requestPersistence } from "../storage";
 import { setTheme, theme, themeChoice, type ThemeChoice } from "../theme";
 import { startsMidYear, yearStart } from "../year";
 import { isDateInYear, validateYearFile } from "../validate";
@@ -71,13 +71,6 @@ function replaceQuestion(fileName: string, stored: YearSummary, file: YearFile):
 /** With seconds: two backups taken minutes apart must still read differently. */
 function changedText(iso: string | undefined): string {
   return iso ? `Last updated ${dateTime(iso, true)}` : "No last-updated time";
-}
-
-function backupText(iso: string | undefined): string {
-  const days = daysSince(iso);
-  if (days === null) return "Never backed up";
-  if (days <= 0) return "Backed up today";
-  return `Last backup ${days} day${days === 1 ? "" : "s"} ago`;
 }
 
 export function SettingsView() {

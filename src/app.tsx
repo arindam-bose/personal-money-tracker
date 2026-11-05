@@ -4,7 +4,7 @@ import { version } from "../package.json";
 import { chooseConsent, consentAsked } from "./analytics";
 import { dateTime, lastUpdatedAt } from "./derive";
 import { updateReady } from "./offline";
-import { backupDue, daysSince, requestPersistence } from "./storage";
+import { backupDue, backupText, requestPersistence } from "./storage";
 import { backUpYear, current, loadSettings, openYear, persistState, years } from "./state";
 import type { ComponentType } from "preact";
 import { AccountsView } from "./views/accounts";
@@ -78,13 +78,11 @@ export function App() {
   useDismiss(menuOpen, ".topbar nav, .menu-btn");
 
   const View = PAGES[page.value].view;
-  /** Over the years covers every year, so the picker and Backup, which go by the open year, step aside there. */
+  /** Over the years covers every year, so the picker, Backup and the last-updated strip, which go by the open year, step aside there. */
   const allYears = page.value === "years" && years.value.length > 1;
   const setup = current.value?.setup;
-  const backupDays = setup && !setup.closed ? daysSince(setup.lastBackupAt) : null;
   const hasEntries = !!current.value && current.value.expenses.length + current.value.earnings.length + current.value.transfers.length > 0;
-  const needsBackup = setup && backupDue(setup, hasEntries);
-  const backupReminder = needsBackup ? (backupDays === null ? "Not backed up yet" : `Last backup ${backupDays} days ago`) : null;
+  const backupReminder = setup && backupDue(setup, hasEntries) ? backupText(setup.lastBackupAt) : null;
   const updated = setup && lastUpdatedAt(setup);
 
   async function backUpNow() {
@@ -118,7 +116,7 @@ export function App() {
           )}
           {/* Here for the open year; it turns into the reminder when a backup is due. */}
           {setup && !allYears && (
-            <button type="button" class={`backup-btn ${needsBackup ? "backup-nag" : ""}`} onClick={backUpNow}
+            <button type="button" class={`backup-btn ${backupReminder ? "backup-nag" : ""}`} onClick={backUpNow}
               aria-label={`${backupReminder ? `${backupReminder}. ` : ""}Back up ${setup.year}`}
               title={`${backupReminder ? `${backupReminder}. ` : ""}Downloads ${setup.year} as a JSON file. Your data lives only in this browser.`}>
               <Icon name="export" />
@@ -137,7 +135,7 @@ export function App() {
         </div>
       </header>
       {/* One time for the open year: its latest change, to an entry or to its setup. */}
-      {updated && (
+      {updated && !allYears && (
         <div class="status-strip">
           <p>Last updated {dateTime(updated)}</p>
         </div>

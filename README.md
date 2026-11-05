@@ -1,6 +1,6 @@
 # Money Tracker
 
-**Version 5.0.42** ·
+**Version 5.0.43** ·
 [Use it online](https://arindambose.com/personal-money-tracker/)
 
 Keep track of what you earn, spend, save and invest, one year at a time.
@@ -43,7 +43,7 @@ entry, a loan, investments and a car, and accounts that were closed.
 
 ## What's in it
 
-A thin strip under the top bar shows when the open year was last updated: any
+A thin strip under the top bar (except on Over the years) shows when the open year was last updated: any
 entry, account, category, tag, person or budget, its start day or its IRA settings.
 Backups carry that time too.
 

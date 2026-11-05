@@ -1,9 +1,18 @@
 import { describe, expect, it } from "vitest";
 import { lastUpdatedAt } from "../src/derive";
-import { backupDue } from "../src/storage";
+import { backupDue, backupText } from "../src/storage";
 
 const now = new Date("2026-10-29T12:00:00Z");
 const daysAgo = (n: number) => new Date(now.getTime() - n * 86_400_000).toISOString();
+
+describe("backupText", () => {
+  it("says how long ago, in words", () => {
+    expect(backupText(undefined, now)).toBe("Never backed up");
+    expect(backupText(daysAgo(0), now)).toBe("Backed up today");
+    expect(backupText(daysAgo(1), now)).toBe("Last backup 1 day ago");
+    expect(backupText(daysAgo(9), now)).toBe("Last backup 9 days ago");
+  });
+});
 
 describe("backupDue", () => {
   it("reminds about a year that was never backed up", () => {
