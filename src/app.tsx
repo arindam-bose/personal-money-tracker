@@ -79,6 +79,8 @@ export function App() {
   useDismiss(menuOpen, ".topbar nav, .menu-btn");
 
   const View = PAGES[page.value].view;
+  /** Over the years covers every year, so the picker and Backup, which go by the open year, step aside there. */
+  const allYears = page.value === "years" && years.value.length > 1;
   const setup = current.value?.setup;
   const backupDays = setup && !setup.closed ? daysSince(setup.lastBackupAt) : null;
   const hasEntries = !!current.value && current.value.expenses.length + current.value.earnings.length + current.value.transfers.length > 0;
@@ -112,8 +114,8 @@ export function App() {
               <span class="long">v{updateReady.value} is ready · </span>Reload
             </button>
           )}
-          {/* Always here for the open year; it turns into the reminder when a backup is due. */}
-          {setup && (
+          {/* Here for the open year; it turns into the reminder when a backup is due. */}
+          {setup && !allYears && (
             <button type="button" class={`backup-btn ${needsBackup ? "backup-nag" : ""}`} onClick={backUpNow}
               aria-label={`${backupReminder ? `${backupReminder}. ` : ""}Back up ${setup.year}`}
               title={`${backupReminder ? `${backupReminder}. ` : ""}Downloads ${setup.year} as a JSON file. Your data lives only in this browser.`}>
@@ -123,8 +125,7 @@ export function App() {
               <span class="backup-label">Backup</span>
             </button>
           )}
-          {/* Over the years covers every year, so the picker steps aside there. */}
-          {page.value === "years" && years.value.length > 1 ? <span class="muted">All years</span> : years.value.length > 0 && (
+          {allYears ? <span class="muted">All years</span> : years.value.length > 0 && (
             <select aria-label="Year" value={setup?.year} onChange={(e) => openYear(Number(e.currentTarget.value))}>
               {years.value.map((y) => <option value={y.setup.year}>{y.setup.year}</option>)}
             </select>

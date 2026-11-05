@@ -327,7 +327,7 @@ into the next year.
 ### Backups
 
 A backup is the year's `YearFile`, downloaded from the Settings page or the top bar's
-Backup button, which is always there for the open year (just its icon on a phone). The button
+Backup button, which is there for the open year on every page but Over the years (just its icon on a phone). The button
 turns into a red reminder for an open year with entries that was never backed up, or that
 changed since a backup at least 7 days old, in its entries or its setup (`backupDue` in `storage.ts`). Importing a
 file counts as a backup made at its `exportedAt` time. JSON keys are written in a
