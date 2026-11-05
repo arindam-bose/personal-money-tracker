@@ -1434,8 +1434,10 @@ button.help-btn:focus-visible {
   text-align: right;
 }
 
+/* The line under each subtotal is thick: it separates one type of account from the next. */
 .acct-table tr.subtotal td {
   font-weight: 600;
+  border-bottom-width: 3px;
 }
 
 .acct-table tr.total td {
