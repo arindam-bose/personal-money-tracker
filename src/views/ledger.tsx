@@ -295,9 +295,15 @@ export function LedgerView() {
   return (
     <section class="ledger">
       <div class="toolbar">
-        {!canAddEntries(setup) ? (
-          <span class="muted">Add your accounts on the <a href="#/accounts">Accounts</a> page first, then log entries here.</span>
-        ) : !readOnly.value ? (
+        {readOnly.value ? (
+          <span class="muted">{setup.year} is closed, so it can't be changed.</span>
+        ) : !canAddEntries(setup) ? (
+          <span class="muted">
+            {setup.accounts.length === 0
+              ? <>Add your accounts on the <a href="#/accounts">Accounts</a> page first, then log entries here.</>
+              : <>None of your accounts can take a new entry. Add one or unhide one on the <a href="#/accounts">Accounts</a> page.</>}
+          </span>
+        ) : (
           <div class="add-buttons">
             <button type="button" class="add add-earning" title="Add money that came in (I)" onClick={() => openNew("earning")}>
               <span class="add-icon" aria-hidden="true">+</span> <span class="add-verb">Add</span> earning <kbd>I</kbd>
@@ -309,8 +315,6 @@ export function LedgerView() {
               <span class="add-icon" aria-hidden="true">⇄</span> <span class="add-verb">Add</span> transfer <kbd>T</kbd>
             </button>
           </div>
-        ) : (
-          <span class="muted">{setup.year} is closed, so it can't be changed.</span>
         )}
       </div>
 
