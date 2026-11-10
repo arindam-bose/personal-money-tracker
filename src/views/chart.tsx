@@ -78,6 +78,32 @@ export function moneyAxis() {
 /** Tooltip values in dollars and cents, unless the numbers are hidden. */
 export const money = (v: unknown) => maskedCents(Number(v));
 
+/** A tooltip's colour dot, faded to 40% for a lighter-shade series, as its bars are. */
+export const tooltipDot = (color: string, faded: boolean) =>
+  `<span style="display:inline-block;width:10px;height:10px;border-radius:2px;margin-right:6px;background:${color};opacity:${faded ? 0.4 : 1}"></span>`;
+
+/** A tooltip row: dot and name on the left, the value in bold on the right. */
+export const tooltipRow = (dot: string, name: string, value: string) =>
+  `<div style="display:flex;justify-content:space-between;gap:16px"><span>${dot}${name}</span><b>${value}</b></div>`;
+
+interface AxisParam { seriesIndex: number; seriesName: string; value: unknown; color: string; axisValueLabel: string }
+
+/**
+ * ECharts draws every tooltip dot at full strength, so a lighter-shade series (opacity below 1)
+ * would show the same dot as the solid one beside it. An axis tooltip with no formatter of its own
+ * gets one that fades those dots.
+ */
+function withFadedDots(option: ChartOption): ChartOption {
+  const tooltip = option.tooltip as { trigger?: string; formatter?: unknown; valueFormatter?: (v: unknown) => string } | undefined;
+  const series = (option.series ?? []) as SeriesLike[];
+  if (tooltip?.trigger !== "axis" || tooltip.formatter || !series.some((s) => (s.itemStyle?.opacity ?? 1) < 1)) return option;
+  const show = tooltip.valueFormatter ?? String;
+  const formatter = (params: AxisParam[]) =>
+    `<div style="margin-bottom:4px">${params[0]?.axisValueLabel ?? ""}</div>`
+    + params.map((p) => tooltipRow(tooltipDot(p.color, (series[p.seriesIndex]?.itemStyle?.opacity ?? 1) < 1), p.seriesName, show(p.value))).join("");
+  return { ...option, tooltip: { ...tooltip, formatter } };
+}
+
 interface Props {
   option: ChartOption;
   height: number;
@@ -147,11 +173,12 @@ export function Chart({ option, height, label, onPick }: Props) {
   useEffect(() => {
     // The chart keeps its legend (it holds which series are shown) but doesn't draw it, and the
     // plot moves up into the room it took.
+    const shown = withFadedDots(option);
     chart.current?.setOption(legend ? {
-      ...option,
-      legend: { ...(option.legend as object), show: false },
-      grid: { ...(option.grid as object), top: 12 },
-    } : option, { notMerge: true });
+      ...shown,
+      legend: { ...(shown.legend as object), show: false },
+      grid: { ...(shown.grid as object), top: 12 },
+    } : shown, { notMerge: true });
     // A new option shows every series again (a new Set only when some were hidden, to spare a redraw).
     if (hidden.value.size) hidden.value = new Set();
   }, [option]);
