@@ -11,6 +11,7 @@ import { canAddEntries, membersOf } from "../setup";
 import { current, duplicate, readOnly } from "../state";
 import type { YearSetup } from "../types";
 import { yearStart } from "../year";
+import { DateInput } from "./date-field";
 import { EntryForm } from "./entry-form";
 import { pageRequest } from "./hooks";
 import { NoData } from "./no-data";
@@ -343,11 +344,12 @@ export function LedgerView() {
           ]} />
         {f.month === "range" && (
           <>
-            <input type="date" aria-label="From" title="From" value={f.from} max={f.to || undefined}
-              onChange={(e) => setFilter("from", e.currentTarget.value)} />
+            {/* Today only beside To: a range usually ends today, and a link by each box would crowd the row. T works in both. */}
+            <DateInput aria-label="From" title="From" value={f.from} max={f.to || undefined} todayLink={false}
+              onChange={(d) => setFilter("from", d)} />
             <span class="muted">to</span>
-            <input type="date" aria-label="To" title="To" value={f.to} min={f.from || undefined}
-              onChange={(e) => setFilter("to", e.currentTarget.value)} />
+            <DateInput aria-label="To" title="To" value={f.to} min={f.from || undefined}
+              onChange={(d) => setFilter("to", d)} />
           </>
         )}
         <SearchSelect value={f.kind} aria-label="Kind" onChange={(v) => setFilter("kind", v as Filters["kind"])}

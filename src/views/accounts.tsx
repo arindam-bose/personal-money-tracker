@@ -16,7 +16,7 @@ import { uncategorizedId, type CategoryKind } from "../categories";
 import { current, ledger, readOnly, removeCategory, removeMember, removeTag, setClosed, setStart, updateSetup } from "../state";
 import type { Account, AccountType, EarningRole, YearSetup } from "../types";
 import { startsMidYear, yearStart } from "../year";
-import { DateField } from "./date-field";
+import { DateField, DateInput } from "./date-field";
 import { CardTitle } from "./help";
 import { pageRequest } from "./hooks";
 import { IconButton } from "./icons";
@@ -395,8 +395,8 @@ function StartField(props: { setup: YearSetup; onError: (msg: string | null) => 
     <form class="start-field small" onSubmit={save}>
       <label>
         <span class="muted">Tracking starts</span>{" "}
-        <input type="date" value={draft.value} min={`${props.setup.year}-01-01`} max={`${props.setup.year}-12-31`}
-          disabled={readOnly.value} onInput={(e) => (draft.value = e.currentTarget.value)} />
+        <DateInput value={draft.value} min={`${props.setup.year}-01-01`} max={`${props.setup.year}-12-31`}
+          disabled={readOnly.value} onChange={(d) => (draft.value = d)} />
       </label>
       {changed && (
         <>
@@ -502,11 +502,7 @@ function AccountForm(props: { account?: Account; first?: boolean; onDone: () => 
         </label>
         {isLoan && (
           <>
-            <label class="field w-date">
-              <span class="field-label">Loan began</span>
-              <input type="date" value={loanStart.value} max={`${setup.year}-12-31`}
-                onInput={(e) => (loanStart.value = e.currentTarget.value)} />
-            </label>
+            <DateField label="Loan began" value={loanStart.value} max={`${setup.year}-12-31`} onChange={(d) => (loanStart.value = d)} />
             <label class="field w-amount">
               <span class="field-label">Amount borrowed</span>
               <input type="text" inputMode="decimal" class="num" value={loanAmount.value} placeholder="0.00"

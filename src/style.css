@@ -914,6 +914,20 @@ button.link.field-action {
   padding: 0;
 }
 
+/* Today while the date already is today: still there to find, but nothing to do. */
+button.link.field-action:disabled {
+  color: var(--muted);
+  cursor: default;
+  filter: none;
+}
+
+/* A date box in a line or a row of filters, its Today link just after it. */
+.date-input {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+}
+
 .field-error {
   font-size: 12px;
   color: var(--danger);
