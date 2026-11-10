@@ -1442,6 +1442,22 @@ button.help-btn:focus-visible {
   text-align: right;
 }
 
+/* An account's name opens its entries in the ledger. It reads as text in the table until pointed at. */
+.acct-table .acct-link {
+  border: none;
+  background: none;
+  padding: 0;
+  font: inherit;
+  color: inherit;
+  text-align: left;
+  cursor: pointer;
+}
+
+.acct-table .acct-link:hover {
+  color: var(--accent);
+  text-decoration: underline;
+}
+
 /* The lines above and below each subtotal are thick: they set one type of account off from the next. */
 .acct-table tr.subtotal td {
   font-weight: 600;

@@ -191,8 +191,12 @@ export function DashboardView() {
 
           <section class="card">
             <h3>Accounts</h3>
-            <p class="muted small">{asOf}</p>
+            <p class="muted small">{asOf}. Click an account to see its entries.</p>
             <AccountsTable overview={accounts} accounts={setup.accounts} withoutLoans={withoutLoans}
+              // A balance is a running total, so the entries behind it run from the year's start to the
+              // period's end: with a month picked, to that month's last day. Accounts are shared, so
+              // everyone's entries.
+              onPick={(account) => showInLedger(month ? { account, month: "range", from: yearStart(setup), to: monthEnd(setup.year, month) } : { account })}
               retirement={{ left: remainingRetirement(all, iraLimit.value, setup.iraBeforeStart), limit: iraLimit.value, before: setup.iraBeforeStart, start: yearStart(setup) }} />
           </section>
         </div>
@@ -285,8 +289,10 @@ function CategoryBars(props: {
   );
 }
 
-function AccountsTable(props: { overview: ReturnType<typeof accountsOverview>; accounts: Account[]; withoutLoans: boolean; retirement: RetirementRoomProps }) {
+function AccountsTable(props: { overview: ReturnType<typeof accountsOverview>; accounts: Account[]; withoutLoans: boolean; retirement: RetirementRoomProps; onPick: (account: string) => void }) {
   const o = props.overview;
+  // An account's name opens its entries in the ledger. Not an asset's: it has none, only values.
+  const name = (a: Account) => <button type="button" class="acct-link" onClick={() => props.onPick(a.id)}>{a.name}</button>;
   const bal = (a: Account) => o.balances.get(a.id) ?? 0;
   // Archived accounts show while they hold money or a value; closed ones only before the day they closed.
   const live = props.accounts.filter((a) => !o.closed.has(a.id) && (!a.archived || bal(a) !== 0 || o.valuations.has(a.id)));
@@ -314,7 +320,7 @@ function AccountsTable(props: { overview: ReturnType<typeof accountsOverview>; a
       <tbody>
         {group(["checking", "savings", "cash"]).map((a) => (
           <tr>
-            <td>{a.name}</td>
+            <td>{name(a)}</td>
             <td class="num">{formatCents(bal(a))}</td>
           </tr>
         ))}
@@ -327,7 +333,7 @@ function AccountsTable(props: { overview: ReturnType<typeof accountsOverview>; a
           return (
             <tr>
               <td>
-                {a.name}
+                {name(a)}
                 <Meter fraction={c.utilization} />
               </td>
               <td class="num">
@@ -343,7 +349,7 @@ function AccountsTable(props: { overview: ReturnType<typeof accountsOverview>; a
         </tr>
         {o.loans.filter((l) => !l.account.archived || l.owed !== 0).sort((a, b) => b.owed - a.owed).map((l) => (
           <tr>
-            <td>{l.account.name}</td>
+            <td>{name(l.account)}</td>
             <td class="num">
               {l.owed ? `${formatCents(l.owed)} owed` : "Paid off"}
               <div class="tile-detail">{formatCents(l.interest)} interest this year</div>
@@ -361,7 +367,7 @@ function AccountsTable(props: { overview: ReturnType<typeof accountsOverview>; a
           const v = o.valuations.get(a.id);
           return (
             <tr>
-              <td>{a.name}</td>
+              <td>{name(a)}</td>
               <td class="num">
                 {v ? formatCents(v.amount) : <span class="muted">No balance yet</span>}
                 <div class="tile-detail">
