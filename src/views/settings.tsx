@@ -13,6 +13,7 @@ import {
 } from "../state";
 import { IRA_LIMITS, iraLimitOf } from "../setup";
 import { HIDDEN_AMOUNT, maskedCents, numbersHidden, setNumbersHidden } from "../hide-numbers";
+import { DateInput } from "./date-field";
 import { DemoLink } from "./demo-link";
 import { AboutCard } from "./about";
 import { IconButton } from "./icons";
@@ -275,8 +276,9 @@ function StartFromScratch(props: { onStart: (start: string | null) => void }) {
       <label class="choice">
         <input type="radio" name="start" checked={!fromJan.value} onChange={() => (fromJan.value = false)} />
         From
-        <input type="date" value={day.value} min={`${year}-01-01`} max={`${year}-12-31`}
-          onFocus={() => (fromJan.value = false)} onInput={(e) => (day.value = e.currentTarget.value)} />
+        {/* No Today link: the box starts on today, and a link would split the sentence. */}
+        <DateInput value={day.value} min={`${year}-01-01`} max={`${year}-12-31`} todayLink={false}
+          onFocus={() => (fromJan.value = false)} onChange={(d) => { day.value = d; fromJan.value = false; }} />
         : starting partway through the year. The ledger begins that day.
       </label>
       <button type="submit" class="primary" disabled={!ok}>Start {year} from scratch</button>

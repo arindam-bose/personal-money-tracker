@@ -14,7 +14,7 @@ import { formatPercent } from "../money";
 import { membersOf } from "../setup";
 import { current, ledger, loansLeftOut } from "../state";
 import { IncludeLoans } from "./dashboard";
-import { Chart, axisStyle, baseOption, money, moneyAxis, narrowScreen, seriesColors, token, type ChartOption } from "./chart";
+import { Chart, axisStyle, baseOption, escapeHtml, money, moneyAxis, narrowScreen, seriesColors, token, tooltipDot, tooltipRow, type ChartOption } from "./chart";
 import { CardTitle } from "./help";
 import { showInLedger } from "./ledger";
 import { MemberPicker, viewedLedger, viewedMember } from "./people";
@@ -198,10 +198,10 @@ function MoneyFlowCard({ ledger: l, year }: { ledger: Ledger; year: number }) {
       ...(baseOption().tooltip as object),
       trigger: "item",
       formatter: (p: { dataType: string; name: string; data: { source?: string; target?: string; value: number } }) => {
-        const name = (id?: string) => flow.nodes.find((n) => n.id === id)?.name ?? id;
+        const name = (id?: string) => escapeHtml(flow.nodes.find((n) => n.id === id)?.name ?? id ?? "");
         return p.dataType === "edge"
           ? `${name(p.data.source)} → ${name(p.data.target)}<br><b>${formatCents(p.data.value)}</b>`
-          : `${p.name}<br><b>${formatCents(value.get((p.data as unknown as { id: string }).id) ?? 0)}</b>`;
+          : `${escapeHtml(p.name)}<br><b>${formatCents(value.get((p.data as unknown as { id: string }).id) ?? 0)}</b>`;
       },
     },
     series: [{
@@ -274,10 +274,7 @@ function CashFlowCard({ ledger: l, months }: { ledger: Ledger; months: MonthRang
   // The axis's split areas take one colour per month, in order.
   const tint = (tone: string) => `${token(tone)}1f`; // the token's hex, at 12% opacity
   const bands = sums.map((s) => (s.surplus > 0 ? tint("--earning") : s.surplus < 0 ? tint("--expense") : "transparent"));
-  const dot = (color: string, faded: boolean) =>
-    `<span style="display:inline-block;width:10px;height:10px;border-radius:2px;margin-right:6px;background:${color};opacity:${faded ? 0.4 : 1}"></span>`;
-  const row = (marker: string, name: string, cents: number) =>
-    `<div style="display:flex;justify-content:space-between;gap:16px"><span>${marker}${name}</span><b>${formatCents(cents)}</b></div>`;
+  const row = (marker: string, name: string, cents: number) => tooltipRow(marker, name, formatCents(cents));
   const option: ChartOption = {
     ...baseOption(),
     tooltip: {
@@ -287,9 +284,9 @@ function CashFlowCard({ ledger: l, months }: { ledger: Ledger; months: MonthRang
         const m = params[0]!.dataIndex;
         const s = sums[m]!;
         return `<div style="margin-bottom:4px">${labels[m]}</div>`
-          + row(dot(c1!, true), "Earned", s.earned) + row(dot(c1!, false), "Net earned", s.netEarnings)
-          + row(dot(c2!, true), "Spent", s.spent) + row(dot(c2!, false), "Net spending", s.netSpent)
-          + (s.surplus === 0 ? "" : row(dot(token(s.surplus > 0 ? "--earning" : "--expense"), true), s.surplus > 0 ? "Surplus" : "Deficit", Math.abs(s.surplus)));
+          + row(tooltipDot(c1!, true), "Earned", s.earned) + row(tooltipDot(c1!, false), "Net earned", s.netEarnings)
+          + row(tooltipDot(c2!, true), "Spent", s.spent) + row(tooltipDot(c2!, false), "Net spending", s.netSpent)
+          + (s.surplus === 0 ? "" : row(tooltipDot(token(s.surplus > 0 ? "--earning" : "--expense"), true), s.surplus > 0 ? "Surplus" : "Deficit", Math.abs(s.surplus)));
       },
     },
     legend: { ...(baseOption().legend as object), data: ["Earned", "Net earned", "Spent", "Net spending"] },
@@ -487,8 +484,8 @@ function CardUsageCard({ ledger: l }: { ledger: Ledger }) {
     ...baseOption(),
     tooltip: {
       ...(baseOption().tooltip as object), trigger: "item",
-      formatter: (p: { marker: string; name: string; value: number }) =>
-        `${p.marker}${p.name}<br><b>${formatCents(p.value)}</b> · ${formatPercent(p.value / total)}`,
+      formatter: (p: { color: string; name: string; value: number }) =>
+        `${tooltipDot(p.color, false)}${escapeHtml(p.name)}<br><b>${formatCents(p.value)}</b> · ${formatPercent(p.value / total)}`,
     },
     legend: { ...(baseOption().legend as object), top: undefined, bottom: 0, left: "center" },
     // The total in the middle of the ring.

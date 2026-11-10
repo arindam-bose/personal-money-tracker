@@ -621,8 +621,19 @@ button.add kbd {
   font-variant-numeric: tabular-nums;
 }
 
-.totals b.neg { color: var(--expense); }
-.totals b.pos { color: var(--earning); }
+/* Green earnings, red spending: in the ledger's totals, the dashboard's tiles and its accounts table. */
+.totals b.pos,
+.tile-value.pos,
+.acct-table td.pos {
+  color: var(--earning);
+}
+
+.totals b.neg,
+.hero-value.neg,
+.tile-value.neg,
+.acct-table td.neg {
+  color: var(--expense);
+}
 
 table.entries {
   width: 100%;
@@ -914,6 +925,20 @@ button.link.field-action {
   padding: 0;
 }
 
+/* Today while the date already is today: still there to find, but nothing to do. */
+button.link.field-action:disabled {
+  color: var(--muted);
+  cursor: default;
+  filter: none;
+}
+
+/* A date box in a line or a row of filters, its Today link just after it. */
+.date-input {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+}
+
 .field-error {
   font-size: 12px;
   color: var(--danger);
@@ -1151,15 +1176,6 @@ button.help-btn:focus-visible {
   font-weight: 600;
   line-height: 1.15;
   margin: 4px 0;
-}
-
-.hero-value.neg,
-.tile-value.neg {
-  color: var(--expense);
-}
-
-.tile-value.pos {
-  color: var(--earning);
 }
 
 .tiles {
@@ -1440,6 +1456,22 @@ button.help-btn:focus-visible {
 .acct-table .num {
   font-variant-numeric: tabular-nums;
   text-align: right;
+}
+
+/* An account's name opens its entries in the ledger. It reads as text in the table until pointed at. */
+.acct-table .acct-link {
+  border: none;
+  background: none;
+  padding: 0;
+  font: inherit;
+  color: inherit;
+  text-align: left;
+  cursor: pointer;
+}
+
+.acct-table .acct-link:hover {
+  color: var(--accent);
+  text-decoration: underline;
 }
 
 /* The lines above and below each subtotal are thick: they set one type of account off from the next. */
