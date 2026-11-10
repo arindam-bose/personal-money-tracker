@@ -293,7 +293,8 @@ function AccountsTable(props: { overview: ReturnType<typeof accountsOverview>; a
   const o = props.overview;
   // An account's name opens its entries in the ledger. Not an asset's: it has none, only values.
   // Amounts in green while they hold money (zero too), red while they're owed or below zero.
-  // Not net worth: it's the bottom line, and stays plain.
+  // Not net worth: it's the bottom line, and stays plain. Card debt and loans owed go below zero when
+  // overpaid, so they're red only above it.
   const tone = (good: boolean) => `num ${good ? "pos" : "neg"}`;
   const name = (a: Account) => <button type="button" class="acct-link" onClick={() => props.onPick(a.id)}>{a.name}</button>;
   const bal = (a: Account) => o.balances.get(a.id) ?? 0;
@@ -348,7 +349,7 @@ function AccountsTable(props: { overview: ReturnType<typeof accountsOverview>; a
         })}
         <tr class="subtotal">
           <td>Card debt · {formatPercent(o.utilization)} of limits{o.cardLimit > 0 && <sup aria-hidden="true">*</sup>}</td>
-          <td class={tone(!o.cardDebt)}>{formatCents(o.cardDebt)}</td>
+          <td class={tone(o.cardDebt <= 0)}>{formatCents(o.cardDebt)}</td>
         </tr>
         {o.loans.filter((l) => !l.account.archived || l.owed !== 0).sort((a, b) => b.owed - a.owed).map((l) => (
           <tr>
@@ -362,7 +363,7 @@ function AccountsTable(props: { overview: ReturnType<typeof accountsOverview>; a
         {o.loans.length > 0 && (
           <tr class="subtotal">
             <td>Loans owed</td>
-            <td class={tone(!o.loanDebt)}>{formatCents(o.loanDebt)}</td>
+            <td class={tone(o.loanDebt <= 0)}>{formatCents(o.loanDebt)}</td>
           </tr>
         )}
         {investments.map((a) => {
