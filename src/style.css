@@ -621,8 +621,19 @@ button.add kbd {
   font-variant-numeric: tabular-nums;
 }
 
-.totals b.neg { color: var(--expense); }
-.totals b.pos { color: var(--earning); }
+/* Green earnings, red spending: in the ledger's totals, the dashboard's tiles and its accounts table. */
+.totals b.pos,
+.tile-value.pos,
+.acct-table td.pos {
+  color: var(--earning);
+}
+
+.totals b.neg,
+.hero-value.neg,
+.tile-value.neg,
+.acct-table td.neg {
+  color: var(--expense);
+}
 
 table.entries {
   width: 100%;
@@ -1167,15 +1178,6 @@ button.help-btn:focus-visible {
   margin: 4px 0;
 }
 
-.hero-value.neg,
-.tile-value.neg {
-  color: var(--expense);
-}
-
-.tile-value.pos {
-  color: var(--earning);
-}
-
 .tiles {
   display: grid;
   grid-template-columns: repeat(auto-fill, minmax(220px, 1fr));
@@ -1455,10 +1457,6 @@ button.help-btn:focus-visible {
   font-variant-numeric: tabular-nums;
   text-align: right;
 }
-
-/* Amounts that hold money in green, owed or below zero in red. The detail lines under them stay muted. */
-.acct-table td.pos { color: var(--earning); }
-.acct-table td.neg { color: var(--expense); }
 
 /* An account's name opens its entries in the ledger. It reads as text in the table until pointed at. */
 .acct-table .acct-link {

@@ -89,6 +89,9 @@ export const escapeHtml = (text: string) => echarts.format.encodeHTML(text);
 export const tooltipRow = (dot: string, name: string, value: string) =>
   `<div style="display:flex;justify-content:space-between;gap:16px"><span>${dot}${escapeHtml(name)}</span><b>${value}</b></div>`;
 
+/** A lighter-shade series ("the rest" of a stack): drawn below full opacity. The legend and tooltip both ask. */
+const isFaded = (style: SeriesLike["itemStyle"]) => (style?.opacity ?? 1) < 1;
+
 interface AxisParam { seriesIndex: number; seriesName: string; value: unknown; color: string; axisValueLabel: string }
 
 /**
@@ -103,7 +106,7 @@ function withSquareDots(option: ChartOption): ChartOption {
   const show = tooltip.valueFormatter ?? String;
   const formatter = (params: AxisParam[]) =>
     `<div style="margin-bottom:4px">${escapeHtml(params[0]?.axisValueLabel ?? "")}</div>`
-    + params.map((p) => tooltipRow(tooltipDot(p.color, (series[p.seriesIndex]?.itemStyle?.opacity ?? 1) < 1), p.seriesName, show(p.value))).join("");
+    + params.map((p) => tooltipRow(tooltipDot(p.color, isFaded(series[p.seriesIndex]?.itemStyle)), p.seriesName, show(p.value))).join("");
   return { ...option, tooltip: { ...tooltip, formatter } };
 }
 
@@ -141,7 +144,7 @@ function legendEntries(option: ChartOption): LegendEntry[] | null {
   if (!legend || legend.show === false) return null;
   const entries = new Map<string, LegendEntry>();
   const add = (name: string | undefined, style: SeriesLike["itemStyle"], dashed = false) => {
-    if (name && !entries.has(name)) entries.set(name, { name, color: style?.color ?? "", faded: (style?.opacity ?? 1) < 1, dashed });
+    if (name && !entries.has(name)) entries.set(name, { name, color: style?.color ?? "", faded: isFaded(style), dashed });
   };
   for (const s of (option.series ?? []) as SeriesLike[]) {
     if (s.type === "pie") for (const d of (s.data ?? []) as SeriesLike[]) add(d.name, d.itemStyle);

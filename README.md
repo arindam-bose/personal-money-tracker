@@ -1,6 +1,6 @@
 # Money Tracker
 
-**Version 6.0.7** ·
+**Version 6.0.8** ·
 [Use it online](https://arindambose.com/personal-money-tracker/)
 
 Keep track of what you earn, spend, save and invest, one year at a time.
@@ -50,8 +50,9 @@ Backups carry that time too.
 - **Dashboard**: the month or year at a glance: what you have after card debt,
   earned, spent, surplus, savings, investment and card payments, spending and
   earnings by category, budgets, account balances and how much of your card
-  limits you're using. **Pin a total** adds a tile for a spending category or a
-  tag; × takes it off.
+  limits you're using, in green, or red when owed. Click a category or an
+  account to see its entries in the Ledger. **Pin a total** adds a tile for a
+  spending category or a tag; × takes it off.
 - **Ledger**: every earning, expense and transfer in one list, 100 at a time,
   newest or oldest first. Filter by month, the last 1 to 12 months, or dates you
   pick, and by kind, account, category, tag or person; every filter list can be
