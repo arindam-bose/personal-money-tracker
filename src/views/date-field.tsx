@@ -61,7 +61,7 @@ export function DateField(props: {
 
 /**
  * A date box in a line of text or a row of filters, with the Today link after it. `todayLink:
- * false` leaves the link out (T still works), where a second link beside a first would crowd.
+ * false` leaves the link out (T still works): where it would crowd a row, or today is rarely the answer.
  */
 export function DateInput(props: {
   value: string; min?: string; max?: string; onChange: (date: string) => void;

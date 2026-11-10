@@ -395,8 +395,9 @@ function StartField(props: { setup: YearSetup; onError: (msg: string | null) => 
     <form class="start-field small" onSubmit={save}>
       <label>
         <span class="muted">Tracking starts</span>{" "}
+        {/* No Today link: the start is set once, rarely to today. */}
         <DateInput value={draft.value} min={`${props.setup.year}-01-01`} max={`${props.setup.year}-12-31`}
-          disabled={readOnly.value} onChange={(d) => (draft.value = d)} />
+          disabled={readOnly.value} todayLink={false} onChange={(d) => (draft.value = d)} />
       </label>
       {changed && (
         <>
