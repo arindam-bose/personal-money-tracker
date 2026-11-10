@@ -14,7 +14,7 @@ import { formatPercent } from "../money";
 import { membersOf } from "../setup";
 import { current, ledger, loansLeftOut } from "../state";
 import { IncludeLoans } from "./dashboard";
-import { Chart, axisStyle, baseOption, money, moneyAxis, narrowScreen, seriesColors, token, tooltipDot, tooltipRow, type ChartOption } from "./chart";
+import { Chart, axisStyle, baseOption, escapeHtml, money, moneyAxis, narrowScreen, seriesColors, token, tooltipDot, tooltipRow, type ChartOption } from "./chart";
 import { CardTitle } from "./help";
 import { showInLedger } from "./ledger";
 import { MemberPicker, viewedLedger, viewedMember } from "./people";
@@ -198,10 +198,10 @@ function MoneyFlowCard({ ledger: l, year }: { ledger: Ledger; year: number }) {
       ...(baseOption().tooltip as object),
       trigger: "item",
       formatter: (p: { dataType: string; name: string; data: { source?: string; target?: string; value: number } }) => {
-        const name = (id?: string) => flow.nodes.find((n) => n.id === id)?.name ?? id;
+        const name = (id?: string) => escapeHtml(flow.nodes.find((n) => n.id === id)?.name ?? id ?? "");
         return p.dataType === "edge"
           ? `${name(p.data.source)} → ${name(p.data.target)}<br><b>${formatCents(p.data.value)}</b>`
-          : `${p.name}<br><b>${formatCents(value.get((p.data as unknown as { id: string }).id) ?? 0)}</b>`;
+          : `${escapeHtml(p.name)}<br><b>${formatCents(value.get((p.data as unknown as { id: string }).id) ?? 0)}</b>`;
       },
     },
     series: [{
@@ -484,8 +484,8 @@ function CardUsageCard({ ledger: l }: { ledger: Ledger }) {
     ...baseOption(),
     tooltip: {
       ...(baseOption().tooltip as object), trigger: "item",
-      formatter: (p: { marker: string; name: string; value: number }) =>
-        `${p.marker}${p.name}<br><b>${formatCents(p.value)}</b> · ${formatPercent(p.value / total)}`,
+      formatter: (p: { color: string; name: string; value: number }) =>
+        `${tooltipDot(p.color, false)}${escapeHtml(p.name)}<br><b>${formatCents(p.value)}</b> · ${formatPercent(p.value / total)}`,
     },
     legend: { ...(baseOption().legend as object), top: undefined, bottom: 0, left: "center" },
     // The total in the middle of the ring.

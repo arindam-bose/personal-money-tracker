@@ -82,24 +82,27 @@ export const money = (v: unknown) => maskedCents(Number(v));
 export const tooltipDot = (color: string, faded: boolean) =>
   `<span style="display:inline-block;width:10px;height:10px;border-radius:2px;margin-right:6px;background:${color};opacity:${faded ? 0.4 : 1}"></span>`;
 
-/** A tooltip row: dot and name on the left, the value in bold on the right. */
+/** Text for tooltip HTML: names (accounts, categories) are the user's own and may hold < or &. */
+export const escapeHtml = (text: string) => echarts.format.encodeHTML(text);
+
+/** A tooltip row: dot and name on the left, the value in bold on the right. The name is escaped here. */
 export const tooltipRow = (dot: string, name: string, value: string) =>
-  `<div style="display:flex;justify-content:space-between;gap:16px"><span>${dot}${name}</span><b>${value}</b></div>`;
+  `<div style="display:flex;justify-content:space-between;gap:16px"><span>${dot}${escapeHtml(name)}</span><b>${value}</b></div>`;
 
 interface AxisParam { seriesIndex: number; seriesName: string; value: unknown; color: string; axisValueLabel: string }
 
 /**
- * ECharts draws every tooltip dot at full strength, so a lighter-shade series (opacity below 1)
- * would show the same dot as the solid one beside it. An axis tooltip with no formatter of its own
- * gets one that fades those dots.
+ * Every axis tooltip with no formatter of its own gets this one, so all charts draw the same
+ * square dots as their legends (ECharts' own are round). ECharts would also draw every dot at full
+ * strength, so a lighter-shade series (opacity below 1) gets a faded dot here, as its bars are.
  */
-function withFadedDots(option: ChartOption): ChartOption {
+function withSquareDots(option: ChartOption): ChartOption {
   const tooltip = option.tooltip as { trigger?: string; formatter?: unknown; valueFormatter?: (v: unknown) => string } | undefined;
+  if (tooltip?.trigger !== "axis" || tooltip.formatter) return option;
   const series = (option.series ?? []) as SeriesLike[];
-  if (tooltip?.trigger !== "axis" || tooltip.formatter || !series.some((s) => (s.itemStyle?.opacity ?? 1) < 1)) return option;
   const show = tooltip.valueFormatter ?? String;
   const formatter = (params: AxisParam[]) =>
-    `<div style="margin-bottom:4px">${params[0]?.axisValueLabel ?? ""}</div>`
+    `<div style="margin-bottom:4px">${escapeHtml(params[0]?.axisValueLabel ?? "")}</div>`
     + params.map((p) => tooltipRow(tooltipDot(p.color, (series[p.seriesIndex]?.itemStyle?.opacity ?? 1) < 1), p.seriesName, show(p.value))).join("");
   return { ...option, tooltip: { ...tooltip, formatter } };
 }
@@ -173,7 +176,7 @@ export function Chart({ option, height, label, onPick }: Props) {
   useEffect(() => {
     // The chart keeps its legend (it holds which series are shown) but doesn't draw it, and the
     // plot moves up into the room it took.
-    const shown = withFadedDots(option);
+    const shown = withSquareDots(option);
     chart.current?.setOption(legend ? {
       ...shown,
       legend: { ...(shown.legend as object), show: false },
