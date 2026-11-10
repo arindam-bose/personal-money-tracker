@@ -1456,6 +1456,10 @@ button.help-btn:focus-visible {
   text-align: right;
 }
 
+/* Amounts that hold money in green, owed or below zero in red. The detail lines under them stay muted. */
+.acct-table td.pos { color: var(--earning); }
+.acct-table td.neg { color: var(--expense); }
+
 /* An account's name opens its entries in the ledger. It reads as text in the table until pointed at. */
 .acct-table .acct-link {
   border: none;

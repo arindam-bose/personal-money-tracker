@@ -292,6 +292,9 @@ function CategoryBars(props: {
 function AccountsTable(props: { overview: ReturnType<typeof accountsOverview>; accounts: Account[]; withoutLoans: boolean; retirement: RetirementRoomProps; onPick: (account: string) => void }) {
   const o = props.overview;
   // An account's name opens its entries in the ledger. Not an asset's: it has none, only values.
+  // Amounts in green while they hold money (zero too), red while they're owed or below zero.
+  // Not net worth: it's the bottom line, and stays plain.
+  const tone = (good: boolean) => `num ${good ? "pos" : "neg"}`;
   const name = (a: Account) => <button type="button" class="acct-link" onClick={() => props.onPick(a.id)}>{a.name}</button>;
   const bal = (a: Account) => o.balances.get(a.id) ?? 0;
   // Archived accounts show while they hold money or a value; closed ones only before the day they closed.
@@ -321,12 +324,12 @@ function AccountsTable(props: { overview: ReturnType<typeof accountsOverview>; a
         {group(["checking", "savings", "cash"]).map((a) => (
           <tr>
             <td>{name(a)}</td>
-            <td class="num">{formatCents(bal(a))}</td>
+            <td class={tone(bal(a) >= 0)}>{formatCents(bal(a))}</td>
           </tr>
         ))}
         <tr class="subtotal">
           <td>Available cash</td>
-          <td class="num">{formatCents(o.availableCash)}</td>
+          <td class={tone(o.availableCash >= 0)}>{formatCents(o.availableCash)}</td>
         </tr>
         {group(["credit"]).map((a) => {
           const c = cardStatus.get(a.id)!;
@@ -336,7 +339,7 @@ function AccountsTable(props: { overview: ReturnType<typeof accountsOverview>; a
                 {name(a)}
                 <Meter fraction={c.utilization} />
               </td>
-              <td class="num">
+              <td class={tone(!c.debt)}>
                 {c.debt ? `${formatCents(c.debt)} owed` : bal(a) > 0 ? `${formatCents(bal(a))} credit` : "Paid off"}
                 <div class="tile-detail">{formatPercent(c.utilization)} used</div>
               </td>
@@ -345,12 +348,12 @@ function AccountsTable(props: { overview: ReturnType<typeof accountsOverview>; a
         })}
         <tr class="subtotal">
           <td>Card debt · {formatPercent(o.utilization)} of limits{o.cardLimit > 0 && <sup aria-hidden="true">*</sup>}</td>
-          <td class="num">{formatCents(o.cardDebt)}</td>
+          <td class={tone(!o.cardDebt)}>{formatCents(o.cardDebt)}</td>
         </tr>
         {o.loans.filter((l) => !l.account.archived || l.owed !== 0).sort((a, b) => b.owed - a.owed).map((l) => (
           <tr>
             <td>{name(l.account)}</td>
-            <td class="num">
+            <td class={tone(!l.owed)}>
               {l.owed ? `${formatCents(l.owed)} owed` : "Paid off"}
               <div class="tile-detail">{formatCents(l.interest)} interest this year</div>
             </td>
@@ -359,7 +362,7 @@ function AccountsTable(props: { overview: ReturnType<typeof accountsOverview>; a
         {o.loans.length > 0 && (
           <tr class="subtotal">
             <td>Loans owed</td>
-            <td class="num">{formatCents(o.loanDebt)}</td>
+            <td class={tone(!o.loanDebt)}>{formatCents(o.loanDebt)}</td>
           </tr>
         )}
         {investments.map((a) => {
@@ -368,7 +371,7 @@ function AccountsTable(props: { overview: ReturnType<typeof accountsOverview>; a
           return (
             <tr>
               <td>{name(a)}</td>
-              <td class="num">
+              <td class={tone(true)}>
                 {v ? formatCents(v.amount) : <span class="muted">No balance yet</span>}
                 <div class="tile-detail">
                   {v ? `on ${shortDate(v.date)} · ` : ""}{formatCents(o.invested.get(a.id) ?? 0)} invested this year
@@ -383,7 +386,7 @@ function AccountsTable(props: { overview: ReturnType<typeof accountsOverview>; a
           return (
             <tr>
               <td>{a.name}</td>
-              <td class="num">
+              <td class={tone(true)}>
                 {v ? formatCents(v.amount) : <span class="muted">No value yet</span>}
                 {v && <div class="tile-detail">on {shortDate(v.date)}</div>}
               </td>
@@ -415,7 +418,8 @@ function WorthSubtotal(props: { label: ComponentChildren; kind: "balance" | "val
   return (
     <tr class="subtotal">
       <td>{props.label}{valued && <> <span class="muted small">latest {props.kind}s{missing > 0 && ` · ${missing} without a ${props.kind}`}</span></>}</td>
-      <td class="num">{valued ? formatCents(props.worth) : <span class="muted">No {props.kind} yet</span>}</td>
+      {/* Green, like the investments and assets above it. */}
+      <td class="num pos">{valued ? formatCents(props.worth) : <span class="muted">No {props.kind} yet</span>}</td>
     </tr>
   );
 }
