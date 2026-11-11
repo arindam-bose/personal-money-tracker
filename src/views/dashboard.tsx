@@ -441,7 +441,7 @@ interface RetirementRoomProps { left: number; limit: number; before?: number; st
 function RetirementRoom({ left, limit, before, start, marked }: RetirementRoomProps & { marked: boolean }) {
   return (
     <p class="note">
-      {marked && <sup aria-hidden="true">†</sup>}Retirement room left this year: <b>{formatCents(left)}</b> of the {formatCents(limit)} limit
+      {marked && <sup aria-hidden="true">†</sup>}IRA contribution room left this year: <b>{formatCents(left)}</b> of the {formatCents(limit)} limit
       {before ? <>, after {formatCents(before)} put in before {shortDate(start)}</> : null}{" "}
       <a href="#/settings" class="small">change</a>
     </p>
