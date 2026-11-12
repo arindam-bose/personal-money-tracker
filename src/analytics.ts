@@ -82,9 +82,24 @@ export function chooseConsent(value: Consent): void {
   else forget();
 }
 
-/** Bring the banner back, to change the answer. */
-export function openConsent(): void {
+/** What brought the banner back (Cookie settings), so focus can go back there once it's answered. */
+let opener: HTMLElement | null = null;
+
+/**
+ * Bring the banner back, to change the answer. `from` is the control that asked: handed over here,
+ * not read from document.activeElement, because Safari and Firefox on a Mac don't focus a button
+ * they click.
+ */
+export function openConsent(from: HTMLElement | null = null): void {
+  opener = from;
   consentAsked.value = true;
+}
+
+/** The control that brought the banner back, once: null on a first visit, or once taken. */
+export function takeConsentOpener(): HTMLElement | null {
+  const from = opener;
+  opener = null;
+  return from;
 }
 
 if (consent.value === "granted") load();

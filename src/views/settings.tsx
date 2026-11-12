@@ -1,6 +1,6 @@
 // Settings page. Your data: import a year from JSON or start one from scratch (or download the
 // demo), export (back up), close, reopen and delete years. Then the open year's IRA settings,
-// Appearance (light or dark), Offline (the cached copy and updates), Erase everything, On your home screen, and About.
+// Appearance (light or dark), Offline (the cached copy and updates), Erase everything, On your home screen, Support the tracker, and About.
 
 import { useSignal } from "@preact/signals";
 import { useEffect, useRef } from "preact/hooks";
@@ -17,10 +17,11 @@ import { DateInput } from "./date-field";
 import { DemoLink } from "./demo-link";
 import { Modal } from "./modal";
 import { AboutCard } from "./about";
+import { SupportCard } from "./support";
 import { IconButton } from "./icons";
 import { checkForUpdates, offlineChanged, offlineStatus, updateReady } from "../offline";
 import { detectDevice } from "../device";
-import { installState, installSteps, promptInstall } from "../install";
+import { installState, installSteps, promptInstall, type InstallState } from "../install";
 import { backupText, requestPersistence } from "../storage";
 import { setTheme, theme, themeChoice, type ThemeChoice } from "../theme";
 import { startsMidYear, yearStart } from "../year";
@@ -308,6 +309,7 @@ export function SettingsView() {
     <OfflineCard />
     <EraseCard onDone={(text) => { errors.value = []; message.value = text; }} />
     <InstallCard />
+    <SupportCard />
     <AboutCard />
     </>
   );
@@ -490,7 +492,7 @@ function EraseCard(props: { onDone: (message: string) => void }) {
  */
 function InstallCard() {
   /** What came of the last Install, and the state it was said in: it is shown only while that holds. */
-  const said = useSignal<{ text: string; in: string } | null>(null);
+  const said = useSignal<{ text: string; in: InstallState } | null>(null);
   const now = installState.value;
   // A note about the steps stops being true once the browser offers its prompt again.
   const note = said.value?.in === now ? said.value.text : null;

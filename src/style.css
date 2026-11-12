@@ -428,7 +428,8 @@ table.years th {
 }
 
 button,
-.button {
+.button,
+.plain-button {
   display: inline-block;
   font: inherit;
   padding: 6px 14px;
@@ -446,7 +447,8 @@ button,
 }
 
 button:hover,
-.button:hover {
+.button:hover,
+.plain-button:hover {
   filter: brightness(0.95);
 }
 
@@ -469,6 +471,8 @@ select {
 input:focus-visible,
 select:focus-visible,
 button:focus-visible,
+a.button:focus-visible,
+.plain-button:focus-visible,
 tr:focus-visible {
   outline: 2px solid var(--focus);
   outline-offset: 1px;
@@ -1913,6 +1917,36 @@ table.compare tr.differs td {
 
 .danger-zone .setting-row {
   align-items: center;
+}
+
+/* Support the tracker (src/views/support.tsx): the one card lit in the accent, a wash of it and the
+   accent down its edge, as the danger zone has red down its own. */
+.support {
+  background: color-mix(in srgb, var(--accent) 7%, var(--surface));
+  border-left: 4px solid var(--accent);
+}
+
+.support .setting-row {
+  align-items: center;
+}
+
+.support .setting-row + .setting-row {
+  margin-top: 10px;
+}
+
+/* Links drawn as buttons: Buy me a coffee filled (.button), with its cup; Share the tracker plain
+   (.plain-button), in the base button's own look, set with button's above. */
+a.button,
+.plain-button {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  text-decoration: none;
+}
+
+.coffee-button .icon {
+  width: 18px;
+  height: 18px;
 }
 
 button.danger-solid {
