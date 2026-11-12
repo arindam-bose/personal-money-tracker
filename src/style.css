@@ -928,7 +928,7 @@ button.link.field-action {
 }
 
 /* Today while the date already is today: still there to find, but nothing to do. */
-button.link.field-action:disabled {
+button.link.field-action[aria-disabled="true"] {
   color: var(--muted);
   cursor: default;
   filter: none;
