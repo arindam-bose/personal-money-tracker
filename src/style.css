@@ -428,7 +428,8 @@ table.years th {
 }
 
 button,
-.button {
+.button,
+.plain-button {
   display: inline-block;
   font: inherit;
   padding: 6px 14px;
@@ -446,7 +447,8 @@ button,
 }
 
 button:hover,
-.button:hover {
+.button:hover,
+.plain-button:hover {
   filter: brightness(0.95);
 }
 
@@ -469,6 +471,8 @@ select {
 input:focus-visible,
 select:focus-visible,
 button:focus-visible,
+a.button:focus-visible,
+.plain-button:focus-visible,
 tr:focus-visible {
   outline: 2px solid var(--focus);
   outline-offset: 1px;
@@ -1930,18 +1934,14 @@ table.compare tr.differs td {
   margin-top: 10px;
 }
 
-/* Links drawn as buttons: Buy me a coffee filled, with its cup; Share the tracker plain. */
-a.button {
+/* Links drawn as buttons: Buy me a coffee filled (.button), with its cup; Share the tracker plain
+   (.plain-button), in the base button's own look, set with button's above. */
+a.button,
+.plain-button {
   display: inline-flex;
   align-items: center;
   gap: 8px;
   text-decoration: none;
-}
-
-a.plain-button {
-  background: var(--surface);
-  border-color: var(--border);
-  color: var(--text);
 }
 
 .coffee-button .icon {

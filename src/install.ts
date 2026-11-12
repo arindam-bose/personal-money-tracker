@@ -58,14 +58,22 @@ export async function promptInstall(): Promise<"accepted" | "dismissed" | "unava
   try {
     await event.prompt();
     const { outcome } = await event.userChoice;
-    // Said yes: installed, as far as this tab need know, without waiting on `appinstalled`,
-    // which can come seconds later.
-    installState.value = outcome === "accepted" ? "installed" : "manual";
+    installState.value = stateAfterPrompt(outcome, deferred !== null);
     return outcome;
   } catch {
-    installState.value = "manual";
+    installState.value = stateAfterPrompt("unavailable", deferred !== null);
     return "unavailable";
   }
+}
+
+/**
+ * What the card shows once a prompt is answered. Said yes: installed, as far as this tab need know,
+ * without waiting on `appinstalled`, which can come seconds later. Otherwise the steps, unless the
+ * browser offered a fresh prompt while this one was open (`offered`): then Install again.
+ */
+export function stateAfterPrompt(outcome: "accepted" | "dismissed" | "unavailable", offered: boolean): InstallState {
+  if (outcome === "accepted") return "installed";
+  return offered ? "prompt" : "manual";
 }
 
 /** A step of the instructions: plain text, or the name of a button or menu item, shown in bold. */

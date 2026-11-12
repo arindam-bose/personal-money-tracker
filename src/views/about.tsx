@@ -132,7 +132,7 @@ export function AboutCard() {
         <div>
           <dt>Cookie settings</dt>
           <dd>
-            <button type="button" class="link" onClick={openConsent} title="Change whether Google Analytics may count your visits">
+            <button type="button" class="link" onClick={(e) => openConsent(e.currentTarget)} title="Change whether Google Analytics may count your visits">
               {consent.value === "granted" ? "Accepted" : consent.value === "denied" ? "Declined" : "Not chosen"}
             </button>
           </dd>

@@ -2,7 +2,7 @@
 // sheet says nothing.
 
 import { describe, expect, it, vi } from "vitest";
-import { SHARE, shareLink, usesSheet, type ShareEnv } from "../src/share";
+import { SHARE, isPlainClick, shareLink, usesSheet, type ShareEnv } from "../src/share";
 
 const abort = () => Object.assign(new Error("Share canceled"), { name: "AbortError" });
 
@@ -48,5 +48,25 @@ describe("shareLink", () => {
 
   it("shares the tracker's own address", () => {
     expect(SHARE.url).toBe("https://arindambose.com/personal-money-tracker/");
+  });
+});
+
+describe("isPlainClick", () => {
+  const click = (extra: Partial<MouseEvent> = {}) => ({ button: 0, ctrlKey: false, metaKey: false, shiftKey: false, altKey: false, ...extra });
+  it("takes a plain click, and leaves one with a modifier key or another button to the browser", () => {
+    expect(isPlainClick(click())).toBe(true);
+    expect(isPlainClick(click({ metaKey: true }))).toBe(false); // Cmd-click: a new tab
+    expect(isPlainClick(click({ ctrlKey: true }))).toBe(false);
+    expect(isPlainClick(click({ shiftKey: true }))).toBe(false); // a new window
+    expect(isPlainClick(click({ button: 1 }))).toBe(false); // the middle button
+  });
+});
+
+describe("a second tap while the sheet is open", () => {
+  it("says nothing and copies nothing", async () => {
+    const busy = () => Object.assign(new Error("An earlier share has not yet completed."), { name: "InvalidStateError" });
+    const env: ShareEnv = { share: vi.fn(async () => { throw busy(); }), copy: vi.fn(async () => {}), coarse: true };
+    expect(await shareLink(SHARE, env)).toBe("closed");
+    expect(env.copy).not.toHaveBeenCalled();
   });
 });

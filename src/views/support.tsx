@@ -2,17 +2,23 @@
 // card lit in the accent, with Buy me a coffee and Share the tracker.
 
 import { useSignal } from "@preact/signals";
-import { COFFEE_URL, SHARE, browserEnv, shareLink, usesSheet } from "../share";
+import { COFFEE_URL, SHARE, browserEnv, isPlainClick, shareLink, usesSheet } from "../share";
 import { Icon } from "./icons";
+
+/** Whether Share opens the share sheet on this device: asked once, as it doesn't change in a visit. */
+const sheet = typeof navigator !== "undefined" && usesSheet(browserEnv());
 
 export function SupportCard() {
   /** What came of the last Share, in place of the line under the button; null until there is one. */
   const said = useSignal<string | null>(null);
-  const sheet = usesSheet(browserEnv());
 
-  async function onShare(e: Event) {
-    // A real link, so a long press or right-click can copy it too; a click shares instead.
+  async function onShare(e: MouseEvent) {
+    // A real link, so a long press or right-click can copy it too, and Cmd-, Ctrl- or Shift-click
+    // opens it as any link would; a plain click shares instead.
+    if (!isPlainClick(e)) return;
     e.preventDefault();
+    // Back to the hint first, so a second copy changes the line again and is announced again.
+    said.value = null;
     const outcome = await shareLink(SHARE, browserEnv());
     said.value = outcome === "copied" ? "Link copied. Paste it to a friend."
       : outcome === "failed" ? `This browser wouldn't let the page copy. The link is ${SHARE.url}`
@@ -37,7 +43,7 @@ export function SupportCard() {
         <span class="muted small">Opens buymeacoffee.com in a new tab</span>
       </div>
       <div class="setting-row">
-        <a class="button plain-button" href={SHARE.url} onClick={onShare}>Share the tracker</a>
+        <a class="plain-button" href={SHARE.url} onClick={onShare}>Share the tracker</a>
         <span class="muted small" role="status">{said.value ?? (sheet ? "Opens your share menu" : "Copies the link")}</span>
       </div>
     </section>

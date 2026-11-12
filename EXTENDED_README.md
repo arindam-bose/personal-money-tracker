@@ -481,8 +481,12 @@ have their own `tests/tsconfig.json` so Node's types stay out of the app).
   `data/Notion-<year>/` present they also compare every figure with Notion's
   export. Consecutive years are checked to roll into each other.
 - **Share test** (`share.test.ts`): a phone opens its share sheet, a computer copies
-  the link, closing the sheet says nothing, and a sheet that fails falls back to
-  copying.
+  the link, closing the sheet (or a second tap while it's open) says nothing, a sheet
+  that fails falls back to copying, and a Cmd-, Ctrl- or Shift-click is left to the
+  browser.
+- **Install and consent tests**: what On your home screen shows once the browser's
+  prompt is answered (`install.test.ts`); Cookie settings hands itself to the banner,
+  so focus can go back to it (`consent.test.ts`).
 
 No real figure is ever written into a test: expected values are read from Notion's
 export at test time, so the repository can be public.

@@ -41,15 +41,15 @@ export function browserEnv(): ShareEnv {
 export const usesSheet = (env: ShareEnv) => env.share !== undefined && env.coarse;
 
 /**
- * Shared through the sheet, the sheet closed without sharing (nothing to say), the link copied,
- * or neither worked (say the link, so it can still be copied by hand).
+ * Shared through the sheet, the sheet closed without sharing or already open (nothing to say),
+ * the link copied, or neither worked (say the link, so it can still be copied by hand).
  */
 export type ShareOutcome = "shared" | "closed" | "copied" | "failed";
 
 /**
  * Hands the link on. Called straight from the click, so the sheet opens before anything is awaited:
  * browsers only open it while the tap still counts. A sheet that fails for any reason but the
- * person closing it falls back to copying.
+ * person closing it, or one already open from a tap a moment ago, falls back to copying.
  */
 export async function shareLink(info: ShareInfo, env: ShareEnv): Promise<ShareOutcome> {
   if (usesSheet(env)) {
@@ -57,7 +57,9 @@ export async function shareLink(info: ShareInfo, env: ShareEnv): Promise<ShareOu
       await env.share!(info);
       return "shared";
     } catch (err) {
-      if ((err as { name?: unknown } | null)?.name === "AbortError") return "closed";
+      const name = (err as { name?: unknown } | null)?.name;
+      // Closed without sharing; or a second tap while the first one's sheet is still up.
+      if (name === "AbortError" || name === "InvalidStateError") return "closed";
     }
   }
   if (!env.copy) return "failed";
@@ -67,4 +69,12 @@ export async function shareLink(info: ShareInfo, env: ShareEnv): Promise<ShareOu
   } catch {
     return "failed";
   }
+}
+
+/**
+ * A plain click: the main button, no modifier key. Cmd-, Ctrl- or Shift-clicking Share, or a
+ * middle click, is left to the browser, which opens the link in a new tab or window as usual.
+ */
+export function isPlainClick(e: Pick<MouseEvent, "button" | "ctrlKey" | "metaKey" | "shiftKey" | "altKey">): boolean {
+  return e.button === 0 && !e.ctrlKey && !e.metaKey && !e.shiftKey && !e.altKey;
 }
