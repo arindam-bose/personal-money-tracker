@@ -1,6 +1,6 @@
 # Money Tracker
 
-**Version 6.0.11** ·
+**Version 6.0.15** ·
 [Use it online](https://arindambose.com/personal-money-tracker/)
 
 Keep track of what you earn, spend, save and invest, one year at a time.
@@ -101,8 +101,9 @@ Backups carry that time too.
   Dashboard, Ledger and Reports can show **All people** or one person at a time.
   Accounts and budgets stay shared by everyone.
   **Duplicate** an account (⧉, at the left of its row when you point at it) to start a similar one (the copy is named "… (new)").
-- **Settings**: import a year, or start one from scratch (from January 1 or any
-  later day); back up, and close a finished year, which starts the next one from
+- **Settings**: import a year (importing one you already have shows the tracker's
+  and the file's counts side by side, differences highlighted, before replacing it),
+  or start one from scratch (from January 1 or any later day); back up, and close a finished year, which starts the next one from
   its closing balances. Also each year's IRA limit; **Delete…** to remove one
   year (import its backup to bring it back); **Erase everything**; **Appearance**
   (light, dark, or as your device, and hiding the numbers on the Dashboard, Reports,
