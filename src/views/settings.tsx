@@ -1,6 +1,6 @@
 // Settings page. Your data: import a year from JSON or start one from scratch (or download the
 // demo), export (back up), close, reopen and delete years. Then the open year's IRA settings,
-// Appearance (light or dark), Offline (the cached copy and updates), Erase everything, On your home screen, and About.
+// Appearance (light or dark), Offline (the cached copy and updates), Erase everything, On your home screen, Support the tracker, and About.
 
 import { useSignal } from "@preact/signals";
 import { useEffect, useRef } from "preact/hooks";
@@ -17,6 +17,7 @@ import { DateInput } from "./date-field";
 import { DemoLink } from "./demo-link";
 import { Modal } from "./modal";
 import { AboutCard } from "./about";
+import { SupportCard } from "./support";
 import { IconButton } from "./icons";
 import { checkForUpdates, offlineChanged, offlineStatus, updateReady } from "../offline";
 import { detectDevice } from "../device";
@@ -308,6 +309,7 @@ export function SettingsView() {
     <OfflineCard />
     <EraseCard onDone={(text) => { errors.value = []; message.value = text; }} />
     <InstallCard />
+    <SupportCard />
     <AboutCard />
     </>
   );

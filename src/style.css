@@ -1915,6 +1915,40 @@ table.compare tr.differs td {
   align-items: center;
 }
 
+/* Support the tracker (src/views/support.tsx): the one card lit in the accent, a wash of it and the
+   accent down its edge, as the danger zone has red down its own. */
+.support {
+  background: color-mix(in srgb, var(--accent) 7%, var(--surface));
+  border-left: 4px solid var(--accent);
+}
+
+.support .setting-row {
+  align-items: center;
+}
+
+.support .setting-row + .setting-row {
+  margin-top: 10px;
+}
+
+/* Links drawn as buttons: Buy me a coffee filled, with its cup; Share the tracker plain. */
+a.button {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  text-decoration: none;
+}
+
+a.plain-button {
+  background: var(--surface);
+  border-color: var(--border);
+  color: var(--text);
+}
+
+.coffee-button .icon {
+  width: 18px;
+  height: 18px;
+}
+
 button.danger-solid {
   background: var(--danger);
   border-color: var(--danger);

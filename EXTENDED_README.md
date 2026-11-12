@@ -53,6 +53,7 @@ this started). TypeScript is strict, including `noUncheckedIndexedAccess`.
 | `src/hide-numbers.ts` | The Settings choice to hide the amounts on the Dashboard, Reports, Budget, Accounts and Over the years pages, and above the Ledger. |
 | `src/views/add-menu.tsx` | The floating Add button on small screens. `addChoices` in `src/setup.ts` decides what it offers. |
 | `src/views/about.tsx` | The About card: About and How to use dialogs, version, links to GitHub. |
+| `src/views/support.tsx`, `src/share.ts` | The Support card: the Buy me a coffee link, and Share the tracker (the share sheet on a phone, the link copied on a computer). |
 | `src/offline.ts`, `src/service-worker.js` | The offline copy: registering it, its status, checking for updates. |
 | `src/derive.ts` | Every computed figure. Plain functions, no UI. |
 | `src/entries.ts` | Entry-form logic: drafts, checks, transfer-category suggestion, duplicating. |
@@ -389,7 +390,7 @@ already exists, it is left alone. A closed year can be reopened.
 | Reports | `views/reports.tsx` | Loaded on demand (see Charts). Earning, Expense, and Savings and investment reports are tabbed sections; each remembers its tab in `sessionStorage`. |
 | Accounts | `views/accounts.tsx` | Accounts can be deleted only when no entry uses them. Categories always (entries move to Uncategorized), and tags always (they come off their entries). |
 | Over the years | `views/years.tsx` | In the menu only with two or more years; the year picker shows "All years" there. Loads every year (`loadAllYears` in `state.ts`, upgraded in memory like `openYear`) and runs `summarize` on each, everyone together. Loaded on demand with the charts. |
-| Settings | `views/settings.tsx`, `views/about.tsx` | Import, export, close/reopen, delete a year, start from scratch, the year's IRA settings, appearance, offline, erase everything, the demo file, about. |
+| Settings | `views/settings.tsx`, `views/about.tsx` | Import, export, close/reopen, delete a year, start from scratch, the year's IRA settings, appearance, offline, erase everything, the demo file, Support the tracker, about. |
 
 Routing is by URL hash (`#/ledger`), which works on any static host.
 
@@ -479,6 +480,9 @@ have their own `tests/tsconfig.json` so Node's types stay out of the app).
   and saves back byte for byte, and the report functions add up. With
   `data/Notion-<year>/` present they also compare every figure with Notion's
   export. Consecutive years are checked to roll into each other.
+- **Share test** (`share.test.ts`): a phone opens its share sheet, a computer copies
+  the link, closing the sheet says nothing, and a sheet that fails falls back to
+  copying.
 
 No real figure is ever written into a test: expected values are read from Notion's
 export at test time, so the repository can be public.
@@ -494,3 +498,6 @@ export at test time, so the repository can be public.
   counts visits only; it never reads IndexedDB. The README promises users their data
   "is never sent anywhere"; anything that changes that (a font or script from another
   site, a sync feature) must update that promise too.
+- **Buy me a coffee** on the Support card is a plain link that opens buymeacoffee.com
+  in a new tab, not that site's widget or button image, which would load from its
+  servers. Nothing of it loads until it is followed.

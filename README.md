@@ -1,6 +1,6 @@
 # Money Tracker
 
-**Version 6.0.20** ·
+**Version 6.0.21** ·
 [Use it online](https://arindambose.com/personal-money-tracker/)
 
 Keep track of what you earn, spend, save and invest, one year at a time.
@@ -110,7 +110,8 @@ Backups carry that time too.
   Budget, Accounts and Over the years pages, above the Ledger and when closing a year); whether the tracker is ready to use offline,
   with **Check for updates**; **On your home screen**, to install it as an app
   (an **Install** button where the browser offers one, and that browser's own
-  steps where it doesn't); a demo file to try; and **About**.
+  steps where it doesn't); a demo file to try; **Support the tracker** (Buy me a
+  coffee, or share the link); and **About**.
 
 ## Handy keys on the Ledger
 
