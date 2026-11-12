@@ -5,6 +5,7 @@ import type { ComponentChildren } from "preact";
 import { useRef } from "preact/hooks";
 import { released, version } from "../../package.json";
 import { consent, openConsent } from "../analytics";
+import { Modal } from "./modal";
 
 const REPO = "https://github.com/arindam-bose/personal-money-tracker";
 
@@ -29,18 +30,12 @@ function DialogFact(props: { term: string; title: string; children: ComponentChi
         </button>
       </dt>
       <dd />
-      <dialog ref={dialog} class="guide" aria-label={props.title}
-        // A click on the backdrop lands on the dialog itself: close it, like Esc does.
-        onClick={(e) => e.target === dialog.current && dialog.current?.close()}>
-        <div class="guide-body">
-          {/* Focus starts on the title, so a long dialog opens at its top, not scrolled to Close. */}
-          <h2 tabIndex={-1} autofocus>{props.title}</h2>
-          {props.children}
-          <div class="form-actions">
-            <button type="button" class="primary" onClick={() => dialog.current?.close()}>Close</button>
-          </div>
+      <Modal dialogRef={dialog} title={props.title}>
+        {props.children}
+        <div class="form-actions">
+          <button type="button" class="primary" onClick={() => dialog.current?.close()}>Close</button>
         </div>
-      </dialog>
+      </Modal>
     </div>
   );
 }

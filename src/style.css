@@ -13,6 +13,7 @@
   --transfer: #5b6b7f;
   --row-hover: #f1f1ed;
   --focus: #2f6f4f55;
+  --diff-bg: #fff3c4;
   /* Chart series, in fixed order (validated for colour-blind separation on this surface). */
   --series-1: #2a78d6;
   --series-2: #eb6834;
@@ -53,6 +54,7 @@
   --transfer: #93a3b8;
   --row-hover: #26262a;
   --focus: #5fae8666;
+  --diff-bg: #4a3f17;
   --series-1: #3987e5;
   --series-2: #d95926;
   --series-3: #199e70;
@@ -926,7 +928,7 @@ button.link.field-action {
 }
 
 /* Today while the date already is today: still there to find, but nothing to do. */
-button.link.field-action:disabled {
+button.link.field-action[aria-disabled="true"] {
   color: var(--muted);
   cursor: default;
   filter: none;
@@ -1849,6 +1851,37 @@ dialog.guide::backdrop {
 .guide-body {
   padding: 20px 24px;
   line-height: 1.5;
+}
+
+/* Replace-on-import: the stored year and the file side by side; rows that differ are tinted. */
+table.compare {
+  border-collapse: collapse;
+  width: 100%;
+  margin: 12px 0;
+  font-size: 14px;
+}
+
+table.compare th,
+table.compare td {
+  text-align: left;
+  padding: 6px 10px;
+  border-bottom: 1px solid var(--border);
+}
+
+table.compare thead th {
+  font-size: 13px;
+  font-weight: 600;
+  color: var(--muted);
+}
+
+table.compare tbody th {
+  font-weight: 600;
+  white-space: nowrap;
+}
+
+table.compare tr.differs th,
+table.compare tr.differs td {
+  background: var(--diff-bg);
 }
 
 .guide-body h2 {

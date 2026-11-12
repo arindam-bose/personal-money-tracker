@@ -3,7 +3,7 @@
 // Appearance (light or dark), Offline (the cached copy and updates), Erase everything, On your home screen, and About.
 
 import { useSignal } from "@preact/signals";
-import { useEffect } from "preact/hooks";
+import { useEffect, useRef } from "preact/hooks";
 import { importYear, readJsonFile } from "../backup";
 import { formatCents, parseCents } from "../money";
 import { dateTime, lastUpdatedAt, localToday, shortDate } from "../derive";
@@ -15,6 +15,7 @@ import { IRA_LIMITS, iraLimitOf } from "../setup";
 import { HIDDEN_AMOUNT, maskedCents, numbersHidden, setNumbersHidden } from "../hide-numbers";
 import { DateInput } from "./date-field";
 import { DemoLink } from "./demo-link";
+import { Modal } from "./modal";
 import { AboutCard } from "./about";
 import { IconButton } from "./icons";
 import { checkForUpdates, offlineChanged, offlineStatus, updateReady } from "../offline";
@@ -41,37 +42,82 @@ function plural(n: number, one: string, many = `${one}s`): string {
 
 const entryCount = (n: number) => plural(n, "entry", "entries");
 
-/** "19 entries (8 expenses, 6 earnings, 5 transfers)". */
-function entryBreakdown(counts: { expenses: number; earnings: number; transfers: number }): string {
-  const { expenses, earnings, transfers } = counts;
-  return `${entryCount(expenses + earnings + transfers)} (${plural(expenses, "expense")}, ${plural(earnings, "earning")}, ${plural(transfers, "transfer")})`;
+/** An import waiting on "Replace?": the file, as read and checked, and the year it would replace. */
+interface PendingReplace {
+  fileName: string;
+  data: unknown;
+  file: YearFile;
+  stored: YearSummary;
 }
 
-/** The question before an import replaces a stored year: what is here now, and what the file holds. */
-function replaceQuestion(fileName: string, stored: YearSummary, file: YearFile): string {
+/**
+ * The question before an import replaces a stored year: what is here now and what the file holds,
+ * side by side, with the rows that differ highlighted. Esc, Cancel or a click on the backdrop keeps
+ * the stored year.
+ */
+function ReplaceDialog(props: { pending: PendingReplace; onCancel: () => void; onReplace: () => void }) {
+  const dialog = useRef<HTMLDialogElement>(null);
+  useEffect(() => {
+    dialog.current?.showModal();
+  }, []);
+  const { fileName, file, stored } = props.pending;
   const at = new Date(file.exportedAt);
   const exported = Number.isNaN(at.getTime())
-    ? "with no export date"
-    : `exported ${at.toLocaleDateString(undefined, { day: "numeric", month: "short", year: "numeric" })}`;
+    ? "No export date"
+    : `Exported ${at.toLocaleDateString(undefined, { day: "numeric", month: "short", year: "numeric" })}`;
   // The latest change of either kind, entries or setup, as the strip under the top bar shows it.
   // A file without one was saved before files carried it, so anything changed here is newer.
   const here = lastUpdatedAt(stored.setup);
   const there = lastUpdatedAt(file);
-  const newerHere = here !== undefined && (there === undefined || Date.parse(here) > Date.parse(there));
-  return [
-    `Replace all your ${file.year} data with "${fileName}"?`,
-    "",
-    `In the tracker now: ${entryBreakdown(stored)}. ${changedText(here)}. ${backupText(stored.setup.lastBackupAt)}.`,
-    `In the file: ${entryBreakdown({ expenses: file.expenses.length, earnings: file.earnings.length, transfers: file.transfers.length })}, ${exported}. ${changedText(there)}.`,
-    ...(newerHere ? ["", "The tracker has newer changes than this file: replacing it loses them."] : []),
-    "",
-    "This can't be undone.",
-  ].join("\n");
+  // To the second, as the table shows them: a warning under a row that reads the same would confuse.
+  const newerHere = here !== undefined && (there === undefined || toSecond(here) > toSecond(there));
+  const counts = { expenses: file.expenses.length, earnings: file.earnings.length, transfers: file.transfers.length };
+  const total = (c: typeof counts) => c.expenses + c.earnings + c.transfers;
+  const rows: { label: string; now: string; inFile: string; compare: boolean }[] = [
+    { label: "Expenses", now: stored.expenses.toLocaleString(), inFile: counts.expenses.toLocaleString(), compare: true },
+    { label: "Earnings", now: stored.earnings.toLocaleString(), inFile: counts.earnings.toLocaleString(), compare: true },
+    { label: "Transfers", now: stored.transfers.toLocaleString(), inFile: counts.transfers.toLocaleString(), compare: true },
+    { label: "Total entries", now: total(stored).toLocaleString(), inFile: total(counts).toLocaleString(), compare: true },
+    { label: "Last updated", now: updatedText(here), inFile: updatedText(there), compare: true },
+    // A backup and an export are different events, so this row is context, never a difference.
+    { label: "Backup", now: backupText(stored.setup.lastBackupAt), inFile: exported, compare: false },
+  ];
+  return (
+    <Modal dialogRef={dialog} title={`Replace your ${file.year} data?`} onClose={props.onCancel}>
+      <p>"{fileName}" holds {file.year} too. Importing it replaces everything the tracker has for {file.year}.</p>
+      <table class="compare">
+        <thead>
+          <tr>
+            <th></th>
+            <th>In the tracker</th>
+            <th>In the file</th>
+          </tr>
+        </thead>
+        <tbody>
+          {rows.map((r) => (
+            <tr key={r.label} class={r.compare && r.now !== r.inFile ? "differs" : undefined}>
+              <th scope="row">{r.label}</th>
+              <td>{r.now}</td>
+              <td>{r.inFile}</td>
+            </tr>
+          ))}
+        </tbody>
+      </table>
+      {newerHere && <p class="warn">The tracker has newer changes than this file: replacing it loses them.</p>}
+      <p class="muted">This can't be undone.</p>
+      <div class="form-actions">
+        <button type="button" onClick={() => dialog.current?.close()}>Cancel</button>
+        <button type="button" class="danger-solid" onClick={props.onReplace}>Replace {file.year}</button>
+      </div>
+    </Modal>
+  );
 }
 
+const toSecond = (iso: string) => Math.floor(Date.parse(iso) / 1000);
+
 /** With seconds: two backups taken minutes apart must still read differently. */
-function changedText(iso: string | undefined): string {
-  return iso ? `Last updated ${dateTime(iso, true)}` : "No last-updated time";
+function updatedText(iso: string | undefined): string {
+  return iso ? dateTime(iso, true) : "Unknown";
 }
 
 export function SettingsView() {
@@ -81,6 +127,8 @@ export function SettingsView() {
   const closing = useSignal<number | null>(null);
   /** The year whose row is asking "Delete …?". */
   const deleting = useSignal<number | null>(null);
+  /** An import asking whether to replace a stored year. */
+  const replacing = useSignal<PendingReplace | null>(null);
 
   async function onStart(start: string | null) {
     await startYear(Number(localToday().slice(0, 4)), start);
@@ -127,13 +175,30 @@ export function SettingsView() {
       // entry counts and last-updated times with what's stored now.
       await refreshYears();
       const stored = years.value.find((y) => y.setup.year === year);
-      if (stored && !confirm(replaceQuestion(file.name, stored, check.file))) return;
+      if (stored) {
+        replacing.value = { fileName: file.name, data, file: check.file, stored };
+        return;
+      }
+      await finishImport(file.name, data, year);
+    } catch (err) {
+      message.value = err instanceof Error ? err.message : String(err);
+    }
+  }
+
+  async function finishImport(fileName: string, data: unknown, year: number) {
+    try {
       await importYear(data);
-      message.value = `Imported ${year} from "${file.name}".`;
+      message.value = `Imported ${year} from "${fileName}".`;
       await Promise.all([openYear(year), loadSettings()]);
     } catch (err) {
       message.value = err instanceof Error ? err.message : String(err);
     }
+  }
+
+  function onReplace() {
+    const pending = replacing.value;
+    replacing.value = null;
+    if (pending) void finishImport(pending.fileName, pending.data, pending.file.year);
   }
 
   async function onExport(year: number) {
@@ -149,6 +214,9 @@ export function SettingsView() {
     <>
     <section class="panel">
       <h2>Your data</h2>
+      {replacing.value && (
+        <ReplaceDialog pending={replacing.value} onCancel={() => (replacing.value = null)} onReplace={onReplace} />
+      )}
 
       {years.value.length === 0 ? (
         <div class="start-options">
@@ -220,7 +288,7 @@ export function SettingsView() {
       )}
 
       <label class="button">
-        Import JSON…
+        Import JSON
         <input type="file" accept=".json,application/json" onChange={onImport} hidden />
       </label>
       <DemoDownload />
@@ -421,14 +489,18 @@ function EraseCard(props: { onDone: (message: string) => void }) {
  * card follows installState.
  */
 function InstallCard() {
-  const note = useSignal<string | null>(null);
+  /** What came of the last Install, and the state it was said in: it is shown only while that holds. */
+  const said = useSignal<{ text: string; in: string } | null>(null);
   const now = installState.value;
+  // A note about the steps stops being true once the browser offers its prompt again.
+  const note = said.value?.in === now ? said.value.text : null;
 
   async function onInstall() {
     const outcome = await promptInstall();
-    note.value = outcome === "dismissed" ? "Not installed. The steps are here if you change your mind."
+    const text = outcome === "dismissed" ? "Not installed. The steps are here if you change your mind."
       : outcome === "unavailable" ? "The browser wouldn't install it from here. Try the steps instead."
       : null;
+    said.value = text ? { text, in: installState.value } : null;
   }
 
   return (
@@ -444,10 +516,10 @@ function InstallCard() {
           : now === "prompt" ? "This browser can install it in one tap."
           : installSteps(detectDevice()).map((s) => (typeof s === "string" ? s : <b>{s.b}</b>))}
       </p>
-      {(now === "prompt" || note.value) && (
+      {(now === "prompt" || note) && (
         <div class="setting-row">
           {now === "prompt" && <button type="button" class="primary" onClick={onInstall}>Install</button>}
-          {note.value && <span class="muted" role="status">{note.value}</span>}
+          {note && <span class="muted" role="status">{note}</span>}
         </div>
       )}
     </section>
