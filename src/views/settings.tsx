@@ -15,6 +15,7 @@ import { IRA_LIMITS, iraLimitOf } from "../setup";
 import { HIDDEN_AMOUNT, maskedCents, numbersHidden, setNumbersHidden } from "../hide-numbers";
 import { DateInput } from "./date-field";
 import { DemoLink } from "./demo-link";
+import { Modal } from "./modal";
 import { AboutCard } from "./about";
 import { IconButton } from "./icons";
 import { checkForUpdates, offlineChanged, offlineStatus, updateReady } from "../offline";
@@ -68,7 +69,8 @@ function ReplaceDialog(props: { pending: PendingReplace; onCancel: () => void; o
   // A file without one was saved before files carried it, so anything changed here is newer.
   const here = lastUpdatedAt(stored.setup);
   const there = lastUpdatedAt(file);
-  const newerHere = here !== undefined && (there === undefined || Date.parse(here) > Date.parse(there));
+  // To the second, as the table shows them: a warning under a row that reads the same would confuse.
+  const newerHere = here !== undefined && (there === undefined || toSecond(here) > toSecond(there));
   const counts = { expenses: file.expenses.length, earnings: file.earnings.length, transfers: file.transfers.length };
   const total = (c: typeof counts) => c.expenses + c.earnings + c.transfers;
   const rows: { label: string; now: string; inFile: string; compare: boolean }[] = [
@@ -81,41 +83,37 @@ function ReplaceDialog(props: { pending: PendingReplace; onCancel: () => void; o
     { label: "Backup", now: backupText(stored.setup.lastBackupAt), inFile: exported, compare: false },
   ];
   return (
-    <dialog ref={dialog} class="guide replace-dialog" aria-labelledby="replace-title"
-      onClose={props.onCancel}
-      // A click on the backdrop lands on the dialog itself: cancel, like Esc does.
-      onClick={(e) => e.target === dialog.current && dialog.current?.close()}>
-      <div class="guide-body">
-        <h2 id="replace-title" tabIndex={-1} autofocus>Replace your {file.year} data?</h2>
-        <p>"{fileName}" holds {file.year} too. Importing it replaces everything the tracker has for {file.year}.</p>
-        <table class="compare">
-          <thead>
-            <tr>
-              <th></th>
-              <th>In the tracker</th>
-              <th>In the file</th>
+    <Modal dialogRef={dialog} title={`Replace your ${file.year} data?`} onClose={props.onCancel}>
+      <p>"{fileName}" holds {file.year} too. Importing it replaces everything the tracker has for {file.year}.</p>
+      <table class="compare">
+        <thead>
+          <tr>
+            <th></th>
+            <th>In the tracker</th>
+            <th>In the file</th>
+          </tr>
+        </thead>
+        <tbody>
+          {rows.map((r) => (
+            <tr key={r.label} class={r.compare && r.now !== r.inFile ? "differs" : undefined}>
+              <th scope="row">{r.label}</th>
+              <td>{r.now}</td>
+              <td>{r.inFile}</td>
             </tr>
-          </thead>
-          <tbody>
-            {rows.map((r) => (
-              <tr key={r.label} class={r.compare && r.now !== r.inFile ? "differs" : undefined}>
-                <th scope="row">{r.label}</th>
-                <td>{r.now}</td>
-                <td>{r.inFile}</td>
-              </tr>
-            ))}
-          </tbody>
-        </table>
-        {newerHere && <p class="warn">The tracker has newer changes than this file: replacing it loses them.</p>}
-        <p class="muted">This can't be undone.</p>
-        <div class="form-actions">
-          <button type="button" onClick={() => dialog.current?.close()}>Cancel</button>
-          <button type="button" class="danger-solid" onClick={props.onReplace}>Replace {file.year}</button>
-        </div>
+          ))}
+        </tbody>
+      </table>
+      {newerHere && <p class="warn">The tracker has newer changes than this file: replacing it loses them.</p>}
+      <p class="muted">This can't be undone.</p>
+      <div class="form-actions">
+        <button type="button" onClick={() => dialog.current?.close()}>Cancel</button>
+        <button type="button" class="danger-solid" onClick={props.onReplace}>Replace {file.year}</button>
       </div>
-    </dialog>
+    </Modal>
   );
 }
+
+const toSecond = (iso: string) => Math.floor(Date.parse(iso) / 1000);
 
 /** With seconds: two backups taken minutes apart must still read differently. */
 function updatedText(iso: string | undefined): string {
