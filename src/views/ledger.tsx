@@ -251,6 +251,8 @@ export function LedgerView() {
     function onKey(e: KeyboardEvent) {
       const t = e.target as HTMLElement;
       if (form.value || e.ctrlKey || e.metaKey || e.altKey || ["INPUT", "SELECT", "TEXTAREA"].includes(t.tagName)) return;
+      // Nor on the cookie question or a ?: the keys belong there.
+      if (t.closest(".consent, .help")) return;
       const kind = ({ e: "expense", i: "earning", t: "transfer" } as Record<string, Kind>)[e.key.toLowerCase()];
       if (kind) {
         e.preventDefault();

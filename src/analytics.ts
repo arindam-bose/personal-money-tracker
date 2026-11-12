@@ -37,8 +37,13 @@ let loaded = false;
 function load(): void {
   if (!import.meta.env.PROD) return;
   const w = window as unknown as GaWindow;
+  const wasOff = w[`ga-disable-${ID}`] === true;
   w[`ga-disable-${ID}`] = false;
-  if (loaded) return;
+  if (loaded) {
+    // Said yes again after a no in the same visit: count this page, as a first yes would.
+    if (wasOff) w.gtag!("config", ID);
+    return;
+  }
   loaded = true;
   w.dataLayer = w.dataLayer || [];
   // gtag.js reads the arguments object itself, not an array, so this can't be a rest parameter.

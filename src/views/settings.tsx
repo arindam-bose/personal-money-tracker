@@ -489,14 +489,18 @@ function EraseCard(props: { onDone: (message: string) => void }) {
  * card follows installState.
  */
 function InstallCard() {
-  const note = useSignal<string | null>(null);
+  /** What came of the last Install, and the state it was said in: it is shown only while that holds. */
+  const said = useSignal<{ text: string; in: string } | null>(null);
   const now = installState.value;
+  // A note about the steps stops being true once the browser offers its prompt again.
+  const note = said.value?.in === now ? said.value.text : null;
 
   async function onInstall() {
     const outcome = await promptInstall();
-    note.value = outcome === "dismissed" ? "Not installed. The steps are here if you change your mind."
+    const text = outcome === "dismissed" ? "Not installed. The steps are here if you change your mind."
       : outcome === "unavailable" ? "The browser wouldn't install it from here. Try the steps instead."
       : null;
+    said.value = text ? { text, in: installState.value } : null;
   }
 
   return (
@@ -512,10 +516,10 @@ function InstallCard() {
           : now === "prompt" ? "This browser can install it in one tap."
           : installSteps(detectDevice()).map((s) => (typeof s === "string" ? s : <b>{s.b}</b>))}
       </p>
-      {(now === "prompt" || note.value) && (
+      {(now === "prompt" || note) && (
         <div class="setting-row">
           {now === "prompt" && <button type="button" class="primary" onClick={onInstall}>Install</button>}
-          {note.value && <span class="muted" role="status">{note.value}</span>}
+          {note && <span class="muted" role="status">{note}</span>}
         </div>
       )}
     </section>
