@@ -220,7 +220,7 @@ export function SettingsView() {
       )}
 
       <label class="button">
-        Import JSON…
+        Import JSON
         <input type="file" accept=".json,application/json" onChange={onImport} hidden />
       </label>
       <DemoDownload />
