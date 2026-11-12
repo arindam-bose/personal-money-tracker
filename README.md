@@ -1,6 +1,6 @@
 # Money Tracker
 
-**Version 6.0.18** ·
+**Version 6.0.19** ·
 [Use it online](https://arindambose.com/personal-money-tracker/)
 
 Keep track of what you earn, spend, save and invest, one year at a time.
