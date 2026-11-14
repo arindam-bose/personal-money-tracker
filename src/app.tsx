@@ -2,7 +2,7 @@ import { useSignal } from "@preact/signals";
 import { useEffect, useRef } from "preact/hooks";
 import { version } from "../package.json";
 import { chooseConsent, consentAsked, takeConsentOpener, type Consent } from "./analytics";
-import { dateTime, lastUpdatedAt } from "./derive";
+import { lastUpdatedAt, updatedAt } from "./derive";
 import { updateReady } from "./offline";
 import { backupDue, backupText, requestPersistence } from "./storage";
 import { backUpYear, current, loadSettings, openYear, persistState, years } from "./state";
@@ -154,7 +154,7 @@ export function App() {
       )}
       {updated && !allYears && (
         <div class="status-strip">
-          <p>Last updated {dateTime(updated)}</p>
+          <p>Last updated {updatedAt(updated)}</p>
         </div>
       )}
       <main>
