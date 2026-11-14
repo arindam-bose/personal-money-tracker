@@ -99,7 +99,7 @@ a {
 }
 
 .topbar h1 {
-  font-size: 17px;
+  font-size: 20.4px; /* 17px, plus a fifth: the name reads as the brand it is */
   margin: 0 24px 0 0;
 }
 
@@ -268,6 +268,16 @@ a {
     font-size: 11px;
   }
 
+  /* The name is a fifth larger than it was (20.4px): the controls draw
+     closer, and the bar's sides give a little, so it fits beside them. */
+  .topbar {
+    padding: 0 10px;
+  }
+
+  .topbar-right {
+    gap: 4px;
+  }
+
   .backup-btn,
   .button.import-btn {
     display: inline-flex;
@@ -285,6 +295,13 @@ a {
 
   .bar-label {
     display: none;
+  }
+}
+
+/* The narrowest phones: the name keeps its old size, or ☰ is pushed off the edge. */
+@media (max-width: 374px) {
+  .topbar h1 {
+    font-size: 17px;
   }
 }
 
