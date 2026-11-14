@@ -52,6 +52,7 @@ this started). TypeScript is strict, including `noUncheckedIndexedAccess`.
 | `src/theme.ts` | Light or dark: the Settings choice, or following the device. |
 | `src/hide-numbers.ts` | The Settings choice to hide the amounts on the Dashboard, Reports, Budget, Accounts and Over the years pages, and above the Ledger. |
 | `src/views/add-menu.tsx` | The floating Add button on small screens. `addChoices` in `src/setup.ts` decides what it offers. |
+| `src/views/importer.tsx` | Importing from anywhere, one file at a time: the top bar's Import, Settings' Import JSON, a file dropped on any page, the Replace? dialog and the notice. As in the Habit Tracker. |
 | `src/views/about.tsx` | The About card: About and How to use dialogs, version, links to GitHub. |
 | `src/views/support.tsx`, `src/share.ts` | The Support card: the Buy me a coffee link, and Share the tracker (the share sheet on a phone, the link copied on a computer). |
 | `src/offline.ts`, `src/service-worker.js` | The offline copy: registering it, its status, checking for updates. |
@@ -62,6 +63,7 @@ this started). TypeScript is strict, including `noUncheckedIndexedAccess`.
 | `src/members.ts` | The default member and `membersOf`, apart so `entries.ts` can use them without an import loop. |
 | `src/rollover.ts` | What the next year starts with when a year is closed. |
 | `src/state.ts` | The open year as Preact signals, and the actions that change it. |
+| `src/importing.ts` | Importing a backup file: checked first, a stored year replaced only on a yes, then opened with any settings it brought. |
 | `src/views/` | One Preact view per page, plus `chart.tsx` (the ECharts wrapper), `people.tsx` (the person picker), `search-select.tsx` (the dropdown with a search box, used for accounts, categories, tags and the ledger filters), `no-data.tsx` (what a page says before there is data), `demo-link.tsx` (the link that downloads the demo file) and `hooks.ts` (closing a menu, and asking another page to act). |
 | `tools/` | Python: Notion export to JSON (`notion_import.py`), and a checker (`verify.py`). |
 | `tests/` | Vitest. `fixtures/` holds synthetic data only. |

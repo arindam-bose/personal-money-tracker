@@ -1,32 +1,30 @@
-// Settings page. Your data: import a year from JSON or start one from scratch (or download the
+// Settings page. Your data: import a year from JSON (see importer.tsx) or start one from scratch (or download the
 // demo), export (back up), close, reopen and delete years. Then the open year's IRA settings,
 // Appearance (light or dark), Offline (the cached copy and updates), Erase everything, On your home screen, Support the tracker, and About.
 
 import { useSignal } from "@preact/signals";
-import { useEffect, useRef } from "preact/hooks";
-import { importYear, readJsonFile } from "../backup";
+import { useEffect } from "preact/hooks";
 import { formatCents, parseCents } from "../money";
-import { dateTime, lastUpdatedAt, localToday, shortDate } from "../derive";
+import { localToday, shortDate } from "../derive";
 import { closingBalances, nextYearSetup } from "../rollover";
 import {
-  backUpYear, closeYear, current, type YearSummary, eraseEverything, iraLimit, ledger, loadSettings, openYear, persistState, readOnly, refreshYears, removeYear, reopenYear, saveIraBeforeStart, saveIraLimit, startYear, years,
+  backUpYear, closeYear, current, eraseEverything, iraLimit, ledger, openYear, persistState, readOnly, removeYear, reopenYear, saveIraBeforeStart, saveIraLimit, startYear, years,
 } from "../state";
 import { IRA_LIMITS, iraLimitOf } from "../setup";
 import { HIDDEN_AMOUNT, maskedCents, numbersHidden, setNumbersHidden } from "../hide-numbers";
 import { DateInput } from "./date-field";
 import { DemoLink } from "./demo-link";
-import { Modal } from "./modal";
 import { AboutCard } from "./about";
 import { SupportCard } from "./support";
 import { IconButton } from "./icons";
+import { ImportButton } from "./importer";
 import { checkForUpdates, offlineChanged, offlineStatus, updateReady } from "../offline";
 import { detectDevice } from "../device";
 import { installState, installSteps, promptInstall, type InstallState } from "../install";
 import { backupText, requestPersistence } from "../storage";
 import { setTheme, theme, themeChoice, type ThemeChoice } from "../theme";
 import { startsMidYear, yearStart } from "../year";
-import { isDateInYear, validateYearFile } from "../validate";
-import type { YearFile } from "../types";
+import { isDateInYear } from "../validate";
 
 const MAY_CLEAR = "This browser may clear your data on its own - if the site goes unvisited for a while, or space runs low - so keep a backup.";
 
@@ -43,84 +41,6 @@ function plural(n: number, one: string, many = `${one}s`): string {
 
 const entryCount = (n: number) => plural(n, "entry", "entries");
 
-/** An import waiting on "Replace?": the file, as read and checked, and the year it would replace. */
-interface PendingReplace {
-  fileName: string;
-  data: unknown;
-  file: YearFile;
-  stored: YearSummary;
-}
-
-/**
- * The question before an import replaces a stored year: what is here now and what the file holds,
- * side by side, with the rows that differ highlighted. Esc, Cancel or a click on the backdrop keeps
- * the stored year.
- */
-function ReplaceDialog(props: { pending: PendingReplace; onCancel: () => void; onReplace: () => void }) {
-  const dialog = useRef<HTMLDialogElement>(null);
-  useEffect(() => {
-    dialog.current?.showModal();
-  }, []);
-  const { fileName, file, stored } = props.pending;
-  const at = new Date(file.exportedAt);
-  const exported = Number.isNaN(at.getTime())
-    ? "No export date"
-    : `Exported ${at.toLocaleDateString(undefined, { day: "numeric", month: "short", year: "numeric" })}`;
-  // The latest change of either kind, entries or setup, as the strip under the top bar shows it.
-  // A file without one was saved before files carried it, so anything changed here is newer.
-  const here = lastUpdatedAt(stored.setup);
-  const there = lastUpdatedAt(file);
-  // To the second, as the table shows them: a warning under a row that reads the same would confuse.
-  const newerHere = here !== undefined && (there === undefined || toSecond(here) > toSecond(there));
-  const counts = { expenses: file.expenses.length, earnings: file.earnings.length, transfers: file.transfers.length };
-  const total = (c: typeof counts) => c.expenses + c.earnings + c.transfers;
-  const rows: { label: string; now: string; inFile: string; compare: boolean }[] = [
-    { label: "Expenses", now: stored.expenses.toLocaleString(), inFile: counts.expenses.toLocaleString(), compare: true },
-    { label: "Earnings", now: stored.earnings.toLocaleString(), inFile: counts.earnings.toLocaleString(), compare: true },
-    { label: "Transfers", now: stored.transfers.toLocaleString(), inFile: counts.transfers.toLocaleString(), compare: true },
-    { label: "Total entries", now: total(stored).toLocaleString(), inFile: total(counts).toLocaleString(), compare: true },
-    { label: "Last updated", now: updatedText(here), inFile: updatedText(there), compare: true },
-    // A backup and an export are different events, so this row is context, never a difference.
-    { label: "Backup", now: backupText(stored.setup.lastBackupAt), inFile: exported, compare: false },
-  ];
-  return (
-    <Modal dialogRef={dialog} title={`Replace your ${file.year} data?`} onClose={props.onCancel}>
-      <p>"{fileName}" holds {file.year} too. Importing it replaces everything the tracker has for {file.year}.</p>
-      <table class="compare">
-        <thead>
-          <tr>
-            <th></th>
-            <th>In the tracker</th>
-            <th>In the file</th>
-          </tr>
-        </thead>
-        <tbody>
-          {rows.map((r) => (
-            <tr key={r.label} class={r.compare && r.now !== r.inFile ? "differs" : undefined}>
-              <th scope="row">{r.label}</th>
-              <td>{r.now}</td>
-              <td>{r.inFile}</td>
-            </tr>
-          ))}
-        </tbody>
-      </table>
-      {newerHere && <p class="warn">The tracker has newer changes than this file: replacing it loses them.</p>}
-      <p class="muted">This can't be undone.</p>
-      <div class="form-actions">
-        <button type="button" onClick={() => dialog.current?.close()}>Cancel</button>
-        <button type="button" class="danger-solid" onClick={props.onReplace}>Replace {file.year}</button>
-      </div>
-    </Modal>
-  );
-}
-
-const toSecond = (iso: string) => Math.floor(Date.parse(iso) / 1000);
-
-/** With seconds: two backups taken minutes apart must still read differently. */
-function updatedText(iso: string | undefined): string {
-  return iso ? dateTime(iso, true) : "Unknown";
-}
-
 export function SettingsView() {
   const message = useSignal<string | null>(null);
   const errors = useSignal<string[]>([]);
@@ -128,8 +48,6 @@ export function SettingsView() {
   const closing = useSignal<number | null>(null);
   /** The year whose row is asking "Delete …?". */
   const deleting = useSignal<number | null>(null);
-  /** An import asking whether to replace a stored year. */
-  const replacing = useSignal<PendingReplace | null>(null);
 
   async function onStart(start: string | null) {
     await startYear(Number(localToday().slice(0, 4)), start);
@@ -155,53 +73,6 @@ export function SettingsView() {
     message.value = `${year} is open for changes again.`;
   }
 
-  async function onImport(e: Event) {
-    const input = e.currentTarget as HTMLInputElement;
-    const file = input.files?.[0];
-    input.value = ""; // so picking the same file again still fires a change
-    if (!file) return;
-    message.value = null;
-    errors.value = [];
-    try {
-      const data = await readJsonFile(file);
-      // Check the file before asking to replace anything, so we never ask about a file we'd reject.
-      const check = validateYearFile(data);
-      if (!check.ok) {
-        message.value = `"${file.name}" was not imported:`;
-        errors.value = check.errors;
-        return;
-      }
-      const { year } = check.file;
-      // Reloaded first: the list is from when the year was opened, and the question compares
-      // entry counts and last-updated times with what's stored now.
-      await refreshYears();
-      const stored = years.value.find((y) => y.setup.year === year);
-      if (stored) {
-        replacing.value = { fileName: file.name, data, file: check.file, stored };
-        return;
-      }
-      await finishImport(file.name, data, year);
-    } catch (err) {
-      message.value = err instanceof Error ? err.message : String(err);
-    }
-  }
-
-  async function finishImport(fileName: string, data: unknown, year: number) {
-    try {
-      await importYear(data);
-      message.value = `Imported ${year} from "${fileName}".`;
-      await Promise.all([openYear(year), loadSettings()]);
-    } catch (err) {
-      message.value = err instanceof Error ? err.message : String(err);
-    }
-  }
-
-  function onReplace() {
-    const pending = replacing.value;
-    replacing.value = null;
-    if (pending) void finishImport(pending.fileName, pending.data, pending.file.year);
-  }
-
   async function onExport(year: number) {
     errors.value = [];
     try {
@@ -215,9 +86,6 @@ export function SettingsView() {
     <>
     <section class="panel">
       <h2>Your data</h2>
-      {replacing.value && (
-        <ReplaceDialog pending={replacing.value} onCancel={() => (replacing.value = null)} onReplace={onReplace} />
-      )}
 
       {years.value.length === 0 ? (
         <div class="start-options">
@@ -288,10 +156,10 @@ export function SettingsView() {
           onCancel={() => (closing.value = null)} />
       )}
 
-      <label class="button">
-        Import JSON
-        <input type="file" accept=".json,application/json" onChange={onImport} hidden />
-      </label>
+      <div class="import-row">
+        <ImportButton>Import JSON</ImportButton>
+        <span class="muted small">Or use Import in the top bar, or drop a backup file anywhere in the tracker.</span>
+      </div>
       <DemoDownload />
 
       {message.value && <p role="status">{message.value}</p>}

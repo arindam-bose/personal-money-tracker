@@ -13,6 +13,7 @@ import { BudgetView } from "./views/budget";
 import { useDismiss } from "./views/hooks";
 import { DashboardView } from "./views/dashboard";
 import { Icon } from "./views/icons";
+import { ImportButton, ImportLayer } from "./views/importer";
 import { LedgerView } from "./views/ledger";
 import { SettingsView } from "./views/settings";
 
@@ -114,6 +115,11 @@ export function App() {
               <span class="long">v{updateReady.value} is ready · </span>Reload
             </button>
           )}
+          {/* On every page, data or not: a backup comes back in here (or dropped anywhere). */}
+          <ImportButton class="import-btn" title="Open a backup (JSON) saved by Backup. You can also drop the file anywhere on the page.">
+            <Icon name="import" />
+            <span class="bar-label">Import</span>
+          </ImportButton>
           {/* Here for the open year; it turns into the reminder when a backup is due. */}
           {setup && !allYears && (
             <button type="button" class={`backup-btn ${backupReminder ? "backup-nag" : ""}`} onClick={backUpNow}
@@ -122,7 +128,7 @@ export function App() {
               <Icon name="export" />
               {/* Next to Reload's own text, both wouldn't fit. */}
               {backupReminder && !updateReady.value && <span class="long">{backupReminder} · </span>}
-              <span class="backup-label">Backup</span>
+              <span class="bar-label">Backup</span>
             </button>
           )}
           {allYears ? <span class="muted">All years</span> : years.value.length > 0 && (
@@ -150,6 +156,7 @@ export function App() {
         </p>
         <p>Your ledger stays in this browser: nothing is uploaded, and it works offline.</p>
       </footer>
+      <ImportLayer />
       {/* The cookie question sits where the Add button would. */}
       {consentAsked.value ? <ConsentBanner /> : <AddMenu />}
     </>

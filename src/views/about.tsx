@@ -73,7 +73,7 @@ export function AboutCard() {
           <p>
             That also means <b>you are the backup</b>. Download a copy of each year now and then
             with <b>Backup</b> in the top bar (it turns red after a week). If you clear your browser data or switch
-            devices, import that file to get everything back.
+            devices, bring that file back with <b>Import</b>, beside Backup, or drop it anywhere on the page.
           </p>
         </DialogFact>
         <DialogFact term="How to use this tool" title="How to use Money Tracker">
