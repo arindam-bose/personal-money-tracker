@@ -162,6 +162,19 @@ function inTurn<T>(change: () => Promise<T>): Promise<T> {
   return run;
 }
 
+/**
+ * Store a year that came from outside (an imported backup) and open it, with any settings it
+ * brought, as one change in turn: a change queued behind it works on the new year, and one already
+ * queued finishes first, so neither can write the year it replaced back over it.
+ */
+export function storeAndOpen<T>(store: () => Promise<T>, year: number): Promise<T> {
+  return inTurn(async () => {
+    const result = await store();
+    await Promise.all([openYear(year), loadSettings()]);
+    return result;
+  });
+}
+
 function editable(): YearData {
   const data = current.value;
   if (!data) throw new Error("No year is open.");

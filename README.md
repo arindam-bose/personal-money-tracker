@@ -1,6 +1,6 @@
 # Money Tracker
 
-**Version 6.0.22** ·
+**Version 7.0.0** ·
 [Use it online](https://arindambose.com/personal-money-tracker/)
 
 Keep track of what you earn, spend, save and invest, one year at a time.
@@ -20,8 +20,9 @@ what you log, and nothing of Google's loads unless you say yes.
 
 That also means **you are the backup**. **Backup** in the top bar downloads the open
 year (an icon on a phone), and turns red a week after your last backup, if anything changed since. If
-you clear your browser data or switch computers, import that file to get
-everything back.
+you clear your browser data or switch computers, bring that file back with **Import** beside it,
+or drop the file anywhere on the page, one at a time: you're asked before a year you already have
+is replaced.
 
 Once opened, the tracker keeps a copy of itself in your browser, so it works without
 a signal too. New versions download by themselves; the top bar then offers
