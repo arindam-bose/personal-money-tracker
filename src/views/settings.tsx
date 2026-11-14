@@ -17,7 +17,7 @@ import { DemoLink } from "./demo-link";
 import { AboutCard } from "./about";
 import { SupportCard } from "./support";
 import { IconButton } from "./icons";
-import { ImportButton } from "./importer";
+import { ImportButton, importsStarted } from "./importer";
 import { checkForUpdates, offlineChanged, offlineStatus, updateReady } from "../offline";
 import { detectDevice } from "../device";
 import { installState, installSteps, promptInstall, type InstallState } from "../install";
@@ -44,6 +44,13 @@ const entryCount = (n: number) => plural(n, "entry", "entries");
 export function SettingsView() {
   const message = useSignal<string | null>(null);
   const errors = useSignal<string[]>([]);
+  // An import, started from here or anywhere, takes over from this card's last word (delete,
+  // reopen, close year): its notice says what happened, and two messages would disagree.
+  const started = importsStarted.value;
+  useEffect(() => {
+    message.value = null;
+    errors.value = [];
+  }, [started]);
   /** The year whose "Close year" panel is open. */
   const closing = useSignal<number | null>(null);
   /** The year whose row is asking "Delete …?". */
@@ -157,7 +164,7 @@ export function SettingsView() {
       )}
 
       <div class="import-row">
-        <ImportButton>Import JSON</ImportButton>
+        <ImportButton label="Import JSON">Import JSON</ImportButton>
         <span class="muted small">Or use Import in the top bar, or drop a backup file anywhere in the tracker.</span>
       </div>
       <DemoDownload />

@@ -4,9 +4,23 @@
 import { beforeEach, describe, expect, it, vi } from "vitest";
 import { loadYear } from "../src/db";
 import { importFile, type AskReplace } from "../src/importing";
-import { current, openYear, pins, years } from "../src/state";
+import { current, openYear, pins, saveIraLimit, years } from "../src/state";
 import type { YearFile } from "../src/types";
 import { freshDb, sample } from "./helpers";
+
+// A change can arrive while an import is storing its year: `inGap` runs the moment it is stored.
+const gap = vi.hoisted(() => ({ inGap: null as null | (() => void) }));
+vi.mock("../src/backup", async (load) => {
+  const backup = await load<typeof import("../src/backup")>();
+  return {
+    ...backup,
+    importYear: async (data: unknown) => {
+      const r = await backup.importYear(data);
+      gap.inGap?.();
+      return r;
+    },
+  };
+});
 
 const fileOf = (name: string, data: unknown) => new File([typeof data === "string" ? data : JSON.stringify(data)], name, { type: "application/json" });
 /** The sample year with only its first `n` expenses: 8 + 6 + 5 = 19 entries in all. */
@@ -16,6 +30,7 @@ const never: AskReplace = async () => {
 };
 
 beforeEach(async () => {
+  gap.inGap = null;
   await freshDb();
   await openYear();
 });
@@ -61,5 +76,23 @@ describe("importFile", () => {
     const file: YearFile = { ...sample(), settings: { pinnedTags: ["t_grocery"] } };
     await importFile(fileOf("with-pins.json", file), never);
     expect(pins.pinnedTags.value).toEqual(["t_grocery"]);
+  });
+});
+
+describe("a change made while a year is being imported", () => {
+  it("waits for the imported year, and never writes the one it replaced back over it", async () => {
+    // The tracker has 2026 with an extra tag; the backup has 2026 without it.
+    const old: YearFile = { ...sample(), tags: [...sample().tags, { id: "t_old", name: "Old tag" }] };
+    await importFile(fileOf("old.json", old), never);
+    // An IRA limit is saved just as the backup's year is stored, before it is open.
+    let saving: Promise<void> | undefined;
+    gap.inGap = () => (saving = saveIraLimit(700000));
+    await importFile(fileOf("new.json", sample()), async () => true);
+    await saving;
+    const stored = (await loadYear(2026))!;
+    expect(stored.setup.tags.map((t) => t.id)).not.toContain("t_old");
+    expect(current.value!.setup.tags.map((t) => t.id)).not.toContain("t_old");
+    // The change still counts, on the imported year.
+    expect(stored.setup.iraLimit).toBe(700000);
   });
 });

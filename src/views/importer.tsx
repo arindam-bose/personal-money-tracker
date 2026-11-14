@@ -116,6 +116,8 @@ function updatedText(iso: string | undefined): string {
 const replacing = signal<PendingReplace | null>(null);
 /** What the last import did, for the notice; null once closed. */
 const report = signal<{ id: number; done?: string; heading?: string; errors: string[]; note?: string } | null>(null);
+/** Counts the imports started, so Settings can clear its own status line when one begins. */
+export const importsStarted = signal(0);
 /** A file is being dragged over the page. */
 const dragging = signal(false);
 /** An import is under way: another is ignored rather than asking two things at once. */
@@ -134,9 +136,15 @@ function askReplace(fileName: string, stored: YearSummary, file: YearFile): Prom
  */
 export async function startImport(files: File[]): Promise<void> {
   const file = files[0];
-  if (!file || busy) return;
+  if (!file) return;
+  // One import at a time, said rather than swallowed.
+  if (busy) {
+    report.value = { id: ++asked, errors: [], note: `One import at a time: "${file.name}" wasn't imported.` };
+    return;
+  }
   busy = true;
   report.value = null;
+  importsStarted.value++;
   const note = files.length > 1 ? `One file at a time: the other ${files.length - 1 === 1 ? "file wasn't" : `${files.length - 1} files weren't`} imported.` : undefined;
   try {
     const out = await importFile(file, askReplace);
@@ -147,7 +155,7 @@ export async function startImport(files: File[]): Promise<void> {
       report.value = { id, heading: `"${out.fileName}" was not imported:`, errors: [...out.errors.slice(0, MAX_ERRORS), ...extra], note };
     } else if (note) report.value = { id, errors: [], note };
   } catch (err) {
-    report.value = { id: ++asked, errors: [err instanceof Error ? err.message : String(err)] };
+    report.value = { id: ++asked, heading: `Importing "${file.name}" didn't finish:`, errors: [err instanceof Error ? err.message : String(err)] };
   } finally {
     busy = false;
   }
@@ -157,11 +165,12 @@ export async function startImport(files: File[]): Promise<void> {
  * A button that opens the file picker for a backup. The input sits inside the label, out of
  * sight but not hidden, so the keyboard reaches it and the label's focus ring shows.
  */
-export function ImportButton(props: { class?: string; title?: string; children: ComponentChildren }) {
+export function ImportButton(props: { class?: string; title?: string; label: string; children: ComponentChildren }) {
   return (
     <label class={`button file-button ${props.class ?? ""}`} title={props.title}>
       {props.children}
-      <input type="file" accept=".json,application/json" class="sr-only" onChange={(e) => {
+      {/* Named here: a phone shows only the icon, and a label's title doesn't name what it holds. */}
+      <input type="file" accept=".json,application/json" class="sr-only" aria-label={props.label} onChange={(e) => {
         const input = e.currentTarget;
         const files = [...(input.files ?? [])];
         input.value = ""; // so picking the same file again still fires a change
@@ -171,46 +180,50 @@ export function ImportButton(props: { class?: string; title?: string; children: 
   );
 }
 
-const hasFiles = (e: DragEvent) => e.dataTransfer?.types.includes("Files") ?? false;
-
 /** The dialog, the drop overlay and the notice, for every page. Listens for a file dropped anywhere. */
 export function ImportLayer() {
   useEffect(() => {
-    // Entering a child fires dragenter before the parent's dragleave: count, so the overlay doesn't flicker.
-    let depth = 0;
-    const enter = (e: DragEvent) => {
-      if (!hasFiles(e)) return;
-      e.preventDefault();
-      depth++;
-      dragging.value = true;
+    // A drag that began on the page -- an image, a link -- is not a file coming in, though a
+    // browser may list "Files" among what it carries.
+    let fromPage = false;
+    // Shown while drag events keep coming, hidden once they stop. Counting enters against
+    // leaves would strand the overlay whenever one goes unpaired: an element re-rendered away
+    // under the pointer, or a browser that pairs them its own way.
+    let timer: ReturnType<typeof setTimeout> | undefined;
+    const hide = () => {
+      clearTimeout(timer);
+      dragging.value = false;
+    };
+    const incoming = (e: DragEvent) => !fromPage && (e.dataTransfer?.types.includes("Files") ?? false);
+    // A dialog open (a form, the Replace? question) would have its year replaced under it.
+    const dialogOpen = () => document.querySelector("dialog[open]") !== null;
+    const begin = () => void (fromPage = true);
+    const end = () => {
+      fromPage = false;
+      hide();
     };
     const over = (e: DragEvent) => {
-      if (!hasFiles(e)) return;
-      // Without this the browser would open the file in place of the tracker.
+      if (!incoming(e)) return;
+      // Always, even when refused: without it the browser opens the file in place of the tracker.
       e.preventDefault();
-      if (e.dataTransfer) e.dataTransfer.dropEffect = busy ? "none" : "copy";
-    };
-    const leave = (e: DragEvent) => {
-      if (!hasFiles(e)) return;
-      depth = Math.max(0, depth - 1);
-      if (!depth) dragging.value = false;
+      const refused = busy || dialogOpen();
+      if (e.dataTransfer) e.dataTransfer.dropEffect = refused ? "none" : "copy";
+      if (refused) return hide();
+      dragging.value = true;
+      clearTimeout(timer);
+      timer = setTimeout(hide, 300);
     };
     const drop = (e: DragEvent) => {
-      if (!hasFiles(e)) return;
+      if (!incoming(e)) return;
       e.preventDefault();
-      depth = 0;
-      dragging.value = false;
-      void startImport([...(e.dataTransfer?.files ?? [])]);
+      hide();
+      if (!dialogOpen()) void startImport([...(e.dataTransfer?.files ?? [])]);
     };
-    window.addEventListener("dragenter", enter);
-    window.addEventListener("dragover", over);
-    window.addEventListener("dragleave", leave);
-    window.addEventListener("drop", drop);
+    const events: [string, (e: DragEvent) => void][] = [["dragstart", begin], ["dragend", end], ["dragenter", over], ["dragover", over], ["drop", drop]];
+    for (const [name, fn] of events) window.addEventListener(name, fn as EventListener);
     return () => {
-      window.removeEventListener("dragenter", enter);
-      window.removeEventListener("dragover", over);
-      window.removeEventListener("dragleave", leave);
-      window.removeEventListener("drop", drop);
+      hide();
+      for (const [name, fn] of events) window.removeEventListener(name, fn as EventListener);
     };
   }, []);
 
