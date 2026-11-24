@@ -340,10 +340,17 @@ export function LedgerView() {
 
       <div class="filters">
         <div class="search">
-          <input ref={searchRef} type="search" placeholder="Search…  /" value={f.q} onInput={(e) => setFilter("q", e.currentTarget.value)} />
+          {/* Esc empties it, as × does. Chrome, Edge and Safari do that for a search box by themselves, Firefox
+              doesn't, so the page does it everywhere. An empty box lets Esc go on its way. */}
+          <input ref={searchRef} type="search" placeholder="Search…  /" value={f.q} onInput={(e) => setFilter("q", e.currentTarget.value)}
+            onKeyDown={(e) => {
+              if (e.key !== "Escape" || !e.currentTarget.value) return;
+              e.preventDefault();
+              setFilter("q", "");
+            }} />
           {/* Clears only the search: the other filters and the sort stay as they are. */}
           {f.q && (
-            <button type="button" class="search-clear" aria-label="Clear search" title="Clear search"
+            <button type="button" class="search-clear" aria-label="Clear search" title="Clear search (Esc)"
               onClick={() => { setFilter("q", ""); searchRef.current?.focus(); }}>×</button>
           )}
         </div>

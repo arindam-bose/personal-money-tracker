@@ -1,6 +1,6 @@
 # Money Tracker
 
-**Version 7.0.4** ·
+**Version 7.0.5** ·
 [Use it online](https://arindambose.com/personal-money-tracker/)
 
 Keep track of what you earn, spend, save and invest, one year at a time.
@@ -123,7 +123,7 @@ Backups carry that time too.
 | <kbd>I</kbd> / <kbd>E</kbd> / <kbd>T</kbd> | Add an earning, expense or transfer |
 | <kbd>/</kbd> | Search |
 | <kbd>Enter</kbd> | Save the form, or edit the selected row |
-| <kbd>Esc</kbd> | Close the form |
+| <kbd>Esc</kbd> | Close the form, or clear the search |
 | <kbd>D</kbd> | Duplicate the selected row (the copy's name ends in "(new)") |
 
 ---
