@@ -634,8 +634,8 @@ button.add kbd {
   margin-bottom: 10px;
 }
 
-/* Hide numbers sits at the far right of the Dashboard's period and person pickers. */
-.filters .hide-numbers { margin-left: auto; }
+/* Hide numbers, under the theme in Settings' Appearance card. */
+.appearance-hide { margin-top: 16px; }
 
 /* A switch: a track with a knob, on (accent, knob right) while aria-checked is true. */
 .toggle {
