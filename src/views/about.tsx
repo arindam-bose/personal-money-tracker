@@ -96,7 +96,8 @@ export function AboutCard() {
           </p>
           <h3>The pages</h3>
           <ul>
-            <li><b>Dashboard</b>: the month or year at a glance, with your net worth, budgets, balances and card use.</li>
+            <li><b>Dashboard</b>: the month or year at a glance, with your net worth, budgets, balances and card use.
+              <b>Hide numbers</b>, at the top right, shows the amounts as dots, for when someone can see the screen.</li>
             <li><b>Ledger</b>: every earning, expense and transfer, with filters and quick keyboard entry.
               Transfers (paying a card, moving money to savings) aren't spending, so they're shown apart.
               On a small screen, the round + button adds an entry or an account from any page.</li>
@@ -109,7 +110,7 @@ export function AboutCard() {
               paid off or shut.</li>
             <li><b>Settings</b>: import a year or start one from scratch; back up, and close a finished
               year, which starts the next one from its closing balances. Also each year's IRA limit,
-              deleting a year, erasing everything, light or dark mode, hiding the numbers, the offline copy and updates,
+              deleting a year, erasing everything, light or dark mode, the offline copy and updates,
               putting the tracker on your home screen, and a demo file to try.</li>
           </ul>
           <h3>Handy keys on the Ledger</h3>
@@ -118,7 +119,7 @@ export function AboutCard() {
               <tr><td><kbd>I</kbd> <kbd>E</kbd> <kbd>T</kbd></td><td>Add an earning, expense or transfer</td></tr>
               <tr><td><kbd>/</kbd></td><td>Search</td></tr>
               <tr><td><kbd>Enter</kbd></td><td>Save the form, or edit the selected row</td></tr>
-              <tr><td><kbd>Esc</kbd></td><td>Close the form</td></tr>
+              <tr><td><kbd>Esc</kbd></td><td>Close the form, or clear the search (again to leave it)</td></tr>
               <tr><td><kbd>D</kbd></td><td>Duplicate the selected row (the copy's name ends in "(new)")</td></tr>
             </tbody>
           </table>

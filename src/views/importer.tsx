@@ -6,7 +6,7 @@
 import { signal } from "@preact/signals";
 import type { ComponentChildren } from "preact";
 import { useEffect, useRef } from "preact/hooks";
-import { dateTime, lastUpdatedAt } from "../derive";
+import { lastUpdatedAt, longDay, updatedPair } from "../derive";
 import { importFile } from "../importing";
 import type { YearSummary } from "../state";
 import { backupText } from "../storage";
@@ -46,13 +46,15 @@ function ReplaceDialog(props: { pending: PendingReplace }) {
   const at = new Date(file.exportedAt);
   const exported = Number.isNaN(at.getTime())
     ? "No export date"
-    : `Exported ${at.toLocaleDateString(undefined, { day: "numeric", month: "short", year: "numeric" })}`;
+    : `Exported ${longDay(at)}`;
   // The latest change of either kind, entries or setup, as the strip under the top bar shows it.
   // A file without one was saved before files carried it, so anything changed here is newer.
   const here = lastUpdatedAt(stored.setup);
   const there = lastUpdatedAt(file);
-  // To the second, as the table shows them: a warning under a row that reads the same would confuse.
+  // To the second, so a change made moments after the file was saved still warns; updatedPair shows the
+  // seconds whenever the minute alone would make the two read the same.
   const newerHere = here !== undefined && (there === undefined || toSecond(here) > toSecond(there));
+  const [updatedNow, updatedInFile] = updatedPair(here, there);
   const counts = { expenses: file.expenses.length, earnings: file.earnings.length, transfers: file.transfers.length };
   const total = (c: typeof counts) => c.expenses + c.earnings + c.transfers;
   const rows: { label: string; now: string; inFile: string; compare: boolean }[] = [
@@ -60,7 +62,7 @@ function ReplaceDialog(props: { pending: PendingReplace }) {
     { label: "Earnings", now: stored.earnings.toLocaleString(), inFile: counts.earnings.toLocaleString(), compare: true },
     { label: "Transfers", now: stored.transfers.toLocaleString(), inFile: counts.transfers.toLocaleString(), compare: true },
     { label: "Total entries", now: total(stored).toLocaleString(), inFile: total(counts).toLocaleString(), compare: true },
-    { label: "Last updated", now: updatedText(here), inFile: updatedText(there), compare: true },
+    { label: "Last updated", now: updatedNow, inFile: updatedInFile, compare: true },
     // A backup and an export are different events, so this row is context, never a difference.
     { label: "Backup", now: backupText(stored.setup.lastBackupAt), inFile: exported, compare: false },
   ];
@@ -106,11 +108,6 @@ function ReplaceDialog(props: { pending: PendingReplace }) {
 }
 
 const toSecond = (iso: string) => Math.floor(Date.parse(iso) / 1000);
-
-/** With seconds: two backups taken minutes apart must still read differently. */
-function updatedText(iso: string | undefined): string {
-  return iso ? dateTime(iso, true) : "Unknown";
-}
 
 /** An import asking whether to replace a stored year. */
 const replacing = signal<PendingReplace | null>(null);

@@ -11,7 +11,8 @@ import {
   backUpYear, closeYear, current, eraseEverything, iraLimit, ledger, openYear, persistState, readOnly, removeYear, reopenYear, saveIraBeforeStart, saveIraLimit, startYear, years,
 } from "../state";
 import { IRA_LIMITS, iraLimitOf } from "../setup";
-import { HIDDEN_AMOUNT, maskedCents, numbersHidden, setNumbersHidden } from "../hide-numbers";
+import { maskedCents, numbersHidden } from "../hide-numbers";
+import { HideNumbers } from "./hide-numbers-switch";
 import { DateInput } from "./date-field";
 import { DemoLink } from "./demo-link";
 import { AboutCard } from "./about";
@@ -253,13 +254,6 @@ function AppearanceCard() {
           : `Always ${theme.value}, whatever this device is set to.`}{" "}
         Kept on this device only; backups leave it out.
       </p>
-      <label class="check-row">
-        <input type="checkbox" checked={numbersHidden.value} onChange={(e) => setNumbersHidden(e.currentTarget.checked)} />
-        Hide the numbers
-      </label>
-      <p class="muted small">
-        When ticked, the amounts on the Dashboard, Reports, Budget, Accounts and Over the years pages, the totals above the Ledger and the balances when closing a year, show as {HIDDEN_AMOUNT}. Also kept on this device only.
-      </p>
     </section>
   );
 }
@@ -496,6 +490,9 @@ function IraBeforeStart() {
  */
 function CloseYearPanel(props: { year: number; onDone: (message: string) => void; onCancel: () => void }) {
   const busy = useSignal(false);
+  // Hide numbers shows over the balances if they were dots when the panel opened, and stays put once
+  // switched, rather than vanishing from under the pointer.
+  const offerShow = useSignal(numbersHidden.value);
   const { year } = props;
   // Closing works on the open year, so switch to it first if needed.
   useEffect(() => {
@@ -534,6 +531,8 @@ function CloseYearPanel(props: { year: number; onDone: (message: string) => void
             : <>Start {year + 1} with the accounts, categories, tags and usual budgets of {year}, opening at these balances:</>}
         </li>
       </ol>
+      {/* The balances are what this step is about: while they're dots, the way to show them is right here. */}
+      {!nextExists && offerShow.value && <HideNumbers />}
       {!nextExists && (
         <table class="data-table">
           <thead>
