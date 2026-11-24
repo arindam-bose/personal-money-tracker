@@ -152,6 +152,9 @@ function matches(e: AnyEntry, f: Filters, window: [string, string] | null, amoun
 /** A row's unique key: ids are only unique within their kind. */
 const rowKey = (e: AnyEntry) => `${e.kind}:${e.entry.id}`;
 
+/** A mouse or trackpad leads, so focusing a box won't throw up an on-screen keyboard. */
+const keyboardFirst = () => typeof matchMedia === "function" && matchMedia("(hover: hover) and (pointer: fine)").matches;
+
 /** Today if it falls in the open year's ledger, otherwise the day the ledger starts. */
 function defaultDate(setup: YearSetup): string {
   const today = localToday();
@@ -245,6 +248,16 @@ export function LedgerView() {
     form.value = draftFrom(e);
     window.scrollTo({ top: 0 });
   }
+
+  // Arriving on the Ledger with a mouse or trackpad puts the cursor in Search, ready to type. Not with a
+  // finger: on a phone or tablet a focused box pops the keyboard up over the page. Once per visit, when the
+  // box first appears (the year may still be loading), and not over an entry form opened by + Add.
+  const searchFocused = useRef(false);
+  useEffect(() => {
+    if (searchFocused.current || !searchRef.current) return;
+    searchFocused.current = true;
+    if (!form.value && keyboardFirst()) searchRef.current.focus({ preventScroll: true });
+  }, [data === null]);
 
   // Shortcuts while not typing: E, I, T add an entry; / jumps to search.
   useEffect(() => {
