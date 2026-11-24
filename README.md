@@ -1,6 +1,6 @@
 # Money Tracker
 
-**Version 7.0.8** ·
+**Version 7.0.9** ·
 [Use it online](https://arindambose.com/personal-money-tracker/)
 
 Keep track of what you earn, spend, save and invest, one year at a time.
@@ -88,7 +88,7 @@ Backups carry that time too.
   A **Loan / mortgage** account takes the day it began, the amount borrowed and
   the interest rate. Interest is added monthly on what's still owed, each payment
   is a transfer into the loan (in **Loan Payments**), and what it owes comes off
-  net worth. Untick **Include loans** on the dashboard or the Balances over time chart to see them without it.
+  net worth. Switch off **Include loans** on the dashboard or the Balances over time chart to see them without it.
 - **Over the years**: once two or more years are stored, each Dashboard figure
   for every year side by side, with a table and the change from the year
   before. It's always everyone together; the year still under way is marked *.

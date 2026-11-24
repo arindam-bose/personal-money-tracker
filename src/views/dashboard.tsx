@@ -24,10 +24,12 @@ import { MemberPicker, viewedLedger, viewedMember } from "./people";
 /** The switch for whether net worth counts loans. One setting, shared by the Dashboard and Reports. */
 export function IncludeLoans() {
   return (
-    <label class="hero-toggle" title="Untick to see net worth without what loans and mortgages owe">
-      <input type="checkbox" checked={!loansLeftOut.value} onChange={(e) => saveLoansLeftOut(!e.currentTarget.checked)} />
-      <span>Include loans</span>
-    </label>
+    <button type="button" role="switch" aria-checked={!loansLeftOut.value} class="toggle hero-toggle"
+      title="Switch off to see net worth without what loans and mortgages owe"
+      onClick={() => saveLoansLeftOut(!loansLeftOut.value)}>
+      <span class="toggle-track" aria-hidden="true"><span class="toggle-knob" /></span>
+      Include loans
+    </button>
   );
 }
 const PERIOD_KEY = "dashboard-period";
