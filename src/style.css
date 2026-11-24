@@ -634,6 +634,49 @@ button.add kbd {
   margin-bottom: 10px;
 }
 
+/* Hide numbers sits at the far right of the Dashboard's period and person pickers. */
+.filters .hide-numbers { margin-left: auto; }
+
+/* A switch: a track with a knob, on (accent, knob right) while aria-checked is true. */
+.toggle {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  padding: 4px 2px;
+  font: inherit;
+  color: var(--text);
+  background: none;
+  border: 0;
+  cursor: pointer;
+}
+.toggle-track {
+  position: relative;
+  flex: none;
+  width: 36px;
+  height: 20px;
+  border-radius: 10px;
+  background: var(--border);
+  transition: background-color .15s;
+}
+.toggle-knob {
+  position: absolute;
+  top: 2px;
+  left: 2px;
+  width: 16px;
+  height: 16px;
+  border-radius: 50%;
+  background: var(--surface);
+  box-shadow: 0 1px 2px rgb(0 0 0 / .3);
+  transition: transform .15s;
+}
+.toggle[aria-checked="true"] .toggle-track { background: var(--accent); }
+.toggle[aria-checked="true"] .toggle-knob { transform: translateX(16px); }
+.toggle:focus-visible { outline: none; }
+.toggle:focus-visible .toggle-track { box-shadow: 0 0 0 3px var(--focus); }
+@media (prefers-reduced-motion: reduce) {
+  .toggle-track, .toggle-knob { transition: none; }
+}
+
 /* The search gets a row of its own, as wide as the ledger; the filters and sort wrap below it. */
 .filters .search {
   flex: 1 0 100%;
@@ -2593,14 +2636,6 @@ button.icon-action.icon-export:hover {
 
 .demo-download {
   margin: 10px 0 0;
-}
-
-.check-row {
-  display: flex;
-  align-items: center;
-  gap: 8px;
-  margin-top: 16px;
-  cursor: pointer;
 }
 
 button.link.demo-link {

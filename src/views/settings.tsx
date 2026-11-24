@@ -11,7 +11,7 @@ import {
   backUpYear, closeYear, current, eraseEverything, iraLimit, ledger, openYear, persistState, readOnly, removeYear, reopenYear, saveIraBeforeStart, saveIraLimit, startYear, years,
 } from "../state";
 import { IRA_LIMITS, iraLimitOf } from "../setup";
-import { HIDDEN_AMOUNT, maskedCents, numbersHidden, setNumbersHidden } from "../hide-numbers";
+import { maskedCents } from "../hide-numbers";
 import { DateInput } from "./date-field";
 import { DemoLink } from "./demo-link";
 import { AboutCard } from "./about";
@@ -252,13 +252,6 @@ function AppearanceCard() {
           ? `Follows this device, which is in ${theme.value} mode now.`
           : `Always ${theme.value}, whatever this device is set to.`}{" "}
         Kept on this device only; backups leave it out.
-      </p>
-      <label class="check-row">
-        <input type="checkbox" checked={numbersHidden.value} onChange={(e) => setNumbersHidden(e.currentTarget.checked)} />
-        Hide the numbers
-      </label>
-      <p class="muted small">
-        When ticked, the amounts on the Dashboard, Reports, Budget, Accounts and Over the years pages, the totals above the Ledger and the balances when closing a year, show as {HIDDEN_AMOUNT}. Also kept on this device only.
       </p>
     </section>
   );
