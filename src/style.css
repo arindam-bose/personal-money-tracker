@@ -2692,6 +2692,7 @@ button.link.demo-link {
 
 /* Include loans: a small, muted switch (.toggle) in the corner of the net worth card and Balances over time. */
 .hero-toggle {
+  padding: 0;
   font-size: 13px;
   color: var(--muted);
   white-space: nowrap;

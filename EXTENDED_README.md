@@ -386,13 +386,13 @@ already exists, it is left alone. A closed year can be reopened.
 
 | Page | File | Notes |
 |---|---|---|
-| Dashboard | `views/dashboard.tsx`, `views/hide-numbers-switch.tsx` (also over the close-year balances) | Month or year view; figures and simple HTML bars. |
+| Dashboard | `views/dashboard.tsx` | Month or year view; figures and simple HTML bars. |
 | Ledger | `views/ledger.tsx`, `views/entry-form.tsx` | One table for all three kinds; filters kept per tab in `sessionStorage`. |
 | Budget | `views/budget.tsx` | Enter moves down a column; saves on Enter or blur. |
 | Reports | `views/reports.tsx` | Loaded on demand (see Charts). Earning, Expense, and Savings and investment reports are tabbed sections; each remembers its tab in `sessionStorage`. |
 | Accounts | `views/accounts.tsx` | Accounts can be deleted only when no entry uses them. Categories always (entries move to Uncategorized), and tags always (they come off their entries). |
 | Over the years | `views/years.tsx` | In the menu only with two or more years; the year picker shows "All years" there. Loads every year (`loadAllYears` in `state.ts`, upgraded in memory like `openYear`) and runs `summarize` on each, everyone together. Loaded on demand with the charts. |
-| Settings | `views/settings.tsx`, `views/about.tsx` | Import, export, close/reopen, delete a year, start from scratch, the year's IRA settings, appearance, offline, erase everything, the demo file, Support the tracker, about. |
+| Settings | `views/settings.tsx`, `views/about.tsx`, `views/hide-numbers-switch.tsx` (Appearance, and over the close-year balances) | Import, export, close/reopen, delete a year, start from scratch, the year's IRA settings, appearance, offline, erase everything, the demo file, Support the tracker, about. |
 
 Routing is by URL hash (`#/ledger`), which works on any static host.
 

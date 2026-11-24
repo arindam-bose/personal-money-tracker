@@ -67,25 +67,36 @@ export function localToday(now = new Date()): IsoDate {
   return `${now.getFullYear()}-${String(now.getMonth() + 1).padStart(2, "0")}-${String(now.getDate()).padStart(2, "0")}`;
 }
 
-/** The strip's "Last updated": the weekday too, as in "Friday, Nov 13, 2026, 06:23 PM", with seconds when asked. */
-export function updatedAt(iso: string, seconds = false): string {
+/**
+ * The strip's "Last updated": the weekday too, as in "Friday, Nov 13, 2026, 06:23 PM", with seconds
+ * when asked, and the time zone (EDT, EST) too when asked.
+ */
+export function updatedAt(iso: string, seconds = false, zone = false): string {
   return new Date(iso).toLocaleString(undefined, {
     weekday: "long", day: "numeric", month: "short", year: "numeric", hour: "2-digit", minute: "2-digit",
     ...(seconds ? { second: "2-digit" } : {}),
+    ...(zone ? { timeZoneName: "short" } : {}),
   });
 }
 
+/** A moment to the second: how the import dialog tells which of two is newer. */
+export const toSecond = (iso: string) => Math.floor(Date.parse(iso) / 1000);
+
 /**
  * Two moments side by side, as the import dialog's Last updated row shows the tracker's and the file's:
- * as updatedAt, to the minute, unless both fall in the same minute seconds apart. Then both get their
- * seconds, so the warning that one is newer (worked out to the second) never sits under two that read the same.
+ * as updatedAt, to the minute, unless two different seconds would read the same that way. Then both get
+ * their seconds, and should they still read the same (in the hour that repeats when the clocks go back),
+ * their time zone too. So the warning that one is newer (worked out to the second, by toSecond) never
+ * sits under two that read the same.
  */
 export function updatedPair(a: string | undefined, b: string | undefined): [string, string] {
-  const second = (iso: string) => Math.floor(Date.parse(iso) / 1000);
-  const seconds = a !== undefined && b !== undefined
-    && Math.floor(second(a) / 60) === Math.floor(second(b) / 60) && second(a) !== second(b);
-  const text = (iso: string | undefined) => (iso === undefined ? "Unknown" : updatedAt(iso, seconds));
-  return [text(a), text(b)];
+  // A missing or empty time (an imported file can hold "") reads "Unknown", never "Invalid Date".
+  const differ = !!a && !!b && toSecond(a) !== toSecond(b);
+  const text = (iso: string | undefined, seconds: boolean, zone: boolean) => (iso ? updatedAt(iso, seconds, zone) : "Unknown");
+  let pair: [string, string] = [text(a, false, false), text(b, false, false)];
+  if (differ && pair[0] === pair[1]) pair = [text(a, true, false), text(b, true, false)];
+  if (differ && pair[0] === pair[1]) pair = [text(a, true, true), text(b, true, true)];
+  return pair;
 }
 
 /** A day as "Sunday, Nov 8, 2026": updatedAt without the time. The import dialog's export date. */
@@ -100,7 +111,7 @@ export function longDay(at: Date): string {
  */
 export function lastUpdatedAt(setup: { lastChangedAt?: string; setupChangedAt?: string }): string | undefined {
   const { lastChangedAt: entries, setupChangedAt: setupAt } = setup;
-  if (!entries || !setupAt) return entries ?? setupAt;
+  if (!entries || !setupAt) return entries || setupAt || undefined;
   return Date.parse(setupAt) > Date.parse(entries) ? setupAt : entries;
 }
 
