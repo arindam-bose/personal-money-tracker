@@ -9,7 +9,6 @@ import {
 } from "../derive";
 // Every amount on this page goes through this, so Hide the numbers covers them all.
 import { maskedCents as formatCents } from "../hide-numbers";
-import { HideNumbers } from "./hide-numbers-switch";
 import { formatPercent } from "../money";
 import { current, iraLimit, ledger, loansLeftOut, pins, saveLoansLeftOut, savePins } from "../state";
 import type { Ledger } from "../derive";
@@ -25,10 +24,12 @@ import { MemberPicker, viewedLedger, viewedMember } from "./people";
 /** The switch for whether net worth counts loans. One setting, shared by the Dashboard and Reports. */
 export function IncludeLoans() {
   return (
-    <label class="hero-toggle" title="Untick to see net worth without what loans and mortgages owe">
-      <input type="checkbox" checked={!loansLeftOut.value} onChange={(e) => saveLoansLeftOut(!e.currentTarget.checked)} />
-      <span>Include loans</span>
-    </label>
+    <button type="button" role="switch" aria-checked={!loansLeftOut.value} class="toggle hero-toggle"
+      title="Switch off to see net worth without what loans and mortgages owe"
+      onClick={() => saveLoansLeftOut(!loansLeftOut.value)}>
+      <span class="toggle-track" aria-hidden="true"><span class="toggle-knob" /></span>
+      Include loans
+    </button>
   );
 }
 const PERIOD_KEY = "dashboard-period";
@@ -117,7 +118,6 @@ export function DashboardView() {
           {MONTH_NAMES.slice(0, Math.max(lastMonth, month ?? 0)).map((m, i) => i + 1 >= firstMonth(setup) && <option value={String(i + 1)}>{m}</option>)}
         </select>
         <MemberPicker />
-        <HideNumbers />
       </div>
 
       {member ? (

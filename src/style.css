@@ -634,8 +634,8 @@ button.add kbd {
   margin-bottom: 10px;
 }
 
-/* Hide numbers sits at the far right of the Dashboard's period and person pickers. */
-.filters .hide-numbers { margin-left: auto; }
+/* Hide numbers, under the theme in Settings' Appearance card. */
+.appearance-hide { margin-top: 16px; }
 
 /* A switch: a track with a knob, on (accent, knob right) while aria-checked is true. */
 .toggle {
@@ -2690,14 +2690,12 @@ button.link.demo-link {
   display: contents;
 }
 
+/* Include loans: a small, muted switch (.toggle) in the corner of the net worth card and Balances over time. */
 .hero-toggle {
-  display: flex;
-  align-items: center;
-  gap: 6px;
+  padding: 0;
   font-size: 13px;
   color: var(--muted);
   white-space: nowrap;
-  cursor: pointer;
 }
 
 .net-tick input:disabled + span {

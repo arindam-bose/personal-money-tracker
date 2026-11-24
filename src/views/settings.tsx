@@ -11,7 +11,7 @@ import {
   backUpYear, closeYear, current, eraseEverything, iraLimit, ledger, openYear, persistState, readOnly, removeYear, reopenYear, saveIraBeforeStart, saveIraLimit, startYear, years,
 } from "../state";
 import { IRA_LIMITS, iraLimitOf } from "../setup";
-import { maskedCents, numbersHidden } from "../hide-numbers";
+import { HIDDEN_AMOUNT, maskedCents, numbersHidden } from "../hide-numbers";
 import { HideNumbers } from "./hide-numbers-switch";
 import { DateInput } from "./date-field";
 import { DemoLink } from "./demo-link";
@@ -235,7 +235,7 @@ function StartFromScratch(props: { onStart: (start: string | null) => void }) {
 
 const THEMES: [ThemeChoice, string][] = [["system", "System"], ["light", "Light"], ["dark", "Dark"]];
 
-/** Light or dark mode, for this device. */
+/** Light or dark mode, and Hide numbers, for this device. */
 function AppearanceCard() {
   return (
     <section class="panel settings">
@@ -253,6 +253,10 @@ function AppearanceCard() {
           ? `Follows this device, which is in ${theme.value} mode now.`
           : `Always ${theme.value}, whatever this device is set to.`}{" "}
         Kept on this device only; backups leave it out.
+      </p>
+      <div class="appearance-hide"><HideNumbers /></div>
+      <p class="muted small">
+        When on, the amounts on the Dashboard, Reports, Budget, Accounts and Over the years pages, the totals above the Ledger and the balances when closing a year, show as {HIDDEN_AMOUNT}. Also kept on this device only.
       </p>
     </section>
   );

@@ -50,7 +50,7 @@ this started). TypeScript is strict, including `noUncheckedIndexedAccess`.
 | `src/year.ts` | When a year's tracking starts: its start date, or January 1. |
 | `src/device.ts` | The browser and system, for backup file names. |
 | `src/theme.ts` | Light or dark: the Settings choice, or following the device. |
-| `src/hide-numbers.ts` | The Dashboard's Hide numbers switch, to hide the amounts on the Dashboard, Reports, Budget, Accounts and Over the years pages, and above the Ledger. |
+| `src/hide-numbers.ts` | The Hide numbers switch in Settings' Appearance card, to hide the amounts on the Dashboard, Reports, Budget, Accounts and Over the years pages, and above the Ledger. |
 | `src/views/add-menu.tsx` | The floating Add button on small screens. `addChoices` in `src/setup.ts` decides what it offers. |
 | `src/views/importer.tsx` | Importing from anywhere, one file at a time: the top bar's Import, Settings' Import JSON, a file dropped on any page, the Replace? dialog and the notice. As in the Habit Tracker. |
 | `src/views/about.tsx` | The About card: About and How to use dialogs, version, links to GitHub. |
@@ -286,7 +286,7 @@ theme. Charts read the tokens and redraw when `theme` changes.
 
 ### Hiding the numbers
 
-`src/hide-numbers.ts` holds the choice made with the Dashboard's Hide numbers switch, in `localStorage` under
+`src/hide-numbers.ts` holds the choice made with the Hide numbers switch in Settings' Appearance card, in `localStorage` under
 `money-tracker-hide-numbers`: on this device only, like the theme. The Dashboard,
 Reports, Budget, Accounts and Over the years pages import `maskedCents` and `maskedCompact` under
 the usual names `formatCents` and `formatCompact`, so every amount they show, in
@@ -386,13 +386,13 @@ already exists, it is left alone. A closed year can be reopened.
 
 | Page | File | Notes |
 |---|---|---|
-| Dashboard | `views/dashboard.tsx`, `views/hide-numbers-switch.tsx` (also over the close-year balances) | Month or year view; figures and simple HTML bars. |
+| Dashboard | `views/dashboard.tsx` | Month or year view; figures and simple HTML bars. |
 | Ledger | `views/ledger.tsx`, `views/entry-form.tsx` | One table for all three kinds; filters kept per tab in `sessionStorage`. |
 | Budget | `views/budget.tsx` | Enter moves down a column; saves on Enter or blur. |
 | Reports | `views/reports.tsx` | Loaded on demand (see Charts). Earning, Expense, and Savings and investment reports are tabbed sections; each remembers its tab in `sessionStorage`. |
 | Accounts | `views/accounts.tsx` | Accounts can be deleted only when no entry uses them. Categories always (entries move to Uncategorized), and tags always (they come off their entries). |
 | Over the years | `views/years.tsx` | In the menu only with two or more years; the year picker shows "All years" there. Loads every year (`loadAllYears` in `state.ts`, upgraded in memory like `openYear`) and runs `summarize` on each, everyone together. Loaded on demand with the charts. |
-| Settings | `views/settings.tsx`, `views/about.tsx` | Import, export, close/reopen, delete a year, start from scratch, the year's IRA settings, appearance, offline, erase everything, the demo file, Support the tracker, about. |
+| Settings | `views/settings.tsx`, `views/about.tsx`, `views/hide-numbers-switch.tsx` (Appearance, and over the close-year balances) | Import, export, close/reopen, delete a year, start from scratch, the year's IRA settings, appearance, offline, erase everything, the demo file, Support the tracker, about. |
 
 Routing is by URL hash (`#/ledger`), which works on any static host.
 

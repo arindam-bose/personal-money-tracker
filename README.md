@@ -1,6 +1,6 @@
 # Money Tracker
 
-**Version 7.0.7** ·
+**Version 7.0.10** ·
 [Use it online](https://arindambose.com/personal-money-tracker/)
 
 Keep track of what you earn, spend, save and invest, one year at a time.
@@ -53,10 +53,7 @@ Backups carry that time too.
   earnings by category, budgets, account balances and how much of your card
   limits you're using, in green, or red when owed. Click a category or an
   account to see its entries in the Ledger. **Pin a total** adds a tile for a
-  spending category or a tag; × takes it off. **Hide numbers**, at the top right,
-  shows every amount as dots on the Dashboard, Reports, Budget, Accounts and Over
-  the years pages, above the Ledger and when closing a year, for when someone can
-  see the screen; it's kept on this device only.
+  spending category or a tag; × takes it off.
 - **Ledger**: every earning, expense and transfer in one list, 100 at a time,
   newest or oldest first. Filter by month, the last 1 to 12 months, or dates you
   pick, and by kind, account, category, tag or person; every filter list can be
@@ -91,7 +88,7 @@ Backups carry that time too.
   A **Loan / mortgage** account takes the day it began, the amount borrowed and
   the interest rate. Interest is added monthly on what's still owed, each payment
   is a transfer into the loan (in **Loan Payments**), and what it owes comes off
-  net worth. Untick **Include loans** on the dashboard or the Balances over time chart to see them without it.
+  net worth. Switch off **Include loans** on the dashboard or the Balances over time chart to see them without it.
 - **Over the years**: once two or more years are stored, each Dashboard figure
   for every year side by side, with a table and the change from the year
   before. It's always everyone together; the year still under way is marked *.
@@ -110,7 +107,9 @@ Backups carry that time too.
   or start one from scratch (from January 1 or any later day); back up, and close a finished year, which starts the next one from
   its closing balances. Also each year's IRA limit; **Delete…** to remove one
   year (import its backup to bring it back); **Erase everything**; **Appearance**
-  (light, dark, or as your device); whether the tracker is ready to use offline,
+  (light, dark, or as your device, and **Hide numbers**, which shows every amount
+  as dots on the Dashboard, Reports, Budget, Accounts and Over the years pages,
+  above the Ledger and when closing a year, for when someone can see the screen); whether the tracker is ready to use offline,
   with **Check for updates**; **On your home screen**, to install it as an app
   (an **Install** button where the browser offers one, and that browser's own
   steps where it doesn't); a demo file to try; **Support the tracker** (Buy me a
