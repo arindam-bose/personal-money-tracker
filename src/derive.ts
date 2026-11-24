@@ -67,7 +67,6 @@ export function localToday(now = new Date()): IsoDate {
   return `${now.getFullYear()}-${String(now.getMonth() + 1).padStart(2, "0")}-${String(now.getDate()).padStart(2, "0")}`;
 }
 
-/** An ISO timestamp in the viewer's locale, e.g. "Oct 26, 2026, 11:16 PM", or "…11:16:42 PM" with seconds. */
 /** The strip's "Last updated": the weekday too, as in "Friday, Nov 13, 2026, 06:23 PM". */
 export function updatedAt(iso: string): string {
   return new Date(iso).toLocaleString(undefined, {
@@ -75,6 +74,7 @@ export function updatedAt(iso: string): string {
   });
 }
 
+/** An ISO timestamp in the viewer's locale, e.g. "Oct 26, 2026, 11:16 PM", or "…11:16:42 PM" with seconds. */
 export function dateTime(iso: string, seconds = false): string {
   return new Date(iso).toLocaleString(undefined, { dateStyle: "medium", timeStyle: seconds ? "medium" : "short" });
 }

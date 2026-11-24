@@ -386,7 +386,7 @@ already exists, it is left alone. A closed year can be reopened.
 
 | Page | File | Notes |
 |---|---|---|
-| Dashboard | `views/dashboard.tsx` | Month or year view; figures and simple HTML bars. |
+| Dashboard | `views/dashboard.tsx`, `views/hide-numbers-switch.tsx` (also over the close-year balances) | Month or year view; figures and simple HTML bars. |
 | Ledger | `views/ledger.tsx`, `views/entry-form.tsx` | One table for all three kinds; filters kept per tab in `sessionStorage`. |
 | Budget | `views/budget.tsx` | Enter moves down a column; saves on Enter or blur. |
 | Reports | `views/reports.tsx` | Loaded on demand (see Charts). Earning, Expense, and Savings and investment reports are tabbed sections; each remembers its tab in `sessionStorage`. |

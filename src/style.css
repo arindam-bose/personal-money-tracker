@@ -655,7 +655,8 @@ button.add kbd {
   width: 36px;
   height: 20px;
   border-radius: 10px;
-  background: var(--border);
+  /* Off: grey enough to stand out from the page in both themes (--border alone vanishes in dark). */
+  background: color-mix(in srgb, var(--muted) 55%, var(--surface));
   transition: background-color .15s;
 }
 .toggle-knob {
