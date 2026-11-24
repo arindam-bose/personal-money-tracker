@@ -67,16 +67,30 @@ export function localToday(now = new Date()): IsoDate {
   return `${now.getFullYear()}-${String(now.getMonth() + 1).padStart(2, "0")}-${String(now.getDate()).padStart(2, "0")}`;
 }
 
-/** The strip's "Last updated": the weekday too, as in "Friday, Nov 13, 2026, 06:23 PM". */
-export function updatedAt(iso: string): string {
+/** The strip's "Last updated": the weekday too, as in "Friday, Nov 13, 2026, 06:23 PM", with seconds when asked. */
+export function updatedAt(iso: string, seconds = false): string {
   return new Date(iso).toLocaleString(undefined, {
     weekday: "long", day: "numeric", month: "short", year: "numeric", hour: "2-digit", minute: "2-digit",
+    ...(seconds ? { second: "2-digit" } : {}),
   });
 }
 
-/** An ISO timestamp in the viewer's locale, e.g. "Oct 26, 2026, 11:16 PM", or "…11:16:42 PM" with seconds. */
-export function dateTime(iso: string, seconds = false): string {
-  return new Date(iso).toLocaleString(undefined, { dateStyle: "medium", timeStyle: seconds ? "medium" : "short" });
+/**
+ * Two moments side by side, as the import dialog's Last updated row shows the tracker's and the file's:
+ * as updatedAt, to the minute, unless both fall in the same minute seconds apart. Then both get their
+ * seconds, so the warning that one is newer (worked out to the second) never sits under two that read the same.
+ */
+export function updatedPair(a: string | undefined, b: string | undefined): [string, string] {
+  const second = (iso: string) => Math.floor(Date.parse(iso) / 1000);
+  const seconds = a !== undefined && b !== undefined
+    && Math.floor(second(a) / 60) === Math.floor(second(b) / 60) && second(a) !== second(b);
+  const text = (iso: string | undefined) => (iso === undefined ? "Unknown" : updatedAt(iso, seconds));
+  return [text(a), text(b)];
+}
+
+/** A day as "Sunday, Nov 8, 2026": updatedAt without the time. The import dialog's export date. */
+export function longDay(at: Date): string {
+  return at.toLocaleDateString(undefined, { weekday: "long", day: "numeric", month: "short", year: "numeric" });
 }
 
 /**
