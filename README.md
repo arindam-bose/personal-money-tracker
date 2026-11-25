@@ -1,120 +1,104 @@
 # Money Tracker
 
-**Version 7.0.14** ·
+**Version 7.0.16** ·
 [Use it online](https://arindambose.com/personal-money-tracker/)
 
 Keep track of what you earn, spend, save and invest, one year at a time.
 
-You type in your expenses, earnings and transfers yourself; the tracker works out
-the rest: where your money went, how much you saved, what your cards owe, and how
-you are doing against your monthly budgets.
+You type in your expenses, earnings and transfers; the tracker works out the rest:
+where your money went, how much you saved, what your cards owe, and how you're
+doing against your monthly budgets.
 
 ## Your data stays with you
 
-There is no account and no server. Everything you enter is stored in your own
-browser, on your own computer, and is never sent anywhere.
-
-If you say yes when the tracker first asks (or later, under **Cookie settings** in
-Settings' About card), Google Analytics counts visits to the site. It never sees
-what you log, and nothing of Google's loads unless you say yes.
-
-That also means **you are the backup**. **Backup** in the top bar downloads the open
-year (an icon on a phone), and turns red a week after your last backup, if anything changed since. If
-you clear your browser data or switch computers, bring that file back with **Import** beside it,
-or drop the file anywhere on the page, one at a time: you're asked before a year you already have
-is replaced.
-
-Once opened, the tracker keeps a copy of itself in your browser, so it works without
-a signal too. New versions download by themselves; the top bar then offers
-**Reload**, and so does the Offline card on the Settings page.
+- **No account, no server.** Everything you enter stays in your own browser and is never sent anywhere.
+- **Analytics only if you agree.** Say yes when asked (or later, under **Cookie settings** in Settings' About card) and Google Analytics counts visits. It never sees what you log, and nothing of Google's loads otherwise.
+- **You are the backup.**
+  - **Backup** in the top bar downloads the open year (an icon on a phone). It turns red a week after your last backup, if anything changed since.
+  - To restore, use **Import** beside it, or drop the file anywhere on the page. You're asked before a year you already have is replaced.
+- **Works offline.** Once opened, the tracker keeps a copy of itself. New versions download by themselves; **Reload** in the top bar (or the Offline card in Settings) switches to them.
 
 ## Getting started
 
 1. Open the **Settings** page.
-2. Either **import** a Money Tracker file (`.json`), or **start the year from
-   scratch**: you get a standard set of categories, then add your bank accounts,
-   cards, cash and loans on the **Accounts** page.
-   Starting partway through the year? Pick the day you start: enter what each
-   account held that morning, and the ledger begins there.
+2. Either **import** a Money Tracker file (`.json`), or **start the year from scratch**: you get a standard set of categories, then add your bank accounts, cards, cash and loans on the **Accounts** page.
+   Starting partway through the year? Pick the day you start and enter what each account held that morning.
 3. Log what happens on the **Ledger** page.
 
-Want to look around first? On the **Settings** page, **Download a demo file** and
-import it: a household of two with this year so far, with every kind of account and
-entry, a loan, investments and a car, and accounts that were closed.
+Want to look around first? In **Settings**, **Download a demo file** and import it: a household of two, with every kind of account and entry, a loan, investments, a car, subscriptions and closed accounts.
 
 ## What's in it
 
-A thin strip under the top bar (except on Over the years) shows when the open year was last updated: any
-entry, account, category, tag, person or budget, its start day or its IRA settings.
-Backups carry that time too.
+A thin strip under the top bar (except on Over the years) shows when the open year last changed. Backups carry that time too.
 
-- **Dashboard**: the month or year at a glance: what you have after card debt,
-  earned, spent, surplus, savings, investment and card payments, spending and
-  earnings by category, budgets, account balances and how much of your card
-  limits you're using, in green, or red when owed. Click a category or an
-  account to see its entries in the Ledger. **Pin a total** adds a tile for a
-  spending category or a tag; × takes it off.
-- **Ledger**: every earning, expense and transfer in one list, 100 at a time,
-  newest or oldest first. Filter by month, the last 1 to 12 months, or dates you
-  pick, and by kind, account, category, tag or person; every filter list can be
-  searched by typing. The search box finds words in the item or notes, or an
-  amount by its first digits: 197 finds $197.00 and $1,972.25. Quick keyboard entry; **Today** by the date (or T in it) sets today's date.
-  Transfers (paying a card, moving money to savings) are shown apart, because
-  they aren't spending.
-- **Budget**: a monthly target for each spending category, with what's left.
-- **Reports**: balances over time, where the money went, monthly cash flow
-  (surplus months green, deficit months red), earning and expense reports by
-  category and by week, your subscriptions
-  (expenses tagged **Subscription**: how many are active, what they cost this year
-  and what a year of them costs; give a subscription the same name every time, across years), what each credit card paid for, and savings and investment month by month.
-  On Reports and Accounts, hover (or tab to) the **?** in a card's top right corner to see
-  what it shows.
-- **Accounts**: your accounts, categories and tags. Tick **Net** on the earning
-  categories that make up net earnings. Earnings in **Lowers spending**
-  categories (refunds, points, money paid back) lower net spending instead.
-  **Transfer from external** is for money from your own accounts outside the
-  tracker: it counts in Earned, but never in net earnings. Money sent out of the
-  tracker is spending like any other.
-  Deleting a category moves its entries to **Uncategorized**; deleting a tag takes
-  it off its expenses.
-  On an investment account, **Update balance** notes what it's worth today; it
-  counts at that amount in net worth until you update it again.
-  An **Asset** account (a house, a car) has no entries: **Update value** sets
-  what it's worth, which counts in net worth and carries into the next year.
-  **Close…** an account on the day you sold, paid off or shut it: from then it's
-  left out of net worth and the next year. To keep an account that's still open
-  out of the way, **Hide** it instead: new entries stop offering it, but it still
-  counts in net worth and carries into the next year. These forms' dates have
-  **Today** too, and T in them.
-  A **Loan / mortgage** account takes the day it began, the amount borrowed and
-  the interest rate. Interest is added monthly on what's still owed, each payment
-  is a transfer into the loan (in **Loan Payments**), and what it owes comes off
-  net worth. Switch off **Include loans** on the dashboard or the Balances over time chart to see them without it.
-- **Over the years**: once two or more years are stored, each Dashboard figure
-  for every year side by side, with a table and the change from the year
-  before. It's always everyone together; the year still under way is marked *.
-  **Pin a total** adds a chart of a spending category's or a tag's spending each
-  year, like the Dashboard's pinned tiles; × takes it off. Pins go into your backups.
-- **Add on a phone**: a round **+** button at the bottom corner of every page opens
-  into **Add Transaction** (a new expense on the Ledger) and **Add Account**. Until
-  the year has an account, it only offers Add Account.
-- **A household**: everything belongs to **Person A** until you add someone on
-  the Accounts page. Then each entry can be logged for one person, and the
-  Dashboard, Ledger and Reports can show **All people** or one person at a time.
-  Accounts and budgets stay shared by everyone.
-  **Duplicate** an account (⧉, at the left of its row when you point at it) to start a similar one (the copy is named "… (new)").
-- **Settings**: import a year (importing one you already have shows the tracker's
-  and the file's counts side by side, differences highlighted, before replacing it),
-  or start one from scratch (from January 1 or any later day); back up, and close a finished year, which starts the next one from
-  its closing balances. Also each year's IRA limit; **Delete…** to remove one
-  year (import its backup to bring it back); **Erase everything**; **Appearance**
-  (light, dark, or as your device, and **Hide numbers**, which shows every amount
-  as dots on the Dashboard, Reports, Budget, Accounts and Over the years pages,
-  above the Ledger and when closing a year, for when someone can see the screen); whether the tracker is ready to use offline,
-  with **Check for updates**; **On your home screen**, to install it as an app
-  (an **Install** button where the browser offers one, and that browser's own
-  steps where it doesn't); a demo file to try; **Support the tracker** (Buy me a
-  coffee, or share the link); and **About**.
+### Dashboard
+
+- The month or year at a glance: net worth, earned, spent, surplus, savings, investment and card payments.
+- Spending and earnings by category, budgets, account balances and how much of your card limits you're using.
+- Click a category or an account to see its entries in the Ledger.
+- **Pin a total** adds a tile for a spending category or a tag; × takes it off.
+
+### Ledger
+
+- Every earning, expense and transfer in one list, 100 at a time, newest or oldest first.
+- Filter by month, the last 1 to 12 months, or dates you pick, and by kind, account, category, tag or person. Every filter list can be searched by typing.
+- Search finds words in the item or notes, or an amount by its first digits: 197 finds $197.00 and $1,972.25.
+- Transfers (paying a card, moving money to savings) are shown apart, because they aren't spending.
+- Quick keyboard entry (see [Handy keys](#handy-keys-on-the-ledger)); **Today**, or T, in a date sets today.
+
+### Budget
+
+- A monthly target for each spending category, with what's left.
+
+### Reports
+
+- **Balances over time**, **where the money went**, and **monthly cash flow** (surplus months green, deficit months red).
+- **Earning and expense reports**: by category and by week.
+- **Subscriptions**: expenses tagged **Subscription**, with how many are active, what they cost this year and what a year of them costs. Give a subscription the same name every time, across years.
+- **Credit card usage**: what each card paid for.
+- **Savings and investment**, month by month.
+- Hover (or tab to) the **?** in a card's corner to see what it shows. Accounts has these too.
+
+### Accounts
+
+- Your accounts, categories, tags and people.
+- **Earning categories**:
+  - Tick **Net** on the ones that make up net earnings.
+  - **Lowers spending** ones (refunds, points, money paid back) lower net spending instead.
+  - **Transfer from external** is money from your own accounts outside the tracker: it counts in Earned, never in net earnings. Money sent out is spending like any other.
+- Deleting a category moves its entries to **Uncategorized**; deleting a tag takes it off its expenses.
+- **Investment** accounts: **Update balance** notes what it's worth; that counts in net worth until the next update.
+- **Asset** accounts (a house, a car) have no entries: **Update value** sets what it's worth, in net worth and into the next year.
+- **Loan / mortgage** accounts take the start day, amount borrowed and interest rate. Interest is added monthly; each payment is a transfer into the loan (in **Loan Payments**); what it owes comes off net worth. Switch off **Include loans** (Dashboard, Balances over time) to see net worth without them.
+- **Close…** an account on the day you sold, paid off or shut it: from then it's out of net worth and the next year. **Hide** keeps an open account out of the way: new entries stop offering it, but it still counts.
+- **Duplicate** (⧉, at the left of a row when you point at it) starts a similar account, named "… (new)".
+
+### Over the years
+
+- Once two or more years are stored: each Dashboard figure for every year side by side, with a table and the change from the year before.
+- **Net worth** comes first: at the end of each past year, today for the one under way (marked *).
+- Always everyone together.
+- **Pin a total** charts a spending category or a tag each year; × takes it off. Pins go into your backups.
+
+### A household
+
+- Everything belongs to **Person A** until you add someone on the Accounts page.
+- Then each entry can be logged for one person, and the Dashboard, Ledger and Reports can show **All people** or one person.
+- Accounts and budgets stay shared.
+
+### On a phone
+
+- A round **+** at the bottom corner of every page opens **Add Transaction** (a new expense) and **Add Account**. Until the year has an account, it only offers Add Account.
+
+### Settings
+
+- **Import** a year (one you already have shows both sets of counts side by side, differences highlighted, before replacing it), or **start** one from scratch, from January 1 or any later day.
+- **Back up**, and **close** a finished year, which starts the next one from its closing balances.
+- Each year's **IRA limit**; **Delete…** a year (import its backup to bring it back); **Erase everything**.
+- **Appearance**: light, dark or as your device, and **Hide numbers**, which shows every amount as dots, for when someone can see the screen.
+- **Offline**: whether it's ready to use offline, with **Check for updates**.
+- **On your home screen**: install it as an app (an **Install** button where the browser offers one, its own steps where it doesn't).
+- A **demo file** to try, **Support the tracker** (Buy me a coffee, or share the link), and **About**.
 
 ## Handy keys on the Ledger
 
