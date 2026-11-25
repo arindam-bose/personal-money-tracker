@@ -591,8 +591,18 @@ function SubscriptionsCard({ ledger: l, months, tags, asOf, year }: { ledger: Le
   const perMonth = labels.map((_, i) => subs.reduce((a, s) => a + s.byMonth[months.first - 1 + i]!, 0));
   const [, c2] = seriesColors();
   const member = viewedMember()?.id ?? "";
-  // Exactly the entries the row counts: the same name, ignoring case and spacing.
-  const open = (name: string) => showInLedger({ tag: subTags.length === 1 ? subTags[0]!.id : "", item: itemKey(name), kind: "expense", member });
+  // Exactly the entries the row counts: the same name (ignoring case and spacing) with a Subscription
+  // tag, up to the day it's judged on when some are entered past it.
+  const tagged = taggedWith(l.expenses, subTags);
+  const open = (name: string) => {
+    const key = itemKey(name);
+    const later = tagged.some((e) => e.date > asOf && itemKey(e.item) === key);
+    showInLedger({
+      ...(subTags.length === 1 ? { tag: subTags[0]!.id } : { itemTags: subTags.map((t) => t.id).join(",") }),
+      ...(later ? { month: "range", to: asOf } : {}),
+      item: key, kind: "expense", member,
+    });
+  };
   const option: ChartOption = {
     ...baseOption(),
     legend: undefined,
@@ -634,10 +644,13 @@ function SubscriptionsCard({ ledger: l, months, tags, asOf, year }: { ledger: Le
             </tr>
           </thead>
           <tbody>
+            {/* One paid only last year, still running, has no entries this year to open. */}
             {subs.map((s) => (
-              <tr class={s.active ? "" : "stopped"} tabIndex={0} title={`See ${s.name}'s entries`}
-                onClick={() => open(s.name)}
-                onKeyDown={(e) => (e.key === "Enter" || e.key === " ") && (e.preventDefault(), open(s.name))}>
+              <tr class={[s.active ? "" : "stopped", s.payments ? "" : "unopened"].filter(Boolean).join(" ")}
+                {...(s.payments ? {
+                  tabIndex: 0, title: `See ${s.name}'s entries`, onClick: () => open(s.name),
+                  onKeyDown: (e: KeyboardEvent) => (e.key === "Enter" || e.key === " ") && (e.preventDefault(), open(s.name)),
+                } : {})}>
                 <td>{s.name}{!s.active && <span class="badge">stopped</span>}</td>
                 <td>{CADENCE_LABEL[s.cadence]}</td>
                 <td class="num">{s.payments}</td>
