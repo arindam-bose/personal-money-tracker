@@ -1,6 +1,6 @@
 # Money Tracker
 
-**Version 7.0.14** ·
+**Version 7.0.15** ·
 [Use it online](https://arindambose.com/personal-money-tracker/)
 
 Keep track of what you earn, spend, save and invest, one year at a time.
@@ -92,7 +92,8 @@ Backups carry that time too.
   net worth. Switch off **Include loans** on the dashboard or the Balances over time chart to see them without it.
 - **Over the years**: once two or more years are stored, each Dashboard figure
   for every year side by side, with a table and the change from the year
-  before. It's always everyone together; the year still under way is marked *.
+  before. Net worth comes first: at the end of each past year, and today for
+  the one under way. It's always everyone together; the year still under way is marked *.
   **Pin a total** adds a chart of a spending category's or a tag's spending each
   year, like the Dashboard's pinned tiles; × takes it off. Pins go into your backups.
 - **Add on a phone**: a round **+** button at the bottom corner of every page opens

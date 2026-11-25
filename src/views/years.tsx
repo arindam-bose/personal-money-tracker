@@ -4,11 +4,11 @@
 
 import { useSignal, useSignalEffect } from "@preact/signals";
 import type { YearData } from "../db";
-import { ledgerOf, ratio, spendByCategory, summarize, tagTotal, type Summary } from "../derive";
+import { accountsOverview, hasLoanAccount, ledgerOf, ratio, spendByCategory, summarize, tagTotal, type Summary } from "../derive";
 // Every amount on this page goes through these, so Hide the numbers covers them all.
 import { maskedCents as formatCents, maskedCompact as formatCompact } from "../hide-numbers";
 import { formatPercent } from "../money";
-import { current, loadAllYears, pins, savePins, years, type YearSummary } from "../state";
+import { current, loadAllYears, loansLeftOut, pins, savePins, years, type YearSummary } from "../state";
 import type { PinSetting } from "../types";
 import { Chart, axisStyle, baseOption, money, moneyAxis, token, type ChartOption } from "./chart";
 import { CONCEPT_TOKEN, FIGURE_CONCEPT, PINNED_CONCEPT, surplusConcept, type Concept } from "./concepts";
@@ -136,7 +136,16 @@ export function YearsView() {
   };
   // Worked out once per year, for every pinned category.
   const categorySpend = pins.pinnedYearCategories.value.length ? ledgers.map((l) => spendByCategory(l)) : [];
+  // Net worth as each year's Dashboard shows it: at the end of a past year, today for the one under way.
+  // The Include loans switch (Dashboard, Balances over time) leaves loans out here too.
+  const withoutLoans = loansLeftOut.value && all.some((d) => hasLoanAccount(d.setup.accounts));
+  const worth = ledgers.map((l) => {
+    const o = accountsOverview(l);
+    return withoutLoans ? o.netWorthWithoutLoans : o.netWorth;
+  });
   const figures: Figure[] = [
+    // Balances over time's net worth colour.
+    { key: "netWorth", label: withoutLoans ? "Net worth without loans" : "Net worth", values: worth, color: () => token("--series-5") },
     ...MEASURES.map((m) => ({ key: m.key, label: m.label, values: sums.map((s) => value(s, m.key)), 
       // Each in its tile's stripe colour (concepts.ts); Surplus green or red per year, as in Monthly cash flow.
       color: (v: number) => colorOf(m.key === "surplus" ? surplusConcept(v) : FIGURE_CONCEPT[m.key]) })),
@@ -148,7 +157,7 @@ export function YearsView() {
   return (
     <div class="over-years">
       <PageHelp>
-        Each Dashboard figure for every year, everyone together.
+        Each Dashboard figure for every year, everyone together. Net worth is at the end of each year, or today for one under way.
         {/* A later year can be under way too, started early or once this one closed; that one isn't the current year. */}
         {ongoing.length > 0 && <><br /><sup aria-hidden="true">*</sup>{ongoing.join(", ")}{ongoing.length > 1 ? " are still incomplete." : ongoing[0] === new Date().getFullYear() ? " is the current year, still incomplete." : " is still incomplete."}</>}
       </PageHelp>
