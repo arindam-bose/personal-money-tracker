@@ -1,6 +1,6 @@
 import { beforeEach, describe, expect, it } from "vitest";
 import { exportYear, importYear } from "../src/backup";
-import { accountsOverview, balances, countsInNetEarnings, subscriptionTag, subscriptions, summarize } from "../src/derive";
+import { accountsOverview, balances, countsInNetEarnings, subscriptionTags, subscriptions, summarize, taggedWith } from "../src/derive";
 import { demoFileName, demoYear } from "../src/demo";
 import { iraLimitOf } from "../src/setup";
 import type { YearFile } from "../src/types";
@@ -59,7 +59,7 @@ describe("the demo file", () => {
 
   it("has subscriptions for Reports: monthly and yearly ones, a price rise and one stopped", () => {
     const f = demoYear(2025, NOW);
-    const subs = subscriptions(f, subscriptionTag(f.tags)!.id, "2025-12-31");
+    const subs = subscriptions(taggedWith(f.expenses, subscriptionTags(f.tags)), "2025-12-31");
     const byName = new Map(subs.map((s) => [s.name, s]));
     expect(subs.map((s) => s.name).sort()).toEqual(["Cloud storage, yearly", "Gym membership", "Internet", "Music streaming", "Video streaming", "Warehouse club membership"]);
     expect(byName.get("Internet")).toMatchObject({ cadence: "monthly", payments: 12, lastAmount: 6900, yearlyCost: 6900 * 12, active: true });

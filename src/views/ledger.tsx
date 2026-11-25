@@ -3,7 +3,7 @@
 
 import { useComputed, useSignal, useSignalEffect } from "@preact/signals";
 import { useEffect, useRef } from "preact/hooks";
-import { MONTH_NAMES, inMonth, localToday, monthsBefore, shortDate } from "../derive";
+import { MONTH_NAMES, inMonth, itemKey, localToday, monthsBefore, shortDate } from "../derive";
 import { draftFrom, emptyDraft, type AnyEntry, type Draft, type Kind } from "../entries";
 import { maskedCents } from "../hide-numbers";
 import { amountPrefix, amountText, formatCents } from "../money";
@@ -31,9 +31,11 @@ export interface Filters {
   member: string;
   /** Text search in item and notes; one that reads as an amount also finds entries of that amount. */
   q: string;
+  /** Only entries with exactly this item, as itemKey writes it (Reports' Subscriptions rows). */
+  item: string;
 }
 
-const NO_FILTERS: Filters = { month: "", from: "", to: "", kind: "", account: "", cat: "", tag: "", member: "", q: "" };
+const NO_FILTERS: Filters = { month: "", from: "", to: "", kind: "", account: "", cat: "", tag: "", member: "", q: "", item: "" };
 const FILTERS_KEY = "ledger-filters";
 const SORT_KEY = "ledger-sort";
 /** Rows shown at a time; buttons under the table show more or fewer. */
@@ -141,12 +143,18 @@ function matches(e: AnyEntry, f: Filters, window: [string, string] | null, amoun
     if (!hit) return false;
   }
   if (f.tag && !(e.kind === "expense" && e.entry.tags.includes(f.tag))) return false;
+  if (f.item && itemKey(e.entry.item) !== f.item) return false;
   if (f.q) {
     const q = f.q.toLowerCase();
     const byAmount = amount !== null && amountText(e.entry.amount).startsWith(amount);
     if (!byAmount && !e.entry.item.toLowerCase().includes(q) && !e.entry.notes.toLowerCase().includes(q)) return false;
   }
   return true;
+}
+
+/** The item filter as one of its entries spells it, or as stored when none is left. */
+function itemTitle(key: string, entries: AnyEntry[]): string {
+  return entries.find((e) => itemKey(e.entry.item) === key)?.entry.item.trim() ?? key;
 }
 
 /** A row's unique key: ids are only unique within their kind. */
@@ -339,6 +347,12 @@ export function LedgerView() {
       )}
 
       <div class="filters">
+        {f.item && (
+          <span class="chip item-filter">
+            Item: {itemTitle(f.item, allEntries())}
+            <button type="button" aria-label="Show every item" title="Show every item" onClick={() => setFilter("item", "")}>×</button>
+          </span>
+        )}
         <div class="search">
           {/* Esc empties it, as × does. Chrome, Edge and Safari do that for a search box by themselves, Firefox
               doesn't, so the page does it everywhere. On an empty box Esc leaves it, so I, E, T and D work
