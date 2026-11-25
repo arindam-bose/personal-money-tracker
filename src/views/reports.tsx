@@ -3,6 +3,7 @@
 // With more than one person, they can show one person's entries; balances stay in "All people".
 
 import { useSignal, useSignalEffect } from "@preact/signals";
+import { useEffect } from "preact/hooks";
 import type { ComponentChildren } from "preact";
 import {
   MONTH_SHORT, balanceSeries, cardSpending, earningsByMonth, hasLoanAccount, moneyFlow, monthlySummaries, ratio, shortDate, spendingByMonth, subscriptionTags, subscriptions, taggedWith, itemKey, ledgerOf, forMember, localToday, weeklyEarnings, weeklySpending,
@@ -51,8 +52,10 @@ export function ReportsView() {
   const dates = [...all.expenses, ...all.earnings, ...all.transfers].map((e) => e.date);
   const lastDate = dates.reduce((a, b) => (a > b ? a : b), start);
   // Subscriptions are judged on the latest entry not after today: one dated ahead doesn't stop them all.
+  // A year entered ahead, with nothing up to today yet, is judged on its latest entry.
   const today = localToday();
-  const asOf = dates.filter((d) => d <= today).reduce((a, b) => (a > b ? a : b), start);
+  const upToToday = dates.filter((d) => d <= today);
+  const asOf = upToToday.length ? upToToday.reduce((a, b) => (a > b ? a : b)) : lastDate;
   // Balances over time also runs to the latest investment balance update, so one made after the last entry shows.
   const balancesEnd = all.accounts.flatMap((a) => a.valuations ?? []).reduce((d, v) => (v.date > d ? v.date : d), lastDate);
   // Only show months that have been tracked: from the start month (January, unless the year
@@ -540,16 +543,17 @@ const CADENCE_LABEL: Record<Cadence, string> = {
  */
 function useEarlierSubscriptions(year: number): Expense[] {
   const loaded = useSignal<{ year: number; data: YearData | null } | null>(null);
-  useSignalEffect(() => {
-    // Again when years are added or removed.
-    const stored = years.value.some((y) => y.setup.year === year - 1);
+  // Again when the year changes, or when years are added or removed.
+  const list = years.value;
+  useEffect(() => {
+    const stored = list.some((y) => y.setup.year === year - 1);
     let overtaken = false;
     (stored ? loadYear(year - 1) : Promise.resolve(null)).then(
       (data) => { if (!overtaken) loaded.value = { year, data }; },
       () => { if (!overtaken) loaded.value = { year, data: null }; },
     );
     return () => { overtaken = true; };
-  });
+  }, [year, list]);
   const data = loaded.value?.year === year ? loaded.value.data : null;
   if (!data) return [];
   const member = viewedMember();
