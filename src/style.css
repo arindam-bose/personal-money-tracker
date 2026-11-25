@@ -1238,6 +1238,8 @@ button.help-btn:focus-visible {
   right: 0;
   z-index: 30;
   width: max-content;
+  /* Padding and border inside the cap, so on a phone the whole tip fits. */
+  box-sizing: border-box;
   max-width: min(360px, calc(100vw - 64px));
   padding: 8px 10px;
   font-size: 13px;
