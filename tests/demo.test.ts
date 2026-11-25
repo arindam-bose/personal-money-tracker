@@ -1,6 +1,6 @@
 import { beforeEach, describe, expect, it } from "vitest";
 import { exportYear, importYear } from "../src/backup";
-import { accountsOverview, balances, countsInNetEarnings, summarize } from "../src/derive";
+import { accountsOverview, balances, countsInNetEarnings, subscriptionTag, subscriptions, summarize } from "../src/derive";
 import { demoFileName, demoYear } from "../src/demo";
 import { iraLimitOf } from "../src/setup";
 import type { YearFile } from "../src/types";
@@ -45,7 +45,7 @@ describe("the demo file", () => {
     expect(["a_ira", "a_brokerage", "a_car"].every((id) => byId.get(id)!.valuations!.length > 1)).toBe(true);
     expect(f.members!.map((m) => m.id)).toEqual(["m_person-a", "m_john"]);
     expect(entries(f).some((e) => e.member === "m_john")).toBe(true);
-    expect(new Set(f.expenses.flatMap((e) => e.tags))).toEqual(new Set(["t_groceries", "t_date-night", "t_vacation", "t_holidays"]));
+    expect(new Set(f.expenses.flatMap((e) => e.tags))).toEqual(new Set(["t_groceries", "t_date-night", "t_vacation", "t_holidays", "t_subscription"]));
     expect(new Set(f.earnings.filter((e) => e.offsets !== undefined).map((e) => e.offsets))).toEqual(new Set(["ce_shopping", "ce_personal-care-activities", null]));
     const cats = f.categories.earning;
     // Incomes left out of net earnings on purpose: the gift and the motorcycle sale.
@@ -55,6 +55,17 @@ describe("the demo file", () => {
     }).map((e) => e.item)).toEqual(["Birthday gift from Grandma", "Sold the motorcycle"]);
     const roles = new Set(f.transfers.map((t) => f.categories.transfer.find((c) => c.id === t.cat)!.role));
     expect(roles).toEqual(new Set(["savings_in", "savings_out", "invest_retirement", "invest_taxable", "cash_withdrawal", "cc_payment", "loan_payment", "general"]));
+  });
+
+  it("has subscriptions for Reports: monthly and yearly ones, a price rise and one stopped", () => {
+    const f = demoYear(2025, NOW);
+    const subs = subscriptions(f, subscriptionTag(f.tags)!.id, "2025-12-31");
+    const byName = new Map(subs.map((s) => [s.name, s]));
+    expect(subs.map((s) => s.name).sort()).toEqual(["Cloud storage, yearly", "Gym membership", "Internet", "Music streaming", "Video streaming", "Warehouse club membership"]);
+    expect(byName.get("Internet")).toMatchObject({ cadence: "monthly", payments: 12, lastAmount: 6900, yearlyCost: 6900 * 12, active: true });
+    expect(byName.get("Gym membership")).toMatchObject({ cadence: "monthly", payments: 5, active: false });
+    expect(byName.get("Cloud storage, yearly")).toMatchObject({ cadence: "yearly", active: true });
+    expect(byName.get("Warehouse club membership")).toMatchObject({ cadence: "once", active: true });
   });
 
   it("adds up to sensible balances all year", () => {

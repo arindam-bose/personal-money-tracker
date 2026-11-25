@@ -9,6 +9,10 @@
 // shoes in June, a July vacation partly from savings, concert tickets a friend paid back, holiday
 // gifts and a December donation.
 //
+// Their subscriptions carry the Subscription tag, for Reports' Subscriptions tab: internet (its
+// price goes up in July), video and music streaming, a gym membership cancelled after May, and
+// two paid once a year, cloud storage and a warehouse club.
+//
 // Every account type shows up, and so do the ways an account can end: an old credit-union savings
 // account is emptied and closed in March, a motorcycle (an asset) is sold and closed in April, and
 // an old store card is only archived, still open. The investments and the car get value updates
@@ -52,7 +56,11 @@ export function demoYear(year: number, now = new Date()): YearFile {
     earn(on(m, 2), "Paycheck - Acme Corp", 320000, "a_checking", "ci_paycheck");
     earn(on(m, 9), "Paycheck - City Hospital", 285000, "a_checking", "ci_paycheck", john);
     spend(on(m, 1), `${month} rent`, 220000, "a_checking", "ce_housing");
-    spend(on(m, 5), "Internet", 6500, "a_card", "ce_bills");
+    const sub = { tags: ["t_subscription"] };
+    spend(on(m, 5), "Internet", m < 7 ? 6500 : 6900, "a_card", "ce_bills", sub);
+    spend(on(m, 8), "Video streaming", 1599, "a_card", "ce_bills", sub);
+    spend(on(m, 22), "Music streaming", 1199, "a_card", "ce_bills", { ...sub, ...john });
+    if (m <= 5) spend(on(m, 3), "Gym membership", 4500, "a_card", "ce_health-wellness", m === 5 ? { ...sub, notes: "Cancelled: the last one" } : sub);
     // Electricity peaks in winter and summer.
     spend(on(m, 12), "Electric bill", [14500, 13200, 10400, 8800, 9200, 12600, 15800, 16100, 11900, 9000, 10800, 13900][m - 1]!, "a_checking", "ce_bills");
     spend(on(m, 18), "Gas", 5200 + (m % 3) * 450, "a_card", "ce_transport", john);
@@ -77,6 +85,8 @@ export function demoYear(year: number, now = new Date()): YearFile {
   earn(on(1, 20), "Birthday gift from Grandma", 10000, "a_wallet", "ci_other", { notes: "A one-off: left out of net earnings" });
   spend(on(1, 12), "Winter jacket", 8999, "a_card", "ce_shopping", { ...john, notes: "Returned on the 15th" });
   earn(on(1, 15), "Refund - winter jacket", 8999, "a_card", "ci_refunds", { ...john, offsets: "ce_shopping" });
+  spend(on(2, 10), "Warehouse club membership", 6500, "a_card", "ce_bills", { tags: ["t_subscription"] });
+  spend(on(3, 4), "Cloud storage, yearly", 9999, "a_card", "ce_bills", { tags: ["t_subscription"] });
   spend(on(3, 9), "Dentist", 15000, "a_card", "ce_health-wellness", john);
   // The old credit-union savings: emptied into High-Yield Savings, then closed (below).
   move(on(3, 30), "Move to High-Yield Savings", 150000, "a_old-savings", "a_savings", "ct_general-transfer", { notes: "Closing the old account" });
@@ -144,11 +154,12 @@ export function demoYear(year: number, now = new Date()): YearFile {
         { id: "t_date-night", name: "Date night" },
         { id: "t_groceries", name: "Groceries" },
         { id: "t_holidays", name: "Holidays" },
+        { id: "t_subscription", name: "Subscription" },
         { id: "t_vacation", name: "Vacation" },
       ],
       members: [{ id: DEFAULT_MEMBER.id, name: "Jane" }, { id: "m_john", name: "John" }],
       budgets: {
-        default: { "ce_food-drinks": 85000, ce_housing: 220000, ce_shopping: 20000, ce_transport: 15000, ce_bills: 22000 },
+        default: { "ce_food-drinks": 85000, ce_housing: 220000, ce_shopping: 20000, ce_transport: 15000, ce_bills: 26000 },
         // July is the vacation, and December's shopping target is higher, for the holidays.
         [`${year}-07`]: { "ce_food-drinks": 110000, ce_housing: 270000, ce_transport: 80000 },
         [`${year}-12`]: { ce_shopping: 50000 },
