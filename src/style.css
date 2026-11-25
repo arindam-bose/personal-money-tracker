@@ -2922,6 +2922,10 @@ button.link.demo-link {
   padding: 10px 14px;
 }
 
+.sub-table {
+  width: 100%;
+}
+
 .sub-table tbody tr {
   cursor: pointer;
 }

@@ -70,9 +70,9 @@ export function ReportsView() {
       <ReportTabs title="Expense reports" id="expense" tabs={{
         category: { label: "Spending by category", body: <CategoryCard ledger={l} months={months} kind="expense" /> },
         weekly: { label: "Weekly spending", body: <WeeklyCard ledger={l} year={year} start={start} lastDate={lastDate} /> },
+        subscriptions: { label: "Subscriptions", body: <SubscriptionsCard ledger={l} months={months} tags={data.setup.tags} lastDate={lastDate} /> },
         cards: { label: "Credit card usage", body: <CardUsageCard ledger={l} /> },
       }} />
-      <SubscriptionsCard ledger={l} months={months} tags={data.setup.tags} lastDate={lastDate} />
       <ReportTabs title="Savings and investment reports" id="saving" tabs={{
         savings: { label: "Monthly savings", body: <SavingsCard ledger={l} months={months} /> },
         investment: { label: "Monthly investment", body: <InvestmentCard ledger={l} months={months} /> },
