@@ -5,8 +5,8 @@
 import { useSignal, useSignalEffect } from "@preact/signals";
 import type { ComponentChildren } from "preact";
 import {
-  MONTH_SHORT, balanceSeries, cardSpending, earningsByMonth, hasLoanAccount, moneyFlow, monthlySummaries, ratio, shortDate, spendingByMonth, weeklyEarnings, weeklySpending,
-  type FlowGroup, type Ledger,
+  MONTH_SHORT, balanceSeries, cardSpending, earningsByMonth, hasLoanAccount, moneyFlow, monthlySummaries, ratio, shortDate, spendingByMonth, subscriptionTag, subscriptions, weeklyEarnings, weeklySpending,
+  type Cadence, type FlowGroup, type Ledger,
 } from "../derive";
 // Every amount on this page goes through these, so Hide the numbers covers them all.
 import { maskedCents as formatCents, maskedCompact as formatCompact } from "../hide-numbers";
@@ -19,6 +19,7 @@ import { CardTitle } from "./help";
 import { showInLedger } from "./ledger";
 import { MemberPicker, viewedLedger, viewedMember } from "./people";
 import { NoData } from "./no-data";
+import type { Tag } from "../types";
 import { dayBefore, firstMonth, yearStart } from "../year";
 
 /** How many categories get their own colour in the stacked chart; the rest fold into "Everything else". */
@@ -71,6 +72,7 @@ export function ReportsView() {
         weekly: { label: "Weekly spending", body: <WeeklyCard ledger={l} year={year} start={start} lastDate={lastDate} /> },
         cards: { label: "Credit card usage", body: <CardUsageCard ledger={l} /> },
       }} />
+      <SubscriptionsCard ledger={l} months={months} tags={data.setup.tags} lastDate={lastDate} />
       <ReportTabs title="Savings and investment reports" id="saving" tabs={{
         savings: { label: "Monthly savings", body: <SavingsCard ledger={l} months={months} /> },
         investment: { label: "Monthly investment", body: <InvestmentCard ledger={l} months={months} /> },
@@ -516,6 +518,102 @@ function CardUsageCard({ ledger: l }: { ledger: Ledger }) {
       <TableView head={["Card", "Spent", "Share"]}
         rows={slices.map((c) => [c.name, formatCents(c.spent), formatPercent(c.spent / total)])}
         foot={["Total", formatCents(total), formatPercent(1)]} />
+    </Card>
+  );
+}
+
+// --- Subscriptions: expenses with the Subscription tag ---
+
+const CADENCE_LABEL: Record<Cadence, string> = {
+  monthly: "Monthly", quarterly: "Quarterly", yearly: "Yearly", once: "Once this year", irregular: "Now and then",
+};
+
+function SubscriptionsCard({ ledger: l, months, tags, lastDate }: { ledger: Ledger; months: MonthRange; tags: Tag[]; lastDate: string }) {
+  const title = "Subscriptions";
+  const tag = subscriptionTag(tags);
+  if (!tag) {
+    return (
+      <Card title={title} subtitle="What you pay for again and again.">
+        <p class="muted">No Subscription tag. Add a tag named Subscription on the Accounts page, and put it on the expenses that are subscriptions.</p>
+      </Card>
+    );
+  }
+  // Active is judged on the day of the latest entry, so a month not entered yet doesn't stop them all.
+  const subs = subscriptions(l, tag.id, lastDate);
+  if (!subs.length) {
+    return (
+      <Card title={title} subtitle="What you pay for again and again.">
+        <p class="muted">No expenses tagged {tag.name} yet.</p>
+      </Card>
+    );
+  }
+  const active = subs.filter((s) => s.active);
+  const paid = subs.reduce((a, s) => a + s.total, 0);
+  const yearly = active.reduce((a, s) => a + s.yearlyCost, 0);
+  const labels = inRange(MONTH_SHORT, months);
+  const perMonth = labels.map((_, i) => subs.reduce((a, s) => a + s.byMonth[months.first - 1 + i]!, 0));
+  const [, c2] = seriesColors();
+  const member = viewedMember()?.id ?? "";
+  const option: ChartOption = {
+    ...baseOption(),
+    legend: undefined,
+    tooltip: { ...(baseOption().tooltip as object), trigger: "axis", axisPointer: { type: "shadow" }, valueFormatter: money },
+    xAxis: { type: "category", data: labels, ...axisStyle(), splitLine: { show: false } },
+    yAxis: moneyAxis(),
+    series: [{ name: "Subscriptions", type: "bar", barMaxWidth: 24, data: perMonth, itemStyle: { color: c2, borderRadius: [4, 4, 0, 0] } }],
+  };
+  return (
+    <Card title={title}
+      subtitle={`Expenses tagged ${tag.name}. Payments with the same name are one subscription. One that has missed its next payment, as of your latest entry (${shortDate(lastDate)}), counts as stopped. Click a row to see its entries.`}>
+      <div class="tiles sub-tiles">
+        <div class="tile">
+          <div class="tile-label">Active subscriptions</div>
+          <div class="tile-value">{active.length}</div>
+          <div class="tile-detail">{subs.length} paid for this year</div>
+        </div>
+        <div class="tile">
+          <div class="tile-label">Paid this year</div>
+          <div class="tile-value">{formatCents(paid)}</div>
+          <div class="tile-detail">{subs.reduce((a, s) => a + s.payments, 0)} payments</div>
+        </div>
+        <div class="tile">
+          <div class="tile-label">A year of the active ones</div>
+          <div class="tile-value">{formatCents(yearly)}</div>
+          <div class="tile-detail">about {formatCents(Math.round(yearly / 12))} a month, at their latest prices</div>
+        </div>
+      </div>
+      <Chart option={option} height={260} label={`Subscription payments per month, ${formatCents(paid)} in all`} />
+      <div class="heatmap-wrap">
+        <table class="data-table sub-table">
+          <thead>
+            <tr>
+              <th>Subscription</th><th>How often</th><th class="num">Payments</th><th class="num">Last paid</th>
+              <th class="num">Last amount</th><th class="num">This year</th><th class="num">A year costs</th>
+            </tr>
+          </thead>
+          <tbody>
+            {subs.map((s) => (
+              <tr class={s.active ? "" : "stopped"} tabIndex={0} title={`See ${s.name}'s entries`}
+                onClick={() => showInLedger({ tag: tag.id, q: s.name, kind: "expense", member })}
+                onKeyDown={(e) => (e.key === "Enter" || e.key === " ") && (e.preventDefault(), showInLedger({ tag: tag.id, q: s.name, kind: "expense", member }))}>
+                <td>{s.name}{!s.active && <span class="badge">stopped</span>}</td>
+                <td>{CADENCE_LABEL[s.cadence]}</td>
+                <td class="num">{s.payments}</td>
+                <td class="num">{shortDate(s.last)}</td>
+                <td class="num">{formatCents(s.lastAmount)}</td>
+                <td class="num">{formatCents(s.total)}</td>
+                <td class="num">{s.active ? formatCents(s.yearlyCost) : "—"}</td>
+              </tr>
+            ))}
+          </tbody>
+          <tfoot>
+            <tr>
+              <td>Total</td><td /><td class="num">{subs.reduce((a, s) => a + s.payments, 0)}</td><td /><td />
+              <td class="num">{formatCents(paid)}</td><td class="num">{formatCents(yearly)}</td>
+            </tr>
+          </tfoot>
+        </table>
+      </div>
     </Card>
   );
 }

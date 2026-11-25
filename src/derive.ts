@@ -5,7 +5,7 @@
 // against the totals Notion computed (tests/derive.test.ts, tests/real-data.test.ts).
 
 import type {
-  Account, Budgets, Category, Cents, Earning, EarningRole, Expense, ExpenseRole, IsoDate, Transfer, TransferRole, Valuation, YearFile, YearSetup,
+  Account, Budgets, Category, Cents, Earning, EarningRole, Expense, ExpenseRole, IsoDate, Tag, Transfer, TransferRole, Valuation, YearFile, YearSetup,
 } from "./types";
 import { monthShare } from "./year";
 
@@ -876,4 +876,89 @@ export function monthProgress(year: number, month: number, today: IsoDate, start
   // In the month tracking starts, the month begins on the start day.
   const from = start && start.slice(0, 7) === today.slice(0, 7) ? Number(start.slice(8, 10)) : 1;
   return Math.max(0, Number(today.slice(8, 10)) - from + 1) / (days - from + 1);
+}
+
+// --- Subscriptions ---
+
+/** The tag that marks subscriptions: one named Subscription or Subscriptions, in any case. */
+export function subscriptionTag(tags: Tag[]): Tag | undefined {
+  return tags.find((t) => /^subscriptions?$/i.test(t.name.trim()));
+}
+
+export type Cadence = "monthly" | "quarterly" | "yearly" | "once" | "irregular";
+
+export interface Subscription {
+  /** What the latest payment was called. */
+  name: string;
+  payments: number;
+  /** Paid this year. */
+  total: Cents;
+  /** Paid each month, index 0 = January. */
+  byMonth: Cents[];
+  first: IsoDate;
+  last: IsoDate;
+  lastAmount: Cents;
+  cadence: Cadence;
+  /** Still being paid: the next payment isn't overdue, by its cadence. */
+  active: boolean;
+  /**
+   * What a year of it costs at its latest price: twelve monthly payments, four quarterly ones,
+   * or one yearly one. A single payment this year counts as yearly. 0 when not active.
+   */
+  yearlyCost: Cents;
+}
+
+const DAY_MS = 24 * 60 * 60 * 1000;
+const daysBetween = (a: IsoDate, b: IsoDate) => Math.round((Date.parse(b) - Date.parse(a)) / DAY_MS);
+
+/**
+ * How often something is paid, from the typical (median) gap in days between payments.
+ * Paid once, a name that says "monthly", "yearly" or "annual" decides it.
+ */
+function cadenceOf(dates: IsoDate[], name: string): Cadence {
+  if (dates.length < 2) return /\bmonthly\b/i.test(name) ? "monthly" : /\b(yearly|annual)\b/i.test(name) ? "yearly" : "once";
+  const gaps = dates.slice(1).map((d, i) => daysBetween(dates[i]!, d)).sort((a, b) => a - b);
+  const gap = gaps[Math.floor(gaps.length / 2)]!;
+  if (gap >= 20 && gap <= 45) return "monthly";
+  if (gap >= 75 && gap <= 105) return "quarterly";
+  if (gap >= 330 && gap <= 400) return "yearly";
+  return "irregular";
+}
+
+/** Days after the last payment before a subscription counts as stopped: its gap plus some slack. */
+const GRACE: Record<Cadence, number> = { monthly: 45, quarterly: 120, yearly: 400, once: 400, irregular: 120 };
+const PER_YEAR: Record<Cadence, number> = { monthly: 12, quarterly: 4, yearly: 1, once: 1, irregular: 0 };
+
+/**
+ * Expenses with the subscription tag, one row per subscription: entries are the same
+ * subscription when their names match, ignoring case and spacing. Biggest yearly cost first,
+ * then most paid. `asOf` is the day a subscription is judged active on (today, or the year's end).
+ */
+export function subscriptions(ledger: Ledger, tagId: string, asOf: IsoDate): Subscription[] {
+  const groups = new Map<string, Expense[]>();
+  for (const e of ledger.expenses) {
+    if (!e.tags.includes(tagId) || e.date > asOf) continue;
+    const key = e.item.trim().replace(/\s+/g, " ").toLowerCase();
+    let list = groups.get(key);
+    if (!list) groups.set(key, (list = []));
+    list.push(e);
+  }
+  const out: Subscription[] = [];
+  for (const list of groups.values()) {
+    list.sort((a, b) => (a.date < b.date ? -1 : a.date > b.date ? 1 : 0));
+    const last = list[list.length - 1]!;
+    const byMonth = new Array<Cents>(12).fill(0);
+    for (const e of list) byMonth[Number(e.date.slice(5, 7)) - 1]! += e.amount;
+    const cadence = cadenceOf(list.map((e) => e.date), last.item);
+    const active = daysBetween(last.date, asOf) <= GRACE[cadence];
+    // An irregular one costs what it averaged a month, over the months it ran.
+    const months = Math.max(1, daysBetween(list[0]!.date, last.date) / 30.44);
+    const total = list.reduce((a, e) => a + e.amount, 0);
+    const yearlyCost = !active ? 0 : cadence === "irregular" ? Math.round((total / months) * 12) : last.amount * PER_YEAR[cadence];
+    out.push({
+      name: last.item.trim(), payments: list.length, total, byMonth,
+      first: list[0]!.date, last: last.date, lastAmount: last.amount, cadence, active, yearlyCost,
+    });
+  }
+  return out.sort((a, b) => b.yearlyCost - a.yearlyCost || b.total - a.total || a.name.localeCompare(b.name));
 }
