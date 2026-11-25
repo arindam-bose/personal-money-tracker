@@ -2910,3 +2910,31 @@ button.link.demo-link {
   font-size: 18px;
   line-height: 1.4;
 }
+
+/* Reports' Subscriptions: plain tiles inside the card, and rows that open their entries. */
+.sub-tiles {
+  margin-top: 12px;
+}
+
+.sub-tiles .tile {
+  border: 1px solid var(--border);
+  border-radius: 8px;
+  padding: 10px 14px;
+}
+
+.sub-table {
+  width: 100%;
+}
+
+.sub-table tbody tr {
+  cursor: pointer;
+}
+
+.sub-table tbody tr:hover td,
+.sub-table tbody tr:focus-visible td {
+  background: var(--border);
+}
+
+.sub-table tr.stopped td {
+  color: var(--muted);
+}

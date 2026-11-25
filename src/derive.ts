@@ -5,7 +5,7 @@
 // against the totals Notion computed (tests/derive.test.ts, tests/real-data.test.ts).
 
 import type {
-  Account, Budgets, Category, Cents, Earning, EarningRole, Expense, ExpenseRole, IsoDate, Transfer, TransferRole, Valuation, YearFile, YearSetup,
+  Account, Budgets, Category, Cents, Earning, EarningRole, Expense, ExpenseRole, IsoDate, Tag, Transfer, TransferRole, Valuation, YearFile, YearSetup,
 } from "./types";
 import { monthShare } from "./year";
 
@@ -876,4 +876,122 @@ export function monthProgress(year: number, month: number, today: IsoDate, start
   // In the month tracking starts, the month begins on the start day.
   const from = start && start.slice(0, 7) === today.slice(0, 7) ? Number(start.slice(8, 10)) : 1;
   return Math.max(0, Number(today.slice(8, 10)) - from + 1) / (days - from + 1);
+}
+
+// --- Subscriptions ---
+
+/** Every tag that marks subscriptions: those named Subscription or Subscriptions, in any case. */
+export function subscriptionTags(tags: Tag[]): Tag[] {
+  return tags.filter((t) => /^subscriptions?$/i.test(t.name.trim()));
+}
+
+/** Expenses carrying any of the given tags. */
+export function taggedWith(expenses: Expense[], tags: Tag[]): Expense[] {
+  const ids = new Set(tags.map((t) => t.id));
+  return expenses.filter((e) => e.tags.some((t) => ids.has(t)));
+}
+
+/** Two items are the same thing when their names match, ignoring case and spacing. */
+export const itemKey = (item: string) => item.trim().replace(/\s+/g, " ").toLowerCase();
+
+/**
+ * How often a subscription is paid. "new": paid once, recently, with nothing to go on yet: it may
+ * be monthly. "once": paid once, long enough ago that it would have come back if it were monthly,
+ * so it's taken as yearly.
+ */
+export type Cadence =
+  | "weekly" | "fortnightly" | "monthly" | "bimonthly" | "quarterly" | "twice-yearly" | "yearly"
+  | "irregular" | "new" | "once";
+
+/** The regular cadences: the gap in days each expects, and the median gaps that count as it. */
+const CADENCES: { cadence: Cadence; days: number; min: number; max: number }[] = [
+  { cadence: "weekly", days: 7, min: 5, max: 9 },
+  { cadence: "fortnightly", days: 14, min: 10, max: 19 },
+  { cadence: "monthly", days: 365.25 / 12, min: 20, max: 45 },
+  { cadence: "bimonthly", days: 365.25 / 6, min: 46, max: 75 },
+  { cadence: "quarterly", days: 365.25 / 4, min: 76, max: 120 },
+  { cadence: "twice-yearly", days: 365.25 / 2, min: 150, max: 215 },
+  { cadence: "yearly", days: 365.25, min: 300, max: 430 },
+];
+const MONTH_DAYS = 365.25 / 12;
+/** How long after the last payment one counts as stopped: half a gap more, but no more than two months late. */
+const grace = (days: number) => Math.min(days * 1.5, days + 60);
+
+export interface Subscription {
+  /** What the latest payment was called. */
+  name: string;
+  /** Paid this year: payments, the total and each month's (index 0 = January). */
+  payments: number;
+  total: Cents;
+  byMonth: Cents[];
+  /** The latest payment, maybe last year's. */
+  last: IsoDate;
+  lastAmount: Cents;
+  cadence: Cadence;
+  /** Still being paid: the next payment isn't overdue for its cadence. */
+  active: boolean;
+  /**
+   * What a year of it costs at the latest price: the latest payment times how many a year come at
+   * its cadence (an irregular one at its typical gap). 0 when stopped; null when too new to tell.
+   */
+  yearlyCost: Cents | null;
+}
+
+const DAY_MS = 24 * 60 * 60 * 1000;
+const daysBetween = (a: IsoDate, b: IsoDate) => Math.round((Date.parse(b) - Date.parse(a)) / DAY_MS);
+
+/** A cadence and its gap in days, from the typical (median) gap between payments. */
+function cadenceOf(dates: IsoDate[], name: string, asOf: IsoDate): { cadence: Cadence; days: number } {
+  if (dates.length < 2) {
+    // Paid once: a name that says how often decides it; otherwise its age.
+    if (/\bmonthly\b/i.test(name)) return { cadence: "monthly", days: MONTH_DAYS };
+    if (/\b(yearly|annual)\b/i.test(name)) return { cadence: "yearly", days: 365.25 };
+    return daysBetween(dates[0]!, asOf) <= 45 ? { cadence: "new", days: 0 } : { cadence: "once", days: 365.25 };
+  }
+  const gaps = dates.slice(1).map((d, i) => daysBetween(dates[i]!, d)).sort((a, b) => a - b);
+  const mid = gaps.length / 2;
+  const gap = gaps.length % 2 ? gaps[Math.floor(mid)]! : (gaps[mid - 1]! + gaps[mid]!) / 2;
+  const known = CADENCES.find((c) => gap >= c.min && gap <= c.max);
+  return known ? { cadence: known.cadence, days: known.days } : { cadence: "irregular", days: Math.max(1, gap) };
+}
+
+/**
+ * One row per subscription, from expenses already picked out as subscriptions (taggedWith):
+ * `expenses` from this year, `earlier` from last year. Entries are the same subscription when
+ * their names match (itemKey). Last year's payments only help tell how often each is paid and
+ * whether it's still running, so a yearly one paid last spring still shows; they're never
+ * counted in this year's figures. `asOf` is the day it's all judged on: the Reports page passes
+ * the latest entry not after today, so a month not entered yet doesn't stop everything.
+ * Biggest yearly cost first, then most paid.
+ */
+export function subscriptions(expenses: Expense[], asOf: IsoDate, earlier: Expense[] = []): Subscription[] {
+  const groups = new Map<string, { now: Expense[]; all: Expense[] }>();
+  const add = (e: Expense, thisYear: boolean) => {
+    if (e.date > asOf) return;
+    const key = itemKey(e.item);
+    let g = groups.get(key);
+    if (!g) groups.set(key, (g = { now: [], all: [] }));
+    g.all.push(e);
+    if (thisYear) g.now.push(e);
+  };
+  for (const e of earlier) add(e, false);
+  for (const e of expenses) add(e, true);
+
+  const out: Subscription[] = [];
+  for (const { now, all } of groups.values()) {
+    all.sort((a, b) => (a.date < b.date ? -1 : a.date > b.date ? 1 : 0));
+    const last = all[all.length - 1]!;
+    const { cadence, days } = cadenceOf(all.map((e) => e.date), last.item, asOf);
+    const active = cadence === "new" || daysBetween(last.date, asOf) <= grace(days);
+    // Last year's alone: shown only while still running.
+    if (!now.length && !active) continue;
+    const byMonth = new Array<Cents>(12).fill(0);
+    for (const e of now) byMonth[Number(e.date.slice(5, 7)) - 1]! += e.amount;
+    out.push({
+      name: last.item.trim(), payments: now.length, total: now.reduce((a, e) => a + e.amount, 0), byMonth,
+      last: last.date, lastAmount: last.amount, cadence, active,
+      yearlyCost: cadence === "new" ? null : active ? Math.round(last.amount * 365.25 / days) : 0,
+    });
+  }
+  return out.sort((a, b) => (b.yearlyCost ?? 0) - (a.yearlyCost ?? 0) || b.total - a.total || a.name.localeCompare(b.name));
 }
