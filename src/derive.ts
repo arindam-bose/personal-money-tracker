@@ -959,10 +959,11 @@ function cadenceOf(dates: IsoDate[], name: string, asOf: IsoDate): { cadence: Ca
 /**
  * One row per subscription, from expenses already picked out as subscriptions (taggedWith):
  * `expenses` from this year, `earlier` from last year. Entries are the same subscription when
- * their names match (itemKey). Last year's payments only help tell how often each is paid and
- * whether it's still running, so a yearly one paid last spring still shows; they're never
- * counted in this year's figures. `asOf` is the day it's all judged on: the Reports page passes
- * the latest entry not after today, so a month not entered yet doesn't stop everything.
+ * their names match (itemKey); several on one day are timed and priced as one. Last year's
+ * payments only help tell how often each is paid and whether it's still running, so a yearly one
+ * paid last spring still shows; they're never counted in this year's figures. `asOf` is the day
+ * it's all judged on: the Reports page passes the latest entry not after today (in a year entered
+ * ahead, its latest entry), so a month not entered yet doesn't stop everything.
  * Biggest yearly cost first, then most paid.
  */
 export function subscriptions(expenses: Expense[], asOf: IsoDate, earlier: Expense[] = []): Subscription[] {
