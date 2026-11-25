@@ -103,4 +103,17 @@ describe("subscriptions", () => {
     const w = subscriptions(list, "2026-10-01")[0]!;
     expect(w).toMatchObject({ cadence: "irregular", active: true, yearlyCost: Math.round(3000 * 365.25 / 130) });
   });
+
+  it("takes payments with the same name on the same day as one, at what they come to together", () => {
+    // Two Apple charges on the 3rd of each month: monthly, still running, at both prices.
+    const list = [...monthly("Apple", 299, 3, 1, 11), ...monthly("Apple", 1099, 3, 1, 11)];
+    const a = subscriptions(list, "2026-11-24")[0]!;
+    expect(a).toMatchObject({ cadence: "monthly", active: true, payments: 22, lastAmount: 1398, yearlyCost: Math.round(1398 * 12) });
+  });
+
+  it("puts a median between two whole days into a cadence", () => {
+    // Gaps of 45 and 46 days: 45.5, monthly or every two months, not now and then.
+    const list = [pay("2026-01-01", "Box", 100), pay("2026-02-15", "Box", 100), pay("2026-04-02", "Box", 100)];
+    expect(subscriptions(list, "2026-04-10")[0]!.cadence).not.toBe("irregular");
+  });
 });
