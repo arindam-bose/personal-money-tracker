@@ -1,6 +1,6 @@
 # Money Tracker
 
-**Version 7.0.16** ·
+**Version 8.0.0** ·
 [Use it online](https://arindambose.com/personal-money-tracker/)
 
 Keep track of what you earn, spend, save and invest, one year at a time.
@@ -113,4 +113,4 @@ A thin strip under the top bar (except on Over the years) shows when the open ye
 ---
 
 For how it's built, and how to run, test or change it, see the
-[extended README](EXTENDED_README.md).
+[extended README](README_EXTENDED.md).

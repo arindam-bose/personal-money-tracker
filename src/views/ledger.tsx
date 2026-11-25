@@ -33,9 +33,14 @@ export interface Filters {
   q: string;
   /** Only entries with exactly this item, as itemKey writes it (Reports' Subscriptions rows). */
   item: string;
+  /**
+   * With the item: only entries carrying one of these tag ids, comma-separated (a Subscriptions row
+   * when both a Subscription and a Subscriptions tag exist). Goes with the item when it's cleared.
+   */
+  itemTags: string;
 }
 
-const NO_FILTERS: Filters = { month: "", from: "", to: "", kind: "", account: "", cat: "", tag: "", member: "", q: "", item: "" };
+const NO_FILTERS: Filters = { month: "", from: "", to: "", kind: "", account: "", cat: "", tag: "", member: "", q: "", item: "", itemTags: "" };
 const FILTERS_KEY = "ledger-filters";
 const SORT_KEY = "ledger-sort";
 /** Rows shown at a time; buttons under the table show more or fewer. */
@@ -144,6 +149,7 @@ function matches(e: AnyEntry, f: Filters, window: [string, string] | null, amoun
   }
   if (f.tag && !(e.kind === "expense" && e.entry.tags.includes(f.tag))) return false;
   if (f.item && itemKey(e.entry.item) !== f.item) return false;
+  if (f.item && f.itemTags && !(e.kind === "expense" && f.itemTags.split(",").some((t) => e.entry.tags.includes(t)))) return false;
   if (f.q) {
     const q = f.q.toLowerCase();
     const byAmount = amount !== null && amountText(e.entry.amount).startsWith(amount);
@@ -350,7 +356,7 @@ export function LedgerView() {
         {f.item && (
           <span class="chip item-filter">
             Item: {itemTitle(f.item, allEntries())}
-            <button type="button" aria-label="Show every item" title="Show every item" onClick={() => setFilter("item", "")}>×</button>
+            <button type="button" aria-label="Show every item" title="Show every item" onClick={() => (filters.value = { ...live.value, item: "", itemTags: "" })}>×</button>
           </span>
         )}
         <div class="search">

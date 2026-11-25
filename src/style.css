@@ -2930,7 +2930,12 @@ button.link.demo-link {
   cursor: pointer;
 }
 
-.sub-table tbody tr:hover td,
+/* Paid only last year, still running: nothing this year to open. */
+.sub-table tbody tr.unopened {
+  cursor: default;
+}
+
+.sub-table tbody tr:not(.unopened):hover td,
 .sub-table tbody tr:focus-visible td {
   background: var(--border);
 }

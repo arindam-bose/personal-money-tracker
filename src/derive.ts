@@ -924,7 +924,7 @@ export interface Subscription {
   payments: number;
   total: Cents;
   byMonth: Cents[];
-  /** The latest payment, maybe last year's. */
+  /** The latest payment, maybe last year's; payments on its day added together. */
   last: IsoDate;
   lastAmount: Cents;
   cadence: Cadence;
@@ -950,7 +950,8 @@ function cadenceOf(dates: IsoDate[], name: string, asOf: IsoDate): { cadence: Ca
   }
   const gaps = dates.slice(1).map((d, i) => daysBetween(dates[i]!, d)).sort((a, b) => a - b);
   const mid = gaps.length / 2;
-  const gap = gaps.length % 2 ? gaps[Math.floor(mid)]! : (gaps[mid - 1]! + gaps[mid]!) / 2;
+  // Rounded, so a median between two whole days (45.5) still lands in a cadence.
+  const gap = Math.round(gaps.length % 2 ? gaps[Math.floor(mid)]! : (gaps[mid - 1]! + gaps[mid]!) / 2);
   const known = CADENCES.find((c) => gap >= c.min && gap <= c.max);
   return known ? { cadence: known.cadence, days: known.days } : { cadence: "irregular", days: Math.max(1, gap) };
 }
@@ -958,10 +959,11 @@ function cadenceOf(dates: IsoDate[], name: string, asOf: IsoDate): { cadence: Ca
 /**
  * One row per subscription, from expenses already picked out as subscriptions (taggedWith):
  * `expenses` from this year, `earlier` from last year. Entries are the same subscription when
- * their names match (itemKey). Last year's payments only help tell how often each is paid and
- * whether it's still running, so a yearly one paid last spring still shows; they're never
- * counted in this year's figures. `asOf` is the day it's all judged on: the Reports page passes
- * the latest entry not after today, so a month not entered yet doesn't stop everything.
+ * their names match (itemKey); several on one day are timed and priced as one. Last year's
+ * payments only help tell how often each is paid and whether it's still running, so a yearly one
+ * paid last spring still shows; they're never counted in this year's figures. `asOf` is the day
+ * it's all judged on: the Reports page passes the latest entry not after today (in a year entered
+ * ahead, its latest entry), so a month not entered yet doesn't stop everything.
  * Biggest yearly cost first, then most paid.
  */
 export function subscriptions(expenses: Expense[], asOf: IsoDate, earlier: Expense[] = []): Subscription[] {
@@ -981,7 +983,11 @@ export function subscriptions(expenses: Expense[], asOf: IsoDate, earlier: Expen
   for (const { now, all } of groups.values()) {
     all.sort((a, b) => (a.date < b.date ? -1 : a.date > b.date ? 1 : 0));
     const last = all[all.length - 1]!;
-    const { cadence, days } = cadenceOf(all.map((e) => e.date), last.item, asOf);
+    // Payments on the same day are one: two with the same name (two Apple charges on the 3rd) are
+    // paid together, so they're timed as one and priced at what they come to together.
+    const dates = all.map((e) => e.date).filter((d, i, ds) => i === 0 || d !== ds[i - 1]);
+    const lastAmount = all.filter((e) => e.date === last.date).reduce((a, e) => a + e.amount, 0);
+    const { cadence, days } = cadenceOf(dates, last.item, asOf);
     const active = cadence === "new" || daysBetween(last.date, asOf) <= grace(days);
     // Last year's alone: shown only while still running.
     if (!now.length && !active) continue;
@@ -989,8 +995,8 @@ export function subscriptions(expenses: Expense[], asOf: IsoDate, earlier: Expen
     for (const e of now) byMonth[Number(e.date.slice(5, 7)) - 1]! += e.amount;
     out.push({
       name: last.item.trim(), payments: now.length, total: now.reduce((a, e) => a + e.amount, 0), byMonth,
-      last: last.date, lastAmount: last.amount, cadence, active,
-      yearlyCost: cadence === "new" ? null : active ? Math.round(last.amount * 365.25 / days) : 0,
+      last: last.date, lastAmount, cadence, active,
+      yearlyCost: cadence === "new" ? null : active ? Math.round(lastAmount * 365.25 / days) : 0,
     });
   }
   return out.sort((a, b) => (b.yearlyCost ?? 0) - (a.yearlyCost ?? 0) || b.total - a.total || a.name.localeCompare(b.name));
